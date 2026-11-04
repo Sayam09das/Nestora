@@ -1,1 +1,0 @@
-# NESTORA -- Hostel Management System
