@@ -5,6 +5,7 @@ All notable changes to the Nestora **documentation suite** (`docs/` and root `RE
 ## [Unreleased]
 
 ### Added
+
 - Root `LICENSE` — academic project license (MIT terms with BCA academic context).
 - Root `CONTRIBUTING.md` — contribution workflow, PR standards, and traceability conventions.
 - `docs/README.md` — documentation index, reading order, and conventions.
@@ -13,10 +14,12 @@ All notable changes to the Nestora **documentation suite** (`docs/` and root `RE
 - `docs/CHANGELOG.md` — this file.
 
 ### Fixed
+
 - Replaced machine-local `file:///` links in specification documents with portable relative `./` links.
 
 ## [2026-11-05] — Initial specification suite
 
 ### Added
+
 - Documents `01` through `09`: overview, scope, functional and non-functional requirements, roles, architecture, database design, module plan, and monorepo architecture.
 - Root `README.md` architectural index.

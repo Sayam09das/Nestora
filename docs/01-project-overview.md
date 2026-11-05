@@ -1,12 +1,14 @@
 # Nestora — University Hostel Management System
 
 ## 1. Project Title
+
 **Nestora — University Hostel Management System**
 
 ---
 
 ## 2. Introduction
-**Nestora** is a proposed web-based University Hostel Management System designed to centralize and streamline student accommodation and hostel administration across multiple hostels under a single university. 
+
+**Nestora** is a proposed web-based University Hostel Management System designed to centralize and streamline student accommodation and hostel administration across multiple hostels under a single university.
 
 Managing student housing across an entire university involves coordinating numerous residential facilities, accommodating diverse student populations, managing infrastructure, and facilitating smooth operational workflows among various administrative and support roles. Nestora addresses these complexities by providing a unified digital platform that couples high-level university oversight with autonomous, hostel-level operational management.
 
@@ -15,9 +17,10 @@ This document represents the introductory project overview for an academic softw
 ---
 
 ## 3. Background of the Project
+
 Universities frequently operate multiple residential hostels located across one or more campus zones. These accommodations typically encompass distinct categories—such as Boys' Hostels and Girls' Hostels—and are structurally organized into multiple buildings, blocks, floors, rooms, and individual bed spaces.
 
-In conventional university environments, hostel administration is predominantly carried out through fragmented mechanisms. Individual hostels often depend on physical paper registers, manual logbooks, standalone spreadsheets, and informal communication channels. Information regarding student admissions, bed allocation, daily attendance, gate passes, visitor entries, student grievances, and fee payments is typically maintained in isolated silos. 
+In conventional university environments, hostel administration is predominantly carried out through fragmented mechanisms. Individual hostels often depend on physical paper registers, manual logbooks, standalone spreadsheets, and informal communication channels. Information regarding student admissions, bed allocation, daily attendance, gate passes, visitor entries, student grievances, and fee payments is typically maintained in isolated silos.
 
 This operational fragmentation poses significant difficulties:
 - Records are susceptible to loss, physical wear, and clerical inaccuracies.
@@ -29,6 +32,7 @@ Nestora is conceived against this background to provide a modern, centralized, a
 ---
 
 ## 4. Problem Statement
+
 The administration of multi-hostel university accommodation without a centralized digital system leads to multiple operational inefficiencies and safety risks:
 
 1. **Decentralized and Redundant Data Management**: Maintaining disparate paper registers and ad-hoc spreadsheets across multiple hostels results in inconsistent records, data redundancy, and tedious manual reconciliation.
@@ -42,6 +46,7 @@ The administration of multi-hostel university accommodation without a centralize
 ---
 
 ## 5. Proposed Solution
+
 To resolve these challenges, **Nestora** proposes a centralized, web-based University Hostel Management System engineered around a structured institutional hierarchy and strict role-based access control.
 
 The proposed solution provides:
@@ -54,11 +59,13 @@ The proposed solution provides:
 ---
 
 ## 6. Aim of the Project
+
 The primary aim of the Nestora project is to design and formulate a comprehensive, secure, and user-friendly web-based University Hostel Management System that centralizes accommodation governance, digitizes day-to-day hostel operations, ensures data isolation and role-appropriate access, and enhances safety and efficiency for all stakeholders within a university ecosystem.
 
 ---
 
 ## 7. Project Objectives
+
 To achieve the stated aim, the project outlines the following specific objectives:
 
 1. **Model a Hierarchical Infrastructure Structure**: Design a flexible architectural schema representing multiple hostels under a single university, categorized by gender (Boys' and Girls' hostels), further organized into buildings, blocks, floors, rooms, and individual beds.
@@ -75,6 +82,7 @@ To achieve the stated aim, the project outlines the following specific objective
 ---
 
 ## 8. Overview of the System
+
 Nestora is structured around several planned functional capability areas, designed to operate collaboratively:
 
 - **Student Admission and Registration**: Facilitates the recording of student academic profiles, contact details, guardian information, and verification records prior to or upon hostel admission.
@@ -97,38 +105,44 @@ Nestora is structured around several planned functional capability areas, design
 ---
 
 ## 9. Intended Users
+
 Nestora defines six distinct user roles, each assigned specific responsibilities and restricted by appropriate privilege boundaries:
 
-| User Role | Operational Scope & Responsibilities |
-| :--- | :--- |
-| **University Administrator** | Holds university-wide oversight across all hostels. Responsible for configuring system-wide settings, registering hostels, assigning wardens, reviewing high-level analytical reports, and issuing institutional policies. |
-| **Hostel Warden** | Exercises full operational authority over their assigned hostel(s). Manages bed allocations, approves or rejects student leave/outing requests, oversees disciplinary matters, monitors complaints, and reviews hostel-level attendance and reports. |
-| **Student** | Resident user who views allocated room/bed details, applies for leaves and outings, submits maintenance complaints, monitors fee payment status, and accesses hostel notices and rules. |
-| **Hostel Staff** | Operational personnel (such as maintenance technicians and housekeeping staff) who receive, update, and resolve assigned maintenance tasks and complaint tickets within their designated hostel. |
-| **Security Guard** | Stationed at hostel or campus entry/exit points. Responsible for validating student leave/outing passes, recording student gate entry and exit times, and logging visitor details. |
-| **Accountant** | Handles financial operations, including tracking hostel fee structures, recording student fee receipts, monitoring outstanding balances, and compiling financial status reports. |
+| User Role                    | Operational Scope & Responsibilities                                                                                                                                                                                                                 |
+| :--------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **University Administrator** | Holds university-wide oversight across all hostels. Responsible for configuring system-wide settings, registering hostels, assigning wardens, reviewing high-level analytical reports, and issuing institutional policies.                           |
+| **Hostel Warden**            | Exercises full operational authority over their assigned hostel(s). Manages bed allocations, approves or rejects student leave/outing requests, oversees disciplinary matters, monitors complaints, and reviews hostel-level attendance and reports. |
+| **Student**                  | Resident user who views allocated room/bed details, applies for leaves and outings, submits maintenance complaints, monitors fee payment status, and accesses hostel notices and rules.                                                              |
+| **Hostel Staff**             | Operational personnel (such as maintenance technicians and housekeeping staff) who receive, update, and resolve assigned maintenance tasks and complaint tickets within their designated hostel.                                                     |
+| **Security Guard**           | Stationed at hostel or campus entry/exit points. Responsible for validating student leave/outing passes, recording student gate entry and exit times, and logging visitor details.                                                                   |
+| **Accountant**               | Handles financial operations, including tracking hostel fee structures, recording student fee receipts, monitoring outstanding balances, and compiling financial status reports.                                                                     |
 
 ---
 
 ## 10. Expected Benefits
+
 Implementing the proposed Nestora platform is expected to yield substantial benefits across all tiers of hostel administration:
 
 ### For University Administration
+
 - **Centralized Governance**: Real-time visibility into student occupancy, infrastructure usage, and administrative activities across all university hostels.
 - **Enhanced Accountability**: Clear audit trails for administrative decisions, bed allocations, and disciplinary actions.
 - **Informed Planning**: Aggregated data that assists in long-term capacity planning, budgeting, and resource allocation.
 
 ### For Hostel Wardens and Operational Staff
+
 - **Reduced Paperwork**: Transition from physical registers and manual record-keeping to unified digital records.
 - **Efficient Approvals**: Rapid review and digital processing of leave, outing, and bed allocation requests.
 - **Transparent Maintenance**: Clear tracking of maintenance tickets, preventing neglected repairs and improving accountability of service staff.
 
 ### For Students
+
 - **Convenience**: Digital self-service capabilities for submitting leave applications, lodging complaints, and checking fee dues without visiting administrative offices.
 - **Transparency**: Real-time visibility into the status of submitted requests and maintenance tickets.
 - **Timely Information**: Instant access to critical notices, updates, and official guidelines.
 
 ### For Security Personnel
+
 - **Streamlined Verification**: Quick, tamper-resistant digital verification of student leave approvals at gate checkpoints.
 - **Structured Visitor Logging**: Elimination of illegible paper visitor logbooks in favor of searchable, timestamped digital records.
 - **Safety Oversight**: Accurate tracking of on-premises versus off-premises resident headcounts during curfews or emergencies.
@@ -138,22 +152,28 @@ Implementing the proposed Nestora platform is expected to yield substantial bene
 ## 11. Project Context and Limitations
 
 ### Academic Project Scope
+
 - Nestora is developed strictly as an academic software engineering project for a Bachelor of Computer Applications (BCA) course.
 - The project's primary purpose is to demonstrate sound software engineering methodologies, structured system analysis, relational domain modeling, and role-based architectural design.
 
 ### Non-Production Status
+
 - The system is a proposed concept and does not represent a live, deployed, or commercial software solution.
 - It is not actively implemented in or affiliated with any specific real-world university or commercial accommodation provider.
 
 ### Domain Model Assumptions
+
 - The design assumes an idealized multi-hostel university governance model with standardized hierarchical relationships (University $\rightarrow$ Hostels $\rightarrow$ Buildings $\rightarrow$ Blocks $\rightarrow$ Floors $\rightarrow$ Rooms $\rightarrow$ Beds).
 - Operational processes (such as leave approvals, fee schedules, and curfew enforcement) are modeled on typical university norms and may require adaptation for institutions with non-standard policies.
 
 ### Hardware and Integration Boundaries
+
 - The initial scope focuses on software workflows. Physical hardware integrations—such as biometric fingerprint scanners, RFID turnstiles, automated SMS gateways, or direct banking payment gateways—are treated as external considerations and are not assumed to be implemented in the initial project phases.
 
 ### Implementation Separation
+
 - This overview document serves as a functional and requirements baseline. It does not imply that underlying database schemas, backend APIs, client-side interfaces, or authentication mechanisms are already implemented or completed.
 
 ### Documentation Suite
+
 - Full index and reading order: [docs/README.md](./README.md).

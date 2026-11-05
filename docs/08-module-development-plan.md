@@ -3,14 +3,17 @@
 ## 1. Introduction
 
 ### Purpose of the Module Development Plan
-The purpose of this Module Development Plan is to establish a structured, phased, and manageable roadmap for the engineering and implementation of **Nestora — University Hostel Management System**. 
+
+The purpose of this Module Development Plan is to establish a structured, phased, and manageable roadmap for the engineering and implementation of **Nestora — University Hostel Management System**.
 
 Building a multi-tenant university residential platform with six distinct user roles, multi-tier physical infrastructure modeling, strict data isolation boundaries, and interconnected administrative workflows requires a disciplined development sequence. This document serves as the implementation guide for developers, defining what modules will be constructed, their specific architectural responsibilities, functional dependencies, testing criteria, and milestone gates.
 
 ### Scope of the Development Roadmap
+
 The roadmap encompasses both backend and frontend development across all confirmed functional areas defined in the project baseline. It details the progression from foundational security, authentication, and core infrastructure services through operational workflows (admissions, allocations, attendance, movements, maintenance, finance) to governance, incident handling, reporting, and dashboard synthesis.
 
 ### Relationship with Existing Documentation
+
 This plan is directly grounded in the project documentation created to date:
 - [01-project-overview.md](./01-project-overview.md): Project background, aim, and institutional context.
 - [02-project-scope.md](./02-project-scope.md): In-scope features and explicit exclusions.
@@ -29,9 +32,11 @@ This plan is directly grounded in the project documentation created to date:
 ## 2. Development Strategy
 
 ### Modular Development Approach
+
 Nestora follows a **Decoupled Client-Server Modular Monolith** architecture. Development will proceed by creating cohesive, self-contained domain modules on the backend (Fastify + TypeScript) paired with corresponding feature components and pages on the frontend (Next.js + React + Tailwind CSS). Each module encapsulates its controllers, domain services, validation schemas, and database operations, exposing clear internal interfaces to neighboring modules.
 
 ### Backend-First vs. Frontend-First Strategy
+
 The project will execute using a **Backend-First, Contract-Driven Integration Strategy**:
 1. **Domain Contract Definition**: Request/response schemas, DTOs, and validation rules are defined in TypeScript.
 2. **Backend Service & API Implementation**: Database queries, transactions, RBAC guards, and REST endpoints are built and verified via automated integration tests.
@@ -40,9 +45,11 @@ The project will execute using a **Backend-First, Contract-Driven Integration St
 This sequence prevents frontend rework caused by shifting data structures and ensures backend security boundaries are proven before user interfaces are rendered.
 
 ### Incremental Implementation (Vertical Slicing)
+
 Rather than building all backend tables and routes before touching any frontend code, development will advance in **vertical slices across functional phases**. Once the core architectural foundation is established, each phase will deliver fully functional, end-to-end capabilities (database $\rightarrow$ API $\rightarrow$ UI $\rightarrow$ tests) before advancing to dependent operational domains.
 
 ### Development and Testing Workflow
+
 For every module, development follows a strict four-step quality cycle:
 1. **Schema & Model Setup**: Declare Prisma schema entities, migrations, and seed fixtures.
 2. **Service & Route Construction**: Implement business logic services, Fastify route controllers, boundary validation schemas, and RBAC middleware.
@@ -55,55 +62,56 @@ For every module, development follows a strict four-step quality cycle:
 
 The following table summarizes all 19 major functional modules, their core purpose, primary responsibilities, technical dependencies, and implementation priority:
 
-| Module ID | Module Name | Purpose | Main Responsibilities | Dependencies | Priority |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **MOD-01** | **Authentication & Account Management** | User identity, sessions, and account lifecycle | Email/password login, salted hashing, session management, password resets, account activation, user provisioning | None (Foundational) | Must (Phase 1) |
-| **MOD-02** | **Hostel Infrastructure Management** | Physical asset hierarchy modeling | Mapping University $\rightarrow$ Hostel $\rightarrow$ Building $\rightarrow$ Block $\rightarrow$ Floor $\rightarrow$ Room $\rightarrow$ Bed; managing 6 room configurations | MOD-01 | Must (Phase 1) |
-| **MOD-03** | **Audit Logging Service** | Regulatory and security auditability | Capturing immutable audit logs for administrative, financial, admission, and security state changes | MOD-01 | Must (Phase 1) |
-| **MOD-04** | **Student Admission & Registration** | Resident applicant onboarding | Two-tier verification (Admin Tier 1, Warden Tier 2), admission approvals, duplicate record prevention | MOD-01, MOD-02, MOD-03 | Must (Phase 2) |
-| **MOD-05** | **Room & Bed Allocation** | Bed inventory assignment | Preference submission, eligibility gating, individual bed allocation, vacancy tracking, room-change requests | MOD-02, MOD-04 | Must (Phase 2) |
-| **MOD-06** | **Student Check-In & Check-Out** | Residential arrival and departure | Onboarding check-in logging, planned check-out submissions, administrative departures, bed release | MOD-04, MOD-05 | Must (Phase 2) |
-| **MOD-07** | **Notification Engine** | In-app and outbound communication | In-app notification store, read/unread states, queued asynchronous transactional email dispatching | MOD-01 | Must (Phase 2) |
-| **MOD-08** | **Temporary Leave & Outings** | Resident off-premises tracking | Leave applications, Warden review/approvals, extension workflows, bed retention during leave | MOD-05, MOD-07 | Must (Phase 3) |
-| **MOD-09** | **Student Attendance** | Night roll-call accountability | Daily attendance entry, bulk floor logging, correction audit trails, leave cross-referencing, absence alerts | MOD-05, MOD-08 | Must (Phase 3) |
-| **MOD-10** | **Student Movement & Gate Security** | Perimeter security enforcement | Gate pass verification, departure/arrival timestamp logging, late return logging, overstay alerts | MOD-08 | Must (Phase 3) |
-| **MOD-11** | **Visitor Management** | Campus visitor access control | Visitor registration at gates, Warden pre-approval, entry/exit timestamp logging, visiting hour policy | MOD-01, MOD-02 | Must (Phase 3) |
-| **MOD-12** | **Complaints & Maintenance** | Facilities repair ticketing | Student ticket submission with photos, Warden priority determination, staff assignment, 7 lifecycle states | MOD-01, MOD-02 | Must (Phase 4) |
-| **MOD-13** | **Staff Management** | Operational personnel oversight | Staff profile management, hostel assignment, daily duty scheduling, staff attendance and leave workflows | MOD-01, MOD-02 | Must (Phase 4) |
-| **MOD-14** | **Hostel Fee & Financial Management** | Billing, payments, and dues tracking | Semester fee schedules, offline payment recording, balance/dues tracking, late fees, waiver approvals | MOD-01, MOD-04, MOD-05 | Must (Phase 4) |
-| **MOD-15** | **Hostel Rules & Disciplinary Management** | Conduct standards and sanctions | Rulebook publication, violation logging, progressive sanctions, student appeal workflows | MOD-01, MOD-02 | Should (Phase 5) |
-| **MOD-16** | **Emergency & Incident Management** | Safety and crisis response | Incident reporting, severity rating, Warden response, auto-escalation to Admin, emergency contact lookups | MOD-01, MOD-07, MOD-03 | Must (Phase 5) |
-| **MOD-17** | **Notices & Announcements** | Institutional broadcasting | University-wide and hostel-specific circulars, attachments, mandatory acknowledgement tracking | MOD-01, MOD-02, MOD-07 | Should (Phase 5) |
-| **MOD-18** | **Reports & Administrative Monitoring** | Operational analytics and audit review | 10 administrative report categories, aggregated university metrics, hostel-scoped operational reports | MOD-01 to MOD-17 | Must (Phase 6) |
-| **MOD-19** | **Role-Specific Dashboards** | Role-tailored user interfaces | Six dedicated dashboards (Admin, Warden, Student, Staff, Guard, Accountant) rendering metrics and quick actions | MOD-01 to MOD-18 | Must (Phase 6) |
+| Module ID  | Module Name                                | Purpose                                        | Main Responsibilities                                                                                                                                                       | Dependencies           | Priority         |
+| :--------- | :----------------------------------------- | :--------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------- | :--------------- |
+| **MOD-01** | **Authentication & Account Management**    | User identity, sessions, and account lifecycle | Email/password login, salted hashing, session management, password resets, account activation, user provisioning                                                            | None (Foundational)    | Must (Phase 1)   |
+| **MOD-02** | **Hostel Infrastructure Management**       | Physical asset hierarchy modeling              | Mapping University $\rightarrow$ Hostel $\rightarrow$ Building $\rightarrow$ Block $\rightarrow$ Floor $\rightarrow$ Room $\rightarrow$ Bed; managing 6 room configurations | MOD-01                 | Must (Phase 1)   |
+| **MOD-03** | **Audit Logging Service**                  | Regulatory and security auditability           | Capturing immutable audit logs for administrative, financial, admission, and security state changes                                                                         | MOD-01                 | Must (Phase 1)   |
+| **MOD-04** | **Student Admission & Registration**       | Resident applicant onboarding                  | Two-tier verification (Admin Tier 1, Warden Tier 2), admission approvals, duplicate record prevention                                                                       | MOD-01, MOD-02, MOD-03 | Must (Phase 2)   |
+| **MOD-05** | **Room & Bed Allocation**                  | Bed inventory assignment                       | Preference submission, eligibility gating, individual bed allocation, vacancy tracking, room-change requests                                                                | MOD-02, MOD-04         | Must (Phase 2)   |
+| **MOD-06** | **Student Check-In & Check-Out**           | Residential arrival and departure              | Onboarding check-in logging, planned check-out submissions, administrative departures, bed release                                                                          | MOD-04, MOD-05         | Must (Phase 2)   |
+| **MOD-07** | **Notification Engine**                    | In-app and outbound communication              | In-app notification store, read/unread states, queued asynchronous transactional email dispatching                                                                          | MOD-01                 | Must (Phase 2)   |
+| **MOD-08** | **Temporary Leave & Outings**              | Resident off-premises tracking                 | Leave applications, Warden review/approvals, extension workflows, bed retention during leave                                                                                | MOD-05, MOD-07         | Must (Phase 3)   |
+| **MOD-09** | **Student Attendance**                     | Night roll-call accountability                 | Daily attendance entry, bulk floor logging, correction audit trails, leave cross-referencing, absence alerts                                                                | MOD-05, MOD-08         | Must (Phase 3)   |
+| **MOD-10** | **Student Movement & Gate Security**       | Perimeter security enforcement                 | Gate pass verification, departure/arrival timestamp logging, late return logging, overstay alerts                                                                           | MOD-08                 | Must (Phase 3)   |
+| **MOD-11** | **Visitor Management**                     | Campus visitor access control                  | Visitor registration at gates, Warden pre-approval, entry/exit timestamp logging, visiting hour policy                                                                      | MOD-01, MOD-02         | Must (Phase 3)   |
+| **MOD-12** | **Complaints & Maintenance**               | Facilities repair ticketing                    | Student ticket submission with photos, Warden priority determination, staff assignment, 7 lifecycle states                                                                  | MOD-01, MOD-02         | Must (Phase 4)   |
+| **MOD-13** | **Staff Management**                       | Operational personnel oversight                | Staff profile management, hostel assignment, daily duty scheduling, staff attendance and leave workflows                                                                    | MOD-01, MOD-02         | Must (Phase 4)   |
+| **MOD-14** | **Hostel Fee & Financial Management**      | Billing, payments, and dues tracking           | Semester fee schedules, offline payment recording, balance/dues tracking, late fees, waiver approvals                                                                       | MOD-01, MOD-04, MOD-05 | Must (Phase 4)   |
+| **MOD-15** | **Hostel Rules & Disciplinary Management** | Conduct standards and sanctions                | Rulebook publication, violation logging, progressive sanctions, student appeal workflows                                                                                    | MOD-01, MOD-02         | Should (Phase 5) |
+| **MOD-16** | **Emergency & Incident Management**        | Safety and crisis response                     | Incident reporting, severity rating, Warden response, auto-escalation to Admin, emergency contact lookups                                                                   | MOD-01, MOD-07, MOD-03 | Must (Phase 5)   |
+| **MOD-17** | **Notices & Announcements**                | Institutional broadcasting                     | University-wide and hostel-specific circulars, attachments, mandatory acknowledgement tracking                                                                              | MOD-01, MOD-02, MOD-07 | Should (Phase 5) |
+| **MOD-18** | **Reports & Administrative Monitoring**    | Operational analytics and audit review         | 10 administrative report categories, aggregated university metrics, hostel-scoped operational reports                                                                       | MOD-01 to MOD-17       | Must (Phase 6)   |
+| **MOD-19** | **Role-Specific Dashboards**               | Role-tailored user interfaces                  | Six dedicated dashboards (Admin, Warden, Student, Staff, Guard, Accountant) rendering metrics and quick actions                                                             | MOD-01 to MOD-18       | Must (Phase 6)   |
 
 ### 3.1 Functional Requirement (FR) to Development Module (MOD) Cross-Reference Matrix
 
 To ensure seamless traceability between requirements engineering and physical implementation, the following matrix maps all 19 functional requirement modules from [03-functional-requirements.md](./03-functional-requirements.md) and [05-user-roles-and-permissions.md](./05-user-roles-and-permissions.md) (`FR-01` to `FR-19`, comprising all 144 requirements `FR-001` through `FR-144`) to their authoritative development modules (`MOD-01` to `MOD-19`):
 
-| Functional Requirement Module (docs/03 & docs/05) | Requirement ID Range | Functional Title | Development Module ID | Development Module Name | Development Milestone Phase |
-| :--- | :---: | :--- | :---: | :--- | :---: |
-| **Module FR-01** | `FR-001` – `FR-009` | Authentication and Account Management | **MOD-01** | Authentication & Account Management | Phase 1 (MS-1) |
-| **Module FR-02** | `FR-010` – `FR-017` | Student Admission and Registration | **MOD-04** | Student Admission & Registration | Phase 2 (MS-2) |
-| **Module FR-03** | `FR-018` – `FR-023` | Hostel Infrastructure Management | **MOD-02** | Hostel Infrastructure Management | Phase 1 (MS-1) |
-| **Module FR-04** | `FR-024` – `FR-031` | Room and Bed Allocation | **MOD-05** | Room & Bed Allocation | Phase 2 (MS-2) |
-| **Module FR-05** | `FR-032` – `FR-037` | Student Check-in and Check-out | **MOD-06** | Student Check-In & Check-Out | Phase 2 (MS-2) |
-| **Module FR-06** | `FR-038` – `FR-044` | Temporary Leave and Late Return | **MOD-08** | Temporary Leave & Outings | Phase 3 (MS-3) |
-| **Module FR-07** | `FR-045` – `FR-052` | Student Attendance | **MOD-09** | Student Attendance | Phase 3 (MS-3) |
-| **Module FR-08** | `FR-053` – `FR-058` | Student Movement and Outings | **MOD-10** | Student Movement & Gate Security | Phase 3 (MS-3) |
-| **Module FR-09** | `FR-059` – `FR-064` | Visitor Management | **MOD-11** | Visitor Management | Phase 3 (MS-3) |
-| **Module FR-10** | `FR-065` – `FR-073` | Complaints and Maintenance Management | **MOD-12** | Complaints & Maintenance Management | Phase 4 (MS-4) |
-| **Module FR-11** | `FR-074` – `FR-083` | Hostel Fee and Financial Management | **MOD-14** | Hostel Fee & Financial Management | Phase 4 (MS-4) |
-| **Module FR-12** | `FR-084` – `FR-090` | Notices and Announcements | **MOD-17** | Notices & Announcements | Phase 5 (MS-5) |
-| **Module FR-13** | `FR-091` – `FR-098` | Staff Management | **MOD-13** | Staff Management | Phase 4 (MS-4) |
-| **Module FR-14** | `FR-099` – `FR-107` | Hostel Rules and Disciplinary Management | **MOD-15** | Hostel Rules & Disciplinary Management | Phase 5 (MS-5) |
-| **Module FR-15** | `FR-108` – `FR-117` | Emergency and Incident Management | **MOD-16** | Emergency & Incident Management | Phase 5 (MS-5) |
-| **Module FR-16** | `FR-118` – `FR-122` | Notification Management | **MOD-07** | Notification Engine | Phase 2 (MS-2) |
-| **Module FR-17** | `FR-123` – `FR-128` | Role-Specific Dashboards | **MOD-19** | Role-Specific Dashboards | Phase 6 (MS-6) |
-| **Module FR-18** | `FR-129` – `FR-139` | Reports and Administrative Monitoring | **MOD-18** | Reports & Administrative Monitoring | Phase 6 (MS-6) |
-| **Module FR-19** | `FR-140` – `FR-144` | Audit History | **MOD-03** | Audit Logging Service | Phase 1 (MS-1) |
+| Functional Requirement Module (docs/03 & docs/05) | Requirement ID Range | Functional Title                         | Development Module ID | Development Module Name                | Development Milestone Phase |
+| :------------------------------------------------ | :------------------: | :--------------------------------------- | :-------------------: | :------------------------------------- | :-------------------------: |
+| **Module FR-01**                                  | `FR-001` – `FR-009`  | Authentication and Account Management    |      **MOD-01**       | Authentication & Account Management    |       Phase 1 (MS-1)        |
+| **Module FR-02**                                  | `FR-010` – `FR-017`  | Student Admission and Registration       |      **MOD-04**       | Student Admission & Registration       |       Phase 2 (MS-2)        |
+| **Module FR-03**                                  | `FR-018` – `FR-023`  | Hostel Infrastructure Management         |      **MOD-02**       | Hostel Infrastructure Management       |       Phase 1 (MS-1)        |
+| **Module FR-04**                                  | `FR-024` – `FR-031`  | Room and Bed Allocation                  |      **MOD-05**       | Room & Bed Allocation                  |       Phase 2 (MS-2)        |
+| **Module FR-05**                                  | `FR-032` – `FR-037`  | Student Check-in and Check-out           |      **MOD-06**       | Student Check-In & Check-Out           |       Phase 2 (MS-2)        |
+| **Module FR-06**                                  | `FR-038` – `FR-044`  | Temporary Leave and Late Return          |      **MOD-08**       | Temporary Leave & Outings              |       Phase 3 (MS-3)        |
+| **Module FR-07**                                  | `FR-045` – `FR-052`  | Student Attendance                       |      **MOD-09**       | Student Attendance                     |       Phase 3 (MS-3)        |
+| **Module FR-08**                                  | `FR-053` – `FR-058`  | Student Movement and Outings             |      **MOD-10**       | Student Movement & Gate Security       |       Phase 3 (MS-3)        |
+| **Module FR-09**                                  | `FR-059` – `FR-064`  | Visitor Management                       |      **MOD-11**       | Visitor Management                     |       Phase 3 (MS-3)        |
+| **Module FR-10**                                  | `FR-065` – `FR-073`  | Complaints and Maintenance Management    |      **MOD-12**       | Complaints & Maintenance Management    |       Phase 4 (MS-4)        |
+| **Module FR-11**                                  | `FR-074` – `FR-083`  | Hostel Fee and Financial Management      |      **MOD-14**       | Hostel Fee & Financial Management      |       Phase 4 (MS-4)        |
+| **Module FR-12**                                  | `FR-084` – `FR-090`  | Notices and Announcements                |      **MOD-17**       | Notices & Announcements                |       Phase 5 (MS-5)        |
+| **Module FR-13**                                  | `FR-091` – `FR-098`  | Staff Management                         |      **MOD-13**       | Staff Management                       |       Phase 4 (MS-4)        |
+| **Module FR-14**                                  | `FR-099` – `FR-107`  | Hostel Rules and Disciplinary Management |      **MOD-15**       | Hostel Rules & Disciplinary Management |       Phase 5 (MS-5)        |
+| **Module FR-15**                                  | `FR-108` – `FR-117`  | Emergency and Incident Management        |      **MOD-16**       | Emergency & Incident Management        |       Phase 5 (MS-5)        |
+| **Module FR-16**                                  | `FR-118` – `FR-122`  | Notification Management                  |      **MOD-07**       | Notification Engine                    |       Phase 2 (MS-2)        |
+| **Module FR-17**                                  | `FR-123` – `FR-128`  | Role-Specific Dashboards                 |      **MOD-19**       | Role-Specific Dashboards               |       Phase 6 (MS-6)        |
+| **Module FR-18**                                  | `FR-129` – `FR-139`  | Reports and Administrative Monitoring    |      **MOD-18**       | Reports & Administrative Monitoring    |       Phase 6 (MS-6)        |
+| **Module FR-19**                                  | `FR-140` – `FR-144`  | Audit History                            |      **MOD-03**       | Audit Logging Service                  |       Phase 1 (MS-1)        |
 
 #### Rationale for Differing Sequencing Between Catalogues:
+
 - **Requirements Catalogue (`FR-01` to `FR-19`)**: Structured domain-first from the perspective of institutional stakeholders and student residential journeys (e.g., student admissions `FR-02` precede physical allocations `FR-04`, while cross-cutting audit oversight `FR-19` sits at the culmination of the requirement inventory).
 - **Development Plan Modules (`MOD-01` to `MOD-19`)**: Sequenced strictly in **technical dependency order**:
   1. `MOD-02` (Infrastructure) and `MOD-03` (Audit Logging) are elevated into **Milestone 1** alongside `MOD-01` (Authentication) because admissions and allocations cannot execute without pre-existing physical assets (hostels, rooms, beds) and require immutable audit logging from day one.
@@ -118,6 +126,7 @@ To ensure seamless traceability between requirements engineering and physical im
 ## 4. Module Development Breakdown
 
 ### Module 01: Authentication & Account Management (MOD-01)
+
 - **Module Overview & Objectives**: Provides the security root for Nestora, managing credential authentication, role resolution, secure session issuance, account provisioning, and password resets.
 - **Main Functionalities**: Email/password login; Argon2/bcrypt salted hashing; secure HTTP-only session cookies; time-limited email password reset links; account activation; Admin/Warden user provisioning; account status transitions (`Active`, `Inactive`, `Suspended`).
 - **Relevant User Roles**: All six roles (University Administrator, Hostel Warden, Student, Hostel Staff, Security Guard, Accountant).
@@ -130,6 +139,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Users across all six roles can securely log in, receive authenticated session cookies, and be redirected based on role; invalid credentials and expired tokens are rejected.
 
 ### Module 02: Hostel Infrastructure Management (MOD-02)
+
 - **Module Overview & Objectives**: Models the physical housing assets of the university across a 7-tier relational hierarchy down to individual bed spaces.
 - **Main Functionalities**: Configuration of University, Hostels (Boys' and Girls' categories), Buildings, Blocks, Floors, Rooms, and Beds; management of exactly six room configurations; bed operational status tracking (`Available`, `Occupied`, `Reserved`, `Maintenance`).
 - **Relevant User Roles**: University Administrator (Full), Hostel Warden (Manage within assigned hostel), Student/Staff/Guard/Accountant (View/Limited).
@@ -142,6 +152,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Complete multi-tier hierarchy can be configured from university down to individual beds; bed operational states update reliably.
 
 ### Module 03: Audit Logging Service (MOD-03)
+
 - **Module Overview & Objectives**: Provides an immutable, append-only audit trail capturing sensitive administrative, financial, operational, and security actions.
 - **Main Functionalities**: Synchronous recording of actor user ID, role, action, target entity type, entity ID, previous state, new state, client IP, and UTC timestamp; audit log querying for University Administrator.
 - **Relevant User Roles**: University Administrator (Exclusive View access); System (Automatic writer).
@@ -154,6 +165,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: System mutations consistently generate immutable audit entries accessible exclusively to the University Administrator.
 
 ### Module 04: Student Admission & Registration (MOD-04)
+
 - **Module Overview & Objectives**: Orchestrates the multi-step onboarding of resident students, enforcing two-tier verification before accommodation eligibility is granted.
 - **Main Functionalities**: Student registration initiation; academic/demographic profile capture; Tier-1 verification (University Administrator); Tier-2 verification (Hostel Warden); dual sign-off final admission approval; rejection handling and resubmission; duplicate registration prevention.
 - **Relevant User Roles**: University Administrator, Hostel Warden, Student, Accountant (Read-only for fee setup).
@@ -166,6 +178,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Student application progresses strictly through Draft $\rightarrow$ Tier 1 Verified $\rightarrow$ Tier 2 Verified $\rightarrow$ Fully Approved; unapproved students cannot proceed to accommodation.
 
 ### Module 05: Room & Bed Allocation (MOD-05)
+
 - **Module Overview & Objectives**: Manages the matching of fully approved students to individual bed spaces based on preferences and hostel capacity.
 - **Main Functionalities**: Accommodation preference submission (hostel category, room type, AC/Non-AC); Administrator and Warden bed allocation execution; independent bed allocation in multi-bed rooms; bed status toggling; room-change request submission and review; historical allocation logging.
 - **Relevant User Roles**: University Administrator, Hostel Warden, Student, Accountant (View).
@@ -178,6 +191,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Individual beds can be allocated independently without race conditions; allocated bed transitions to `OCCUPIED`; allocation history is preserved.
 
 ### Module 06: Student Check-In & Check-Out (MOD-06)
+
 - **Module Overview & Objectives**: Manages physical arrival onboarding and formal departure clearance for resident students.
 - **Main Functionalities**: Check-in physical timestamp logging and key issuance; student-initiated planned check-out submissions; administration-initiated evictions; room condition and inventory inspection logging; financial dues clearance sign-off; automatic bed deallocation upon checkout.
 - **Relevant User Roles**: University Administrator, Hostel Warden, Student, Accountant (Dues sign-off), Hostel Staff (Inspection notes).
@@ -190,6 +204,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Formal check-in establishes active residency; approved check-out terminates allocation and immediately resets the bed space to `AVAILABLE`.
 
 ### Module 07: Notification Engine (MOD-07)
+
 - **Module Overview & Objectives**: Coordinates multi-channel notifications across in-app alerts and asynchronous transactional emails.
 - **Main Functionalities**: In-app notification creation and inbox querying; read/unread status updates; background task queuing for outbound emails (welcome, verification, leave updates, emergency alerts); user preference toggling for non-critical notifications.
 - **Relevant User Roles**: All six roles.
@@ -202,6 +217,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Workflow events reliably generate in-app notification records and enqueue outbound emails without blocking HTTP request threads.
 
 ### Module 08: Temporary Leave & Outings (MOD-08)
+
 - **Module Overview & Objectives**: Manages short-term student absences (day outings and overnight leaves) while safeguarding bed retention.
 - **Main Functionalities**: Temporary leave application submission (dates, reason, emergency contact); Warden review, approval, and rejection; leave extension requests; bed retention enforcement; daily outing request submission; Warden routine approval; Admin exceptional approval; digital pass generation.
 - **Relevant User Roles**: Hostel Warden, Student, University Administrator (Exceptional outings).
@@ -214,6 +230,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Students can apply for leaves and outings; Wardens can approve or reject; digital passes are generated; active bed allocations remain strictly locked.
 
 ### Module 09: Student Attendance (MOD-09)
+
 - **Module Overview & Objectives**: Digitizes daily night roll-call attendance, absence alerting, and attendance record correction auditing.
 - **Main Functionalities**: Daily attendance recording (Present, Absent, On Leave); individual and bulk floor/block entry; Warden and authorized Staff attendance modification; immutable correction history logging; student attendance history and percentage view; student discrepancy reporting; consecutive absence threshold alerting; leave cross-referencing.
 - **Relevant User Roles**: Hostel Warden, Hostel Staff (when authorized), Student (View only), University Administrator (Alert escalation).
@@ -226,6 +243,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Daily roll-call can be logged rapidly; corrections preserve audit history; approved leaves prevent false unexcused absence marks.
 
 ### Module 10: Student Movement & Gate Security (MOD-10)
+
 - **Module Overview & Objectives**: Equips gate security personnel to validate student permissions and capture entry/exit movements in real time.
 - **Main Functionalities**: Security Guard digital gate pass verification by student ID or pass token; real-time gate departure and return timestamp logging; late return flagging; automated overstay alerts to Warden; movement duration calculation.
 - **Relevant User Roles**: Security Guard, Hostel Warden (Alert recipient), Student.
@@ -238,6 +256,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Guards can search and verify student passes in $<1$ second; actual departure and arrival times are immutably logged; late returns trigger alerts.
 
 ### Module 11: Visitor Management (MOD-11)
+
 - **Module Overview & Objectives**: Secures campus perimeters by digitizing visitor registration, Warden authorization, and visitor check-in/out logging.
 - **Main Functionalities**: Visitor registration at security gates (name, phone, government ID, resident visited, purpose); Warden digital pre-approval workflow; Guard actual entry/exit timestamp logging; visiting hours and duration limits enforcement; Warden exception overrides.
 - **Relevant User Roles**: Security Guard, Hostel Warden, Student (Host).
@@ -250,6 +269,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Visitors are registered at the gate, approved digitally by the Warden, and tracked with entry and exit timestamps.
 
 ### Module 12: Complaints & Maintenance Management (MOD-12)
+
 - **Module Overview & Objectives**: Provides a complete facility grievance and repair ticketing lifecycle from submission to verified resolution.
 - **Main Functionalities**: Student complaint submission with title, category (Electrical, Plumbing, Carpentry, Cleaning, Civil), location, description, and optional photo attachment; student suggested priority vs. Warden final priority; Warden ticket assignment to Hostel Staff; category-based staff suggestion; staff progress updates (7 statuses); student resolution confirmation or reopening; configurable automatic closure.
 - **Relevant User Roles**: Student, Hostel Warden, Hostel Staff, University Administrator (View).
@@ -262,6 +282,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Tickets transition smoothly through `Submitted` $\rightarrow$ `Under Review` $\rightarrow$ `Assigned` $\rightarrow$ `In Progress` $\rightarrow$ `Resolved` $\rightarrow$ `Closed` (or `Reopened`).
 
 ### Module 13: Staff Management (MOD-13)
+
 - **Module Overview & Objectives**: Structures operational personnel records, hostel assignments, daily duty scheduling, and staff attendance.
 - **Main Functionalities**: Staff profile creation and role assignment by Administrator; assignment of staff to specific hostels; Warden daily duty and zone assignments; staff task queue view; staff daily attendance recording; staff leave request submission (routine to Warden, exceptional to Admin); attendance synchronization.
 - **Relevant User Roles**: University Administrator, Hostel Warden, Hostel Staff.
@@ -274,6 +295,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Operational staff can be provisioned, assigned to hostels, scheduled for daily duties, and tracked for attendance.
 
 ### Module 14: Hostel Fee & Financial Management (MOD-14)
+
 - **Module Overview & Objectives**: Manages institutional accommodation fee structures, tracks offline payment receipts, calculates late fees, and reconciles balances.
 - **Main Functionalities**: Annual and semester fee schedule definition linked to room types; University Administrator fee structure approval; offline payment recording (challan, DD, NEFT); student ledger balance and dues tracking; late fee computation; manual fee adjustment/waiver proposals by Accountant; Administrator waiver approval; payment reminders; individual student fee statements.
 - **Relevant User Roles**: Accountant, University Administrator, Student, Hostel Warden (View clearance).
@@ -286,6 +308,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Fee structures can be created, approved, and assigned; offline payments credit student ledgers accurately; waivers require Administrator approval.
 
 ### Module 15: Hostel Rules & Disciplinary Management (MOD-15)
+
 - **Module Overview & Objectives**: Publishes institutional codes of conduct and records student disciplinary infractions, sanctions, and appeal reviews.
 - **Main Functionalities**: University-wide rule management by Administrator; hostel-specific rule formulation by Warden; resident rulebook access; violation recording with descriptions and evidence attachments; progressive sanctions (Verbal Warning, Written Warning, Formal Action, Facility Suspension); student written appeal submission; Warden first-tier review; Administrator escalated appeal adjudication.
 - **Relevant User Roles**: University Administrator, Hostel Warden, Student.
@@ -298,6 +321,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Rules are accessible to residents; infractions and sanctions are logged confidentially; student appeals can be submitted and reviewed.
 
 ### Module 16: Emergency & Incident Management (MOD-16)
+
 - **Module Overview & Objectives**: Provides a rapid-response reporting mechanism for urgent campus safety, medical, and security incidents.
 - **Main Functionalities**: Universal emergency reporting across all six roles; predefined categories (Fire, Medical, Security, Missing Student, Infrastructure, Other); initial severity rating (Low, Medium, High, Critical); Warden on-site review and severity adjustment; restricted resolution authority (Warden/Admin only); immediate Warden alerting; automatic escalation to Administrator if unacknowledged; confidential emergency contact lookups; automated guardian emails for High/Critical incidents.
 - **Relevant User Roles**: All six roles (Reporters); Hostel Warden & University Administrator (Resolvers).
@@ -310,6 +334,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Any authenticated user can report an emergency; notifications route instantly; unacknowledged incidents escalate; resolution is strictly audited.
 
 ### Module 17: Notices & Announcements (MOD-17)
+
 - **Module Overview & Objectives**: Centralizes institutional communication via targeted circulars, attachments, and mandatory acknowledgement tracking.
 - **Main Functionalities**: University-wide notice publication by Administrator; hostel-specific notice publication by Wardens; rich text descriptions and PDF attachments; notice categorization (General, Rules, Fees, Maintenance, Emergency, Events); mandatory acknowledgement tracking with recipient rosters; automated acknowledgement reminder alerts.
 - **Relevant User Roles**: University Administrator, Hostel Warden, All Users (Viewers/Acknowledgers).
@@ -322,6 +347,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: Notices publish with correct institutional scoping; residents can read and acknowledge; authors can track acknowledgement completion.
 
 ### Module 18: Reports & Administrative Monitoring (MOD-18)
+
 - **Module Overview & Objectives**: Aggregates operational datasets across ten administrative categories to facilitate data-driven oversight.
 - **Main Functionalities**: Compilation of reports for: Student Admissions, Occupancy & Bed Vacancies, Attendance & Movement, Leave & Outings, Visitors, Complaints & Maintenance, Staff Attendance, Fees & Dues, Disciplinary Records, Emergency Summaries; automated data isolation (Admin sees university-wide aggregate data, Wardens see assigned hostel data).
 - **Relevant User Roles**: University Administrator (Global), Hostel Warden (Assigned Hostel), Accountant (Financial Reports).
@@ -334,6 +360,7 @@ To ensure seamless traceability between requirements engineering and physical im
 - **Completion Criteria**: All ten report categories generate accurate tabular and graphical summaries strictly within the authorized hostel boundary.
 
 ### Module 19: Role-Specific Dashboards (MOD-19)
+
 - **Module Overview & Objectives**: Synthesizes module metrics and pending operational actions into dedicated starting landing views for each user role.
 - **Main Functionalities**:
   - **University Administrator Dashboard**: Cross-hostel occupancy metrics, pending admission verifications, fee collection totals, active emergency incidents, quick action links.
@@ -367,6 +394,7 @@ flowchart LR
 ```
 
 ### Phase 1: Core Foundation & Security
+
 - **Phase Objective**: Establish the technical backbone, database connection, authentication mechanisms, user provisioning, physical infrastructure modeling, and audit framework.
 - **Modules Included**:
   - MOD-01: Authentication & Account Management
@@ -384,6 +412,7 @@ flowchart LR
 - **Completion Criteria**: Users can log in; Administrators can provision accounts and configure the complete multi-tier infrastructure; audit logs record administrative actions.
 
 ### Phase 2: Resident Onboarding & Housing Logistics
+
 - **Phase Objective**: Implement the student admission lifecycle, bed allocation engine, physical check-in/out workflows, and asynchronous notification engine.
 - **Modules Included**:
   - MOD-04: Student Admission & Registration
@@ -401,6 +430,7 @@ flowchart LR
 - **Completion Criteria**: Students can be admitted via two-tier approval, allocated to vacant beds without race conditions, checked in upon arrival, and checked out upon departure.
 
 ### Phase 3: Daily Residential Operations & Safety
+
 - **Phase Objective**: Digitize day-to-day student movements, leave applications, nightly attendance roll-calls, gate checkpoints, and visitor tracking.
 - **Modules Included**:
   - MOD-08: Temporary Leave & Outings
@@ -418,6 +448,7 @@ flowchart LR
 - **Completion Criteria**: Wardens can mark attendance and approve leaves; Guards can verify gate passes and log movements; visitors require digital authorization.
 
 ### Phase 4: Facilities Upkeep & Financial Administration
+
 - **Phase Objective**: Implement maintenance ticketing, operational staff duty allocations, and student fee ledgers.
 - **Modules Included**:
   - MOD-12: Complaints & Maintenance Management
@@ -434,6 +465,7 @@ flowchart LR
 - **Completion Criteria**: Students can lodge complaints and view fee dues; Wardens can assign staff to repairs; Accountants can log offline payments; waivers require Admin sign-off.
 
 ### Phase 5: Governance, Incident Response & Notices
+
 - **Phase Objective**: Implement institutional conduct rules, disciplinary sanctioning, emergency crisis management, and official announcements.
 - **Modules Included**:
   - MOD-15: Hostel Rules & Disciplinary Management
@@ -449,6 +481,7 @@ flowchart LR
 - **Completion Criteria**: Emergencies alert authorities instantly; rules and disciplinary appeals are logged confidentially; notices track student acknowledgements.
 
 ### Phase 6: Analytics, Dashboards & System Hardening
+
 - **Phase Objective**: Aggregate domain data into role-specific landing dashboards, build comprehensive reporting engines, and perform end-to-end security and load hardening.
 - **Modules Included**:
   - MOD-18: Reports & Administrative Monitoring
@@ -547,17 +580,20 @@ flowchart TD
 ## 7. Frontend Development Plan
 
 ### 1. Application Foundation Setup
+
 - Initialize Next.js project with App Router, TypeScript, and Tailwind CSS.
 - Configure `shadcn/ui` component primitives (Button, Dialog, Card, Input, Table, Dropdown).
 - Establish base layout shell, typography system, color tokens, and notification toast provider.
 - Implement central `apiClient` wrapper with base URL handling, session cookie inclusion, and global error handling.
 
 ### 2. Authentication Interfaces
+
 - Construct responsive public authentication views: `/login`, `/forgot-password`, `/activate`.
 - Bind client-side form validation using React Hook Form and Zod schemas.
 - Implement `AuthContext` to store authenticated user profile, role claims, and assigned hostel IDs.
 
 ### 3. Role-Based Navigation & Layout Shells
+
 - Develop layout wrappers with dynamic sidebars and headers for each role:
   - `/admin/*`: Administrator layout with institutional navigation.
   - `/warden/*`: Warden layout with assigned hostel operational navigation.
@@ -567,6 +603,7 @@ flowchart TD
   - `/accountant/*`: Financial layout focusing on fee ledgers and payment entry.
 
 ### 4. Module-Specific Interfaces & Forms
+
 - Build dedicated feature screens adhering to responsive design standards:
   - Admissions verification queues and wizards.
   - Visual room and bed allocation grid with vacancy indicators.
@@ -577,6 +614,7 @@ flowchart TD
   - Emergency command modal accessible from any screen.
 
 ### 5. UI State Handling
+
 - Standardize four visual states across every data-fetching view:
   1. **Loading State**: Skeleton placeholders preventing layout shifts.
   2. **Empty State**: Explanatory icons and text when zero records exist.
@@ -588,12 +626,14 @@ flowchart TD
 ## 8. Backend Development Plan
 
 ### 1. Backend Foundation Setup
+
 - Configure Node.js runtime and Fastify HTTP server with TypeScript compilation.
 - Register essential plugins: `@fastify/cors`, `@fastify/helmet`, `@fastify/rate-limit`, `@fastify/cookie`.
 - Configure Prisma ORM client with PostgreSQL connection pooling and transaction support.
 - Implement centralized error-handling hook mapping application exceptions to standardized HTTP status codes and error envelopes.
 
 ### 2. Authentication & Authorization Pipeline
+
 - Implement credential verification using Argon2/bcrypt password hashing.
 - Configure secure session cookie management (`HttpOnly`, `Secure`, `SameSite`).
 - Implement `authenticate` middleware to verify session validity and populate `request.user`.
@@ -601,6 +641,7 @@ flowchart TD
 - Implement `scopeHostel` middleware to inject authorized `hostel_id` constraints and block cross-tenant parameter tampering.
 
 ### 3. Domain Module Implementation
+
 - Construct backend feature modules sequentially according to Phase 1 through Phase 5:
   - Declare route paths and bind Fastify JSON validation schemas.
   - Implement domain service classes containing core business logic.
@@ -608,6 +649,7 @@ flowchart TD
   - Emit structured audit log events for administrative, financial, and safety mutations.
 
 ### 4. Background Processing & Supporting Services
+
 - Implement Node.js task worker for asynchronous job execution.
 - Setup SMTP email service integration for account activation, password resets, and emergency alerts.
 - Configure local filesystem storage service (with interface readiness for S3 object storage).
@@ -617,16 +659,19 @@ flowchart TD
 ## 9. Integration Strategy
 
 ### 1. Frontend-Backend API Contract Integration
+
 - Frontend and backend share TypeScript data transfer object (DTO) interfaces.
 - Standardized RESTful response envelopes (`success`, `data`, `meta`, `error`) ensure predictable parsing.
 - Automated API mock servers can be utilized during early UI development to allow parallel work streams.
 
 ### 2. Authentication & Session Integration
+
 - The client relies on secure cookies automatically sent with `fetch({ credentials: "include" })`.
 - Frontend route guards verify authentication status via an initial `/api/v1/auth/me` profile probe.
 - Server returns HTTP 401 on session expiration, triggering an automatic client redirect to `/login`.
 
 ### 3. Cross-Module Transactional Integration
+
 - Business workflows spanning multiple modules execute via domain service orchestration:
   - `AdmissionService` invokes `AllocationService` upon final approval.
   - `LeaveService` updates status checked by `AttendanceService` during roll-call generation.
@@ -650,30 +695,36 @@ The quality assurance strategy utilizes a multi-layered testing pyramid:
 ```
 
 ### 1. Unit Testing
+
 - Test pure business logic functions in isolation (e.g., late fee calculation formulas, password complexity checks).
 - Test validation schemas against valid and invalid edge-case payloads.
 - Target: $>80\%$ code coverage on core domain service calculation methods.
 
 ### 2. API & Integration Testing
+
 - Execute automated HTTP requests against Fastify endpoints using supertest or Fastify's native `inject()`.
 - Test request validation rejections (HTTP 400), authentication failures (HTTP 401), and authorization rejections (HTTP 403).
 - Verify database state mutations and rollbacks on transaction errors.
 
 ### 3. Role & Permission Matrix Testing
+
 - Execute automated test matrices verifying that each of the six roles can access only their authorized routes.
 - Verify that restricted endpoints (e.g., fee schedule approval, audit logs) reject unauthorized roles with HTTP 403 Forbidden.
 
 ### 4. Multi-Hostel Data-Isolation Testing
+
 - Simulate an authenticated Hostel Warden assigned to Hostel 1 attempting to read, update, or delete records belonging to Hostel 2.
 - Verify that every tenant query returns HTTP 403 Forbidden or empty datasets, ensuring zero data leakage.
 
 ### 5. Security Testing
+
 - Perform automated vulnerability scans against OWASP Top 10 risks.
 - Test SQL injection resistance via parameterized Prisma queries.
 - Test XSS mitigation via React auto-escaping.
 - Test rate limiting on authentication routes via rapid burst requests.
 
 ### 6. End-to-End (E2E) Workflow Testing
+
 - Simulate complete user journeys:
   - Admin registers student $\rightarrow$ Admin verifies $\rightarrow$ Warden verifies $\rightarrow$ Student submits preferences $\rightarrow$ Warden allocates bed $\rightarrow$ Warden checks in student.
   - Student submits leave $\rightarrow$ Warden approves $\rightarrow$ Guard verifies gate exit $\rightarrow$ Student returns $\rightarrow$ Guard logs arrival.
@@ -684,14 +735,14 @@ The quality assurance strategy utilizes a multi-layered testing pyramid:
 
 The following milestone schedule establishes clear deliverables and completion gates without imposing arbitrary calendar dates:
 
-| Milestone ID | Milestone Name | Work Included | Expected Deliverable | Completion Criteria |
-| :--- | :--- | :--- | :--- | :--- |
-| **MS-1** | **Foundation & Security Core** | Setup Fastify, Next.js, Prisma, PostgreSQL; implement MOD-01, MOD-02, MOD-03 | Working authentication, physical housing hierarchy CRUD, and append-only audit logger | Users log in across all 6 roles; admin can configure hostels, rooms, and beds; audit trail records mutations. |
-| **MS-2** | **Admissions & Housing Logistics** | Implement MOD-04, MOD-05, MOD-06, MOD-07 | Two-tier admission engine, atomic bed allocation, check-in/out clearance, email worker | Student admitted via dual verification; bed allocated without race conditions; check-out releases bed. |
-| **MS-3** | **Daily Operations & Safety** | Implement MOD-08, MOD-09, MOD-10, MOD-11 | Nightly attendance roster, leave pass system, gate security console, visitor tracking | Wardens mark attendance; approved leaves reconcile; guards verify passes and log gate movements. |
-| **MS-4** | **Facilities & Financial Administration** | Implement MOD-12, MOD-13, MOD-14 | Complaint ticketing board, staff duty scheduler, fee schedules, offline payment tracking | Students lodge complaints; wardens assign staff; accountants log offline fees; waivers require admin approval. |
-| **MS-5** | **Governance, Emergency & Notices** | Implement MOD-15, MOD-16, MOD-17 | Rulebook, disciplinary appeals, emergency reporting & auto-escalation, notice board | Emergencies dispatch instant alerts; disciplinary appeals route to admin; notices track student acknowledgements. |
-| **MS-6** | **Analytics, Dashboards & Final Hardening** | Implement MOD-18, MOD-19; comprehensive testing | Six role dashboards, 10 report categories, security audit, E2E test verification | All 6 roles have tailored dashboards; zero cross-hostel data leakage; performance meets target benchmarks. |
+| Milestone ID | Milestone Name                              | Work Included                                                                | Expected Deliverable                                                                     | Completion Criteria                                                                                               |
+| :----------- | :------------------------------------------ | :--------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------- |
+| **MS-1**     | **Foundation & Security Core**              | Setup Fastify, Next.js, Prisma, PostgreSQL; implement MOD-01, MOD-02, MOD-03 | Working authentication, physical housing hierarchy CRUD, and append-only audit logger    | Users log in across all 6 roles; admin can configure hostels, rooms, and beds; audit trail records mutations.     |
+| **MS-2**     | **Admissions & Housing Logistics**          | Implement MOD-04, MOD-05, MOD-06, MOD-07                                     | Two-tier admission engine, atomic bed allocation, check-in/out clearance, email worker   | Student admitted via dual verification; bed allocated without race conditions; check-out releases bed.            |
+| **MS-3**     | **Daily Operations & Safety**               | Implement MOD-08, MOD-09, MOD-10, MOD-11                                     | Nightly attendance roster, leave pass system, gate security console, visitor tracking    | Wardens mark attendance; approved leaves reconcile; guards verify passes and log gate movements.                  |
+| **MS-4**     | **Facilities & Financial Administration**   | Implement MOD-12, MOD-13, MOD-14                                             | Complaint ticketing board, staff duty scheduler, fee schedules, offline payment tracking | Students lodge complaints; wardens assign staff; accountants log offline fees; waivers require admin approval.    |
+| **MS-5**     | **Governance, Emergency & Notices**         | Implement MOD-15, MOD-16, MOD-17                                             | Rulebook, disciplinary appeals, emergency reporting & auto-escalation, notice board      | Emergencies dispatch instant alerts; disciplinary appeals route to admin; notices track student acknowledgements. |
+| **MS-6**     | **Analytics, Dashboards & Final Hardening** | Implement MOD-18, MOD-19; comprehensive testing                              | Six role dashboards, 10 report categories, security audit, E2E test verification         | All 6 roles have tailored dashboards; zero cross-hostel data leakage; performance meets target benchmarks.        |
 
 ---
 
@@ -712,14 +763,14 @@ Before any module is marked as **Complete**, it must satisfy the following verif
 
 ## 13. Risks and Dependencies
 
-| Risk / Dependency | Impact | Probability | Mitigation Strategy |
-| :--- | :--- | :--- | :--- |
-| **Cross-Tenant Data Leakage** | Critical | Low | Enforce `hostel_id` filtering programmatically in backend middleware and service query builders; write automated tests specifically attempting cross-hostel access. |
-| **Bed Allocation Race Conditions** | High | Medium | Execute bed vacancy checks and status updates within atomic database transactions (`prisma.$transaction`) with database-level unique constraints. |
-| **Sequential Admission Bottlenecks** | Medium | Medium | Implement clear visual indicators for pending verification queues; allow rejected registrations to be corrected and resubmitted without restarting from scratch. |
-| **Database Schema Alignment** | Medium | Low | Align Prisma schema models strictly with the 56 relational entities codified in [07-database-design.md](./07-database-design.md) prior to executing database migrations. |
-| **Email Worker Service Downtime** | Medium | Low | Implement graceful degradation: if SMTP fails, log the failure and allow core in-app operations to proceed; queue failed messages for retry. |
-| **Complex Disciplinary / Appeal Logic** | Low | Low | Enforce strict state machines for disciplinary actions, ensuring progressive sanctions and formal escalation paths are auditable. |
+| Risk / Dependency                       | Impact   | Probability | Mitigation Strategy                                                                                                                                                      |
+| :-------------------------------------- | :------- | :---------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cross-Tenant Data Leakage**           | Critical | Low         | Enforce `hostel_id` filtering programmatically in backend middleware and service query builders; write automated tests specifically attempting cross-hostel access.      |
+| **Bed Allocation Race Conditions**      | High     | Medium      | Execute bed vacancy checks and status updates within atomic database transactions (`prisma.$transaction`) with database-level unique constraints.                        |
+| **Sequential Admission Bottlenecks**    | Medium   | Medium      | Implement clear visual indicators for pending verification queues; allow rejected registrations to be corrected and resubmitted without restarting from scratch.         |
+| **Database Schema Alignment**           | Medium   | Low         | Align Prisma schema models strictly with the 56 relational entities codified in [07-database-design.md](./07-database-design.md) prior to executing database migrations. |
+| **Email Worker Service Downtime**       | Medium   | Low         | Implement graceful degradation: if SMTP fails, log the failure and allow core in-app operations to proceed; queue failed messages for retry.                             |
+| **Complex Disciplinary / Appeal Logic** | Low      | Low         | Enforce strict state machines for disciplinary actions, ensuring progressive sanctions and formal escalation paths are auditable.                                        |
 
 ---
 

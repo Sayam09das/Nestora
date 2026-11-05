@@ -5,6 +5,7 @@ A centralized, web-based University Hostel Management System engineered to admin
 ---
 
 ## Table of Contents
+
 - [Overview](#overview)
 - [Key Features](#key-features)
 - [User Roles](#user-roles)
@@ -25,9 +26,11 @@ A centralized, web-based University Hostel Management System engineered to admin
 ## Overview
 
 ### Purpose
+
 **Nestora** is an academic software engineering project designed for a Bachelor of Computer Applications (BCA) curriculum. The platform aims to centralize student housing operations, replace fragmented administrative records, and enforce strict institutional accountability across university residential facilities.
 
 ### Problem Context
+
 In conventional university environments, hostel administration is frequently managed through disjointed, manual mechanisms:
 - **Decentralized Paper Registers & Spreadsheets**: Student admissions, attendance records, gate registers, and fee receipts are maintained in physical silos, creating data redundancy and clerical errors.
 - **Allocation Inefficiencies**: Manual tracking of multi-bed rooms, floors, blocks, and buildings leads to double-booking, underutilized bed capacity, and prolonged onboarding times.
@@ -36,6 +39,7 @@ In conventional university environments, hostel administration is frequently man
 - **Delayed Grievance Redressal**: Physical complaint books lack priority tracking, staff assignment, and audit trails.
 
 ### Proposed Solution
+
 Nestora provides a unified, web-based platform that pairs **centralized university-wide administration** with **autonomous, hostel-level operational isolation**:
 - Hierarchical modeling of multi-hostel physical infrastructure down to individual bed spaces.
 - Rigorous Role-Based Access Control (RBAC) across six dedicated user roles.
@@ -48,6 +52,7 @@ Nestora provides a unified, web-based platform that pairs **centralized universi
 ## Key Features
 
 ### Multi-Hostel Infrastructure & Bed Allocation
+
 - **Hierarchical Infrastructure Modeling**: Maps physical housing across seven levels: $\text{University} \rightarrow \text{Hostel} \rightarrow \text{Building} \rightarrow \text{Block} \rightarrow \text{Floor} \rightarrow \text{Room} \rightarrow \text{Bed}$.
 - **Gender Categorization**: Enforces strict segregation into Boys' Hostel and Girls' Hostel facilities.
 - **Six Standardized Room Configurations**: Supports Single, Double, and Triple bed rooms in both AC and Non-AC configurations.
@@ -55,11 +60,13 @@ Nestora provides a unified, web-based platform that pairs **centralized universi
 - **Room-Change Requests**: Enables resident students to apply for room/bed transfers with structured review workflows.
 
 ### Resident Onboarding & Two-Tier Admission
+
 - **Two-Tier Verification Gate**: Student admissions require sequential verification by the University Administrator (Tier 1: Institutional eligibility) followed by the Hostel Warden (Tier 2: Hostel capacity and room suitability).
 - **Dual Sign-Off Approval**: Accommodation eligibility is locked until both administrative tiers grant approval.
 - **Duplicate Prevention**: Prevents duplicate records using unique student registration IDs and email addresses.
 
 ### Daily Operations, Safety & Movement Tracking
+
 - **Nightly Attendance Roll-Call**: Rapid individual and bulk floor attendance logging (`Present`, `Absent`, `On Leave`) with leave cross-referencing to eliminate false absence alerts.
 - **Attendance Correction Auditing**: Requires mandatory justification notes and retains editor identities and timestamps for any attendance revision.
 - **Temporary Leaves & Daily Outings**: Digital leave application and Warden approval workflows; active bed allocations remain strictly reserved during approved leaves.
@@ -67,12 +74,14 @@ Nestora provides a unified, web-based platform that pairs **centralized universi
 - **Visitor Access Control**: Checkpoint visitor registration, mandatory Warden digital pre-approval, and entry/exit timestamp logging.
 
 ### Facilities Upkeep & Financial Administration
+
 - **Maintenance Ticketing Lifecycle**: Resident complaint lodging with damage photographs across seven discrete lifecycle states (`Submitted` through `Closed`/`Reopened`).
 - **Staff Duty Scheduling**: Operational staff profile management, hostel assignment, shift duty scheduling, and maintenance ticket assignments.
 - **Hostel Fee & Dues Management**: Annual and semester-wise fee schedules, Administrator approval gates, manual/offline fee receipt logging, and balance tracking (online payment gateways are explicitly excluded from the initial scope).
 - **Waiver & Adjustment Authorization**: Requires explicit University Administrator approval before any fee concession or penalty adjustment alters a student ledger.
 
 ### Governance, Safety & Communication
+
 - **Emergency & Incident Response**: Universal emergency reporting across all six roles, severity ratings, Warden response coordination, unacknowledged incident auto-escalation, and audited emergency contact lookups.
 - **Conduct & Disciplinary Management**: University and hostel rulebook publication, infraction logging with evidence attachments, progressive sanctions, and student appeal workflows.
 - **Targeted Announcements**: University-wide and hostel-scoped notice publishing with document attachments and mandatory student acknowledgement tracking.
@@ -83,14 +92,14 @@ Nestora provides a unified, web-based platform that pairs **centralized universi
 
 Nestora defines exactly six confirmed user roles, each operating within clearly established privilege boundaries:
 
-| User Role | Operational Scope | Key Responsibilities & Access Boundaries |
-| :--- | :--- | :--- |
-| **University Administrator** | University-Wide | Holds institutional governance across all university hostels. Configures infrastructure, provisions all six user roles, completes Tier-1 admission verification and final sign-off, authorizes fee schedules and waivers, adjudicates escalated appeals, reviews emergency incidents, and accesses centralized audit history. |
-| **Hostel Warden** | Assigned Hostel(s) | Exercises operational authority strictly within assigned hostel(s). Completes Tier-2 admission verification, allocates rooms and beds, approves leaves and outings, records nightly attendance, authorizes visitor entries, assigns maintenance tasks, manages staff duties, logs disciplinary infractions, and provisions Student, Staff, and Guard accounts for the assigned hostel. |
-| **Student** | Personal Resident | Resident user whose access is restricted to their personal profile, assigned room/bed details, accommodation preferences, leave/outing applications, personal attendance records, itemized fee statements, complaint lodging, and hostel circulars. Cannot view peer records or self-approve requests. |
-| **Hostel Staff** | Operational Task | Facility support personnel (e.g., electricians, plumbers, cleaning staff) restricted to viewing and updating assigned maintenance tickets, recording daily shift notes, and logging night attendance only when explicitly delegated by the Warden. |
-| **Security Guard** | Gate Security | Perimeter gatekeeping personnel restricted to verifying student gate passes, recording entry and exit timestamps, logging late returns, and registering visitor check-ins/outs. Cannot approve leaves, modify student records, or access financial data. |
-| **Accountant** | Financial | Financial officer responsible for drafting fee schedules, recording external/offline fee payments, tracking outstanding student balances and late fees, proposing fee waivers, and generating financial reports. Cannot manage room allocations, attendance, or security operations. |
+| User Role                    | Operational Scope  | Key Responsibilities & Access Boundaries                                                                                                                                                                                                                                                                                                                                               |
+| :--------------------------- | :----------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **University Administrator** | University-Wide    | Holds institutional governance across all university hostels. Configures infrastructure, provisions all six user roles, completes Tier-1 admission verification and final sign-off, authorizes fee schedules and waivers, adjudicates escalated appeals, reviews emergency incidents, and accesses centralized audit history.                                                          |
+| **Hostel Warden**            | Assigned Hostel(s) | Exercises operational authority strictly within assigned hostel(s). Completes Tier-2 admission verification, allocates rooms and beds, approves leaves and outings, records nightly attendance, authorizes visitor entries, assigns maintenance tasks, manages staff duties, logs disciplinary infractions, and provisions Student, Staff, and Guard accounts for the assigned hostel. |
+| **Student**                  | Personal Resident  | Resident user whose access is restricted to their personal profile, assigned room/bed details, accommodation preferences, leave/outing applications, personal attendance records, itemized fee statements, complaint lodging, and hostel circulars. Cannot view peer records or self-approve requests.                                                                                 |
+| **Hostel Staff**             | Operational Task   | Facility support personnel (e.g., electricians, plumbers, cleaning staff) restricted to viewing and updating assigned maintenance tickets, recording daily shift notes, and logging night attendance only when explicitly delegated by the Warden.                                                                                                                                     |
+| **Security Guard**           | Gate Security      | Perimeter gatekeeping personnel restricted to verifying student gate passes, recording entry and exit timestamps, logging late returns, and registering visitor check-ins/outs. Cannot approve leaves, modify student records, or access financial data.                                                                                                                               |
+| **Accountant**               | Financial          | Financial officer responsible for drafting fee schedules, recording external/offline fee payments, tracking outstanding student balances and late fees, proposing fee waivers, and generating financial reports. Cannot manage room allocations, attendance, or security operations.                                                                                                   |
 
 ---
 
@@ -124,22 +133,22 @@ The system is organized into 19 cohesive functional modules:
 
 The planned technology stack comprises modern, type-safe, and production-tested technologies:
 
-| Layer / Category | Technology | Architectural Responsibility |
-| :--- | :--- | :--- |
-| **Frontend Framework** | **Next.js (App Router)** | Client-side routing, server-rendered layouts, dynamic role dashboards |
-| **UI Library** | **React 18+** | Declarative, component-driven user interface construction |
-| **Language** | **TypeScript** | End-to-end static typing across frontend, backend, and data models |
-| **Styling & Components** | **Tailwind CSS + shadcn/ui** | Responsive utility styling, accessible WCAG-compliant UI primitives |
-| **Backend Runtime** | **Node.js 24 LTS** | Asynchronous, event-driven server runtime |
-| **Backend Framework** | **Fastify** | High-throughput REST API gateway, native JSON schema validation |
-| **Database Engine** | **PostgreSQL** | Relational data persistence, referential constraints, ACID transactions |
-| **ORM / Query Builder** | **Prisma ORM** | Type-safe database queries, declarative migrations, connection pooling |
-| **Authentication & Security** | **Argon2id + HTTP-Only Cookies** | Salted adaptive password hashing, opaque SHA-256 session token hashes, RBAC |
-| **Monorepo & Task Pipeline** | **pnpm Workspaces + Turborepo** | Strict workspace dependency isolation, topological execution graph, task caching |
-| **Asynchronous Workers** | **Node.js Task Worker** | Non-blocking background email dispatch and heavy report compilation |
-| **Caching & Queue (Optional)** | **Redis** | In-memory caching, rate-limiting counters, and job queues *(Proposed)* |
-| **Containerization** | **Docker & Docker Compose** | Reproducible multi-container development and deployment environments |
-| **CI/CD Automation** | **GitHub Actions** | Automated linting, type-checking, and test suite execution |
+| Layer / Category               | Technology                       | Architectural Responsibility                                                     |
+| :----------------------------- | :------------------------------- | :------------------------------------------------------------------------------- |
+| **Frontend Framework**         | **Next.js (App Router)**         | Client-side routing, server-rendered layouts, dynamic role dashboards            |
+| **UI Library**                 | **React 18+**                    | Declarative, component-driven user interface construction                        |
+| **Language**                   | **TypeScript**                   | End-to-end static typing across frontend, backend, and data models               |
+| **Styling & Components**       | **Tailwind CSS + shadcn/ui**     | Responsive utility styling, accessible WCAG-compliant UI primitives              |
+| **Backend Runtime**            | **Node.js 24 LTS**               | Asynchronous, event-driven server runtime                                        |
+| **Backend Framework**          | **Fastify**                      | High-throughput REST API gateway, native JSON schema validation                  |
+| **Database Engine**            | **PostgreSQL**                   | Relational data persistence, referential constraints, ACID transactions          |
+| **ORM / Query Builder**        | **Prisma ORM**                   | Type-safe database queries, declarative migrations, connection pooling           |
+| **Authentication & Security**  | **Argon2id + HTTP-Only Cookies** | Salted adaptive password hashing, opaque SHA-256 session token hashes, RBAC      |
+| **Monorepo & Task Pipeline**   | **pnpm Workspaces + Turborepo**  | Strict workspace dependency isolation, topological execution graph, task caching |
+| **Asynchronous Workers**       | **Node.js Task Worker**          | Non-blocking background email dispatch and heavy report compilation              |
+| **Caching & Queue (Optional)** | **Redis**                        | In-memory caching, rate-limiting counters, and job queues _(Proposed)_           |
+| **Containerization**           | **Docker & Docker Compose**      | Reproducible multi-container development and deployment environments             |
+| **CI/CD Automation**           | **GitHub Actions**               | Automated linting, type-checking, and test suite execution                       |
 
 ---
 
@@ -151,6 +160,7 @@ Nestora is architected as a **Decoupled Client-Server Modular Monolith** organiz
 3. **Data Layer**: PostgreSQL relational database managed via Prisma ORM, enforcing foreign key constraints (`RESTRICT` on physical assets), uniqueness constraints, and ACID transactions.
 
 ### High-Level Architecture Diagram
+
 ```mermaid
 flowchart TD
   subgraph Presentation["Presentation Layer (Next.js)"]
@@ -211,6 +221,7 @@ The persistence architecture utilizes **PostgreSQL** configured with relational 
 ## Project Structure
 
 ### Current Repository Structure
+
 The repository is currently in the **System Documentation and Architectural Design** phase:
 
 ```
@@ -236,6 +247,7 @@ Nestora/
 ```
 
 ### Planned Implementation Structure
+
 When application implementation commences, the repository will be structured as an enterprise pnpm + Turborepo monorepo defined in [09-monorepo-architecture.md](docs/09-monorepo-architecture.md):
 
 ```
@@ -266,20 +278,20 @@ Nestora/
 
 The project maintains a sequential documentation suite serving as the primary source of truth:
 
-| Document | File Link | Description & Key Contents |
-| :--- | :--- | :--- |
-| **Project Overview** | [01-project-overview.md](docs/01-project-overview.md) | Introduces Nestora, university multi-hostel background, problem statement, project objectives, and intended users. |
-| **Project Scope** | [02-project-scope.md](docs/02-project-scope.md) | Defines the 18 in-scope functional domains, 7-tier organizational scope, data visibility, and 4 explicit exclusions (SMS, customization, date-filters, payment gateway). |
-| **Functional Requirements** | [03-functional-requirements.md](docs/03-functional-requirements.md) | Specifies 144 formal functional requirements (`FR-001` to `FR-144`) and 16 core business rules (`BR-001` to `BR-016`). |
-| **Non-Functional Requirements** | [04-non-functional-requirements.md](docs/04-non-functional-requirements.md) | Defines 61 quality benchmarks (`NFR-PER`, `NFR-SEC`, `NFR-PRI`, `NFR-REL`, `NFR-USA`, etc.) covering security, performance, and reliability. |
-| **User Roles & Permissions** | [05-user-roles-and-permissions.md](docs/05-user-roles-and-permissions.md) | Establishes access boundaries for all six roles, the complete 19-module RBAC matrix, and 12 authorization enforcement rules (`AUTH-001` to `AUTH-012`). |
-| **System Architecture** | [06-system-architecture.md](docs/06-system-architecture.md) | Details the decoupled modular monolith, 3-tier architecture, technology stack, security design, and 5 Mermaid architecture diagrams. |
-| **Database Design** | [07-database-design.md](docs/07-database-design.md) | Formal entity-relationship models across 56 tables, 6 Mermaid ER diagrams, physical DDL schemas, indexing strategies, and tenant data isolation rules. |
-| **Module Development Plan** | [08-module-development-plan.md](docs/08-module-development-plan.md) | Outlines the 6 sequential development phases (`MS-1` to `MS-6`), module dependencies, frontend/backend plans, testing pyramid, and quality criteria. |
-| **Monorepo Architecture** | [09-monorepo-architecture.md](docs/09-monorepo-architecture.md) | Defines the pnpm + Turborepo workspace topology, Fastify request lifecycle, direct client-API communication, SHA-256 session security, multi-hostel tenant isolation, and Node.js 24 LTS runtime baseline. |
-| **Open Decisions Registry** | [10-open-decisions-registry.md](docs/10-open-decisions-registry.md) | Single register of pending institutional policies (`ODR-001`–`ODR-005`) with architecture impact and source cross-references. |
-| **Glossary & Traceability** | [11-glossary-and-traceability.md](docs/11-glossary-and-traceability.md) | Domain terms, `FR`/`MOD`/`BR`/`AUTH` ID conventions, and explanation of 18 scope areas vs 19 implementation modules. |
-| **Documentation Index** | [docs/README.md](docs/README.md) | Recommended reading order for reviewers and implementers, plus documentation conventions. |
+| Document                        | File Link                                                                   | Description & Key Contents                                                                                                                                                                                 |
+| :------------------------------ | :-------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Project Overview**            | [01-project-overview.md](docs/01-project-overview.md)                       | Introduces Nestora, university multi-hostel background, problem statement, project objectives, and intended users.                                                                                         |
+| **Project Scope**               | [02-project-scope.md](docs/02-project-scope.md)                             | Defines the 18 in-scope functional domains, 7-tier organizational scope, data visibility, and 4 explicit exclusions (SMS, customization, date-filters, payment gateway).                                   |
+| **Functional Requirements**     | [03-functional-requirements.md](docs/03-functional-requirements.md)         | Specifies 144 formal functional requirements (`FR-001` to `FR-144`) and 16 core business rules (`BR-001` to `BR-016`).                                                                                     |
+| **Non-Functional Requirements** | [04-non-functional-requirements.md](docs/04-non-functional-requirements.md) | Defines 61 quality benchmarks (`NFR-PER`, `NFR-SEC`, `NFR-PRI`, `NFR-REL`, `NFR-USA`, etc.) covering security, performance, and reliability.                                                               |
+| **User Roles & Permissions**    | [05-user-roles-and-permissions.md](docs/05-user-roles-and-permissions.md)   | Establishes access boundaries for all six roles, the complete 19-module RBAC matrix, and 12 authorization enforcement rules (`AUTH-001` to `AUTH-012`).                                                    |
+| **System Architecture**         | [06-system-architecture.md](docs/06-system-architecture.md)                 | Details the decoupled modular monolith, 3-tier architecture, technology stack, security design, and 5 Mermaid architecture diagrams.                                                                       |
+| **Database Design**             | [07-database-design.md](docs/07-database-design.md)                         | Formal entity-relationship models across 56 tables, 6 Mermaid ER diagrams, physical DDL schemas, indexing strategies, and tenant data isolation rules.                                                     |
+| **Module Development Plan**     | [08-module-development-plan.md](docs/08-module-development-plan.md)         | Outlines the 6 sequential development phases (`MS-1` to `MS-6`), module dependencies, frontend/backend plans, testing pyramid, and quality criteria.                                                       |
+| **Monorepo Architecture**       | [09-monorepo-architecture.md](docs/09-monorepo-architecture.md)             | Defines the pnpm + Turborepo workspace topology, Fastify request lifecycle, direct client-API communication, SHA-256 session security, multi-hostel tenant isolation, and Node.js 24 LTS runtime baseline. |
+| **Open Decisions Registry**     | [10-open-decisions-registry.md](docs/10-open-decisions-registry.md)         | Single register of pending institutional policies (`ODR-001`–`ODR-005`) with architecture impact and source cross-references.                                                                              |
+| **Glossary & Traceability**     | [11-glossary-and-traceability.md](docs/11-glossary-and-traceability.md)     | Domain terms, `FR`/`MOD`/`BR`/`AUTH` ID conventions, and explanation of 18 scope areas vs 19 implementation modules.                                                                                       |
+| **Documentation Index**         | [docs/README.md](docs/README.md)                                            | Recommended reading order for reviewers and implementers, plus documentation conventions.                                                                                                                  |
 
 ---
 

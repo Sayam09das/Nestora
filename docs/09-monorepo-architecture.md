@@ -3,11 +3,13 @@
 ## 1. Document Purpose and Architecture Overview
 
 ### 1.1 Document Purpose
+
 This specification establishes the authoritative monorepo architecture and workspace topology for **Nestora — University Hostel Management System**. It translates the system architecture ([06-system-architecture.md](./06-system-architecture.md)), database design ([07-database-design.md](./07-database-design.md)), and phased module development plan ([08-module-development-plan.md](./08-module-development-plan.md)) into an actionable physical workspace organization.
 
 This document serves as the technical blueprint for repository structure, package boundaries, code-sharing protocols, build pipelines, and development workflows. It governs the transition from architectural specifications into code across all six planned development milestones (`MS-1` through `MS-6`).
 
 ### 1.2 Core Architectural Philosophy
+
 Nestora is engineered as a **Decoupled Client-Server Modular Monolith** contained within a single version-controlled repository using **pnpm workspaces** and coordinated by **Turborepo**. The architecture adheres to five core principles:
 
 1. **Strict Separation of Concerns**: The Next.js presentation layer (`apps/web`) and Fastify application layer (`apps/api`) maintain independent runtime boundaries. The frontend never communicates directly with the database, and the backend never renders presentation HTML. Communication occurs exclusively over HTTP/REST using typed JSON envelopes.
@@ -193,6 +195,7 @@ Nestora/
 The Next.js web application operates strictly as the system's presentation tier, providing responsive, role-tailored user interfaces for each of the six confirmed user roles.
 
 ### 3.1 Role-Based Route Organization
+
 The frontend employs Next.js App Router route groups to isolate authenticated experiences while enforcing role boundaries at the UI layout level:
 
 ```mermaid
@@ -219,6 +222,7 @@ flowchart TD
 ```
 
 ### 3.2 Key Frontend Technical Responsibilities
+
 1. **Direct Browser Communication with Fastify REST API**:
    - The browser client executes all interactive data-fetching and mutation queries directly against Fastify at `http://localhost:4000/api/v1` (or relative path `/api/v1` behind an Nginx reverse proxy in production).
    - Next.js is not used as an intermediate BFF proxy; `apps/web/src/app/api/` contains only frontend-local utility routes (e.g. local health checks).
@@ -256,6 +260,7 @@ flowchart TD
 The Fastify backend serves as the authoritative application layer, orchestrating business domain workflows, database transactions, and security enforcement across all 19 system modules.
 
 ### 4.1 Internal Modular Structure
+
 Each of the 19 domain modules (`MOD-01` to `MOD-19`) inside `apps/api/src/modules/` is encapsulated within a standardized sub-directory structure:
 
 ```
@@ -268,6 +273,7 @@ apps/api/src/modules/mod04-admissions/
 ```
 
 ### 4.2 Authoritative Fastify Request Lifecycle
+
 Fastify processes every incoming HTTP request through an explicit, sequential lifecycle pipeline. The sequence strictly reflects Fastify's actual engine architecture:
 
 ```mermaid
@@ -319,6 +325,7 @@ sequenceDiagram
 ```
 
 ### 4.3 Key Backend Technical Responsibilities
+
 1. **Authoritative Authorization & Tenant Scoping**:
    - Enforces the RBAC matrix ([05-user-roles-and-permissions.md](./05-user-roles-and-permissions.md)) and multi-hostel tenant isolation authoritatively at the server boundary. Client claims are never trusted without cryptographic database session validation.
 2. **Dual-Layer Audit Logging Strategy**:
@@ -328,11 +335,13 @@ sequenceDiagram
    - Transactionality alone guarantees atomicity, not immutability. Append-only immutability is enforced through three distinct layers:
      - **Application Layer**: `AuditRepository` exports strictly `create` and `findMany` methods; no update or delete methods exist in the codebase.
      - **Database Role Privileges**: The application database user (`nestora_app`) is granted strictly `SELECT` and `INSERT` permissions on `audit_logs`:
+
        ```sql
        GRANT SELECT, INSERT ON audit_logs TO nestora_app;
        REVOKE UPDATE, DELETE, TRUNCATE ON audit_logs FROM nestora_app;
        ```
      - **Database Trigger**: An immutable trigger raises an exception if any SQL `UPDATE` or `DELETE` is attempted against `audit_logs`:
+
        ```sql
        CREATE OR REPLACE FUNCTION protect_audit_logs() RETURNS TRIGGER AS $$
        BEGIN
@@ -344,6 +353,7 @@ sequenceDiagram
        BEFORE UPDATE OR DELETE ON audit_logs
        FOR EACH ROW EXECUTE FUNCTION protect_audit_logs();
        ```
+
 4. **Durable Background Job Processing**:
    - Background jobs (transactional emails, report compilation) are managed through durable database state tables (`scheduled_jobs`, `job_execution_logs` from Document 07) with unique `idempotency_key` constraints.
    - If the server restarts, interrupted jobs are recovered safely without duplicate execution. Workers implement exponential backoff retries (maximum 3 attempts).
@@ -356,19 +366,21 @@ sequenceDiagram
 
 Shared packages decouple reusable domain assets from specific runtime applications. To eliminate redundancy and prevent contract drift, each package maintains strict ownership over specific aspects of the data contract:
 
-| Package Name | Workspace Scope | Runtime Type | Authoritative Contract Ownership |
-| :--- | :--- | :--- | :--- |
-| **`@nestora/database`** | `packages/database` | Runtime (Prisma) | **Persistence Models & Canonical Enums**: Owns `schema.prisma`, SQL migrations, and exports the canonical Prisma-generated model types (`User`, `Student`, `Bed`, `AllocationRecord`, etc.) and database enum types (`Role`, `GenderCategory`, `BedStatus`, `RoomConfigCode`, `AdmissionStatus`, `TicketStatus`). |
-| **`@nestora/validators`** | `packages/validators` | Runtime (Zod) | **Mutation Input Contracts**: Owns runtime Zod schemas and derives TypeScript types via `z.infer<typeof Schema>` (`LoginInput`, `AllocateBedInput`, `CreateNoticeInput`). |
-| **`@nestora/types`** | `packages/types` | Compile-time only | **API Contracts & Envelopes**: Re-exports canonical database enums from `@nestora/database`, owns `ApiResponse<T>`, `ApiError`, `SessionUser` claims, and Composite DTOs (e.g., sanitized profiles omitting passwords, composite dashboard views). |
-| **`@nestora/utils`** | `packages/utils` | Runtime (Pure TS) | **Deterministic Helpers**: Owns date formatters, currency conversions in minor units (paise/cents), registration ID formatters, and slug generators. |
-| **`@nestora/config`** | `packages/config` | Development Tooling | **Shared Tooling**: Base configurations for ESLint, Prettier, and TypeScript compiler presets (`tsconfig.base.json`). |
+| Package Name              | Workspace Scope       | Runtime Type        | Authoritative Contract Ownership                                                                                                                                                                                                                                                                                  |
+| :------------------------ | :-------------------- | :------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`@nestora/database`**   | `packages/database`   | Runtime (Prisma)    | **Persistence Models & Canonical Enums**: Owns `schema.prisma`, SQL migrations, and exports the canonical Prisma-generated model types (`User`, `Student`, `Bed`, `AllocationRecord`, etc.) and database enum types (`Role`, `GenderCategory`, `BedStatus`, `RoomConfigCode`, `AdmissionStatus`, `TicketStatus`). |
+| **`@nestora/validators`** | `packages/validators` | Runtime (Zod)       | **Mutation Input Contracts**: Owns runtime Zod schemas and derives TypeScript types via `z.infer<typeof Schema>` (`LoginInput`, `AllocateBedInput`, `CreateNoticeInput`).                                                                                                                                         |
+| **`@nestora/types`**      | `packages/types`      | Compile-time only   | **API Contracts & Envelopes**: Re-exports canonical database enums from `@nestora/database`, owns `ApiResponse<T>`, `ApiError`, `SessionUser` claims, and Composite DTOs (e.g., sanitized profiles omitting passwords, composite dashboard views).                                                                |
+| **`@nestora/utils`**      | `packages/utils`      | Runtime (Pure TS)   | **Deterministic Helpers**: Owns date formatters, currency conversions in minor units (paise/cents), registration ID formatters, and slug generators.                                                                                                                                                              |
+| **`@nestora/config`**     | `packages/config`     | Development Tooling | **Shared Tooling**: Base configurations for ESLint, Prettier, and TypeScript compiler presets (`tsconfig.base.json`).                                                                                                                                                                                             |
 
 ### 5.1 Canonical Enum Ownership and Import Isolation
+
 - **Canonical Enums**: Declared once in `packages/database/prisma/schema.prisma` as PostgreSQL enums (`Role`, `GenderCategory`, `BedStatus`, `RoomConfigCode`). Generated by Prisma into `@nestora/database`. `@nestora/types` re-exports these enums to ensure zero manual duplication.
 - **Import Boundary Rule**:
   - `apps/web` is **strictly prohibited from importing `@nestora/database`** or Prisma Client code. The frontend interacts only with `@nestora/types`, `@nestora/validators`, and `@nestora/utils`.
   - Enforced in CI via ESLint `no-restricted-imports` configuration:
+
     ```javascript
     // apps/web/.eslintrc.js
     module.exports = {
@@ -384,6 +396,7 @@ Shared packages decouple reusable domain assets from specific runtime applicatio
     ```
 
 ### 5.2 Validation Contract Consumption & Verification
+
 - **Frontend Consumption**: Direct client execution using `react-hook-form` with `@hookform/resolvers/zod`.
 - **Backend Consumption**: Fastify routes compile shared Zod schemas into JSON Schemas at server registration using `zod-to-json-schema`. Fastify's compiled Ajv engine validates incoming `params`, `query`, and `body` at native C-level speed.
 - **Automated Parity Verification**: Rather than assuming 100% parity, an automated contract test suite in `packages/validators` executes in CI, asserting that representative valid and invalid payload fixtures yield identical validation passes and rejection codes under both Zod's parser and Fastify's compiled Ajv validator.
@@ -416,6 +429,7 @@ flowchart LR
 ```
 
 ### 6.1 Database Schema Principles
+
 - **PostgreSQL Relational Engine**: Relational integrity enforced at the database level via foreign key constraints.
 - **Physical Asset Protection**: All physical accommodation hierarchy tables (`universities`, `hostels`, `buildings`, `blocks`, `floors`, `rooms`, `beds`) enforce `ON DELETE RESTRICT` constraints to prevent accidental cascade destruction of campus assets.
 - **Single Active Bed Occupancy**: Guaranteed at the database level via a partial unique index on `allocation_records(bed_id) WHERE status = 'ACTIVE'`.
@@ -424,6 +438,7 @@ flowchart LR
 - **Hashed Session Tokens**: The `sessions` table maintains `session_token_hash: VARCHAR(64)` storing a SHA-256 digest of the token rather than the raw plaintext token.
 
 ### 6.2 Database Migration Workflows
+
 The workspace establishes distinct, explicit migration workflows for development, verification, and production:
 
 1. **Local Development Migration Workflow**:
@@ -432,6 +447,7 @@ The workspace establishes distinct, explicit migration workflows for development
    - Prisma creates a timestamped SQL migration file in `packages/database/prisma/migrations/`, executes it against the local PostgreSQL container, and regenerates the Prisma Client.
 2. **Automated CI Schema Drift Detection**:
    - In CI/CD pipelines, schema drift is checked before deployment:
+
      ```bash
      pnpm --filter @nestora/database prisma migrate diff \
        --from-schema-datamodel prisma/schema.prisma \
@@ -444,6 +460,7 @@ The workspace establishes distinct, explicit migration workflows for development
    - Applies pending versioned SQL migrations in strict chronological sequence. It does not compare live schema against data models; schema integrity is guaranteed by prior CI drift verification. Fails fast if migration checksums mismatch.
 
 ### 6.3 Secure Database Seeding Strategy
+
 - **Development Environment Seeding**:
   - Running `pnpm --filter @nestora/database db:seed` executes `prisma/seed/seed.ts`.
   - Guarded by an explicit environment check: executes strictly when `NODE_ENV === 'development'`.
@@ -466,6 +483,7 @@ The workspace establishes distinct, explicit migration workflows for development
 Communication between the Next.js presentation layer and the Fastify backend follows RESTful conventions using standardized JSON envelope structures.
 
 ### 7.1 Client-to-API Topology & CORS Alignment
+
 - **Direct Communication**: Browser clients make HTTP requests directly to Fastify (`apps/api`) at `http://localhost:4000/api/v1` (or via reverse proxy in production).
 - **CORS Configuration**: Fastify registers `@fastify/cors` configured with:
   - `origin`: Matches explicit allowlist from `process.env.CORS_ORIGIN` (default: `http://localhost:3000`). Wildcards (`*`) are strictly prohibited.
@@ -473,9 +491,11 @@ Communication between the Next.js presentation layer and the Fastify backend fol
 - **Client Configuration**: Next.js `apiClient` sets `credentials: 'include'` on all `fetch()` calls.
 
 ### 7.2 Standardized HTTP Response Envelope
+
 Every API response returned by `apps/api` adheres to a uniform JSON envelope:
 
 #### Successful Response (`200 OK`, `201 Created`):
+
 ```json
 {
   "success": true,
@@ -491,6 +511,7 @@ Every API response returned by `apps/api` adheres to a uniform JSON envelope:
 ```
 
 #### Error Response (`400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found`, `423 Locked`, `500 Internal Error`):
+
 ```json
 {
   "success": false,
@@ -513,6 +534,7 @@ Every API response returned by `apps/api` adheres to a uniform JSON envelope:
 Nestora enforces a defense-in-depth security model separating client-side UX navigation from authoritative backend security gates:
 
 ### 8.1 Primary Authentication Model (Opaque Database Sessions)
+
 Nestora standardizes on **opaque, high-entropy database-backed session tokens** stored in the `sessions` table (defined in [07-database-design.md](./07-database-design.md) Section 5.1). Stateless JWTs are not used for user sessions.
 
 1. **Token Generation**: Upon successful login, Fastify generates a cryptographically secure 256-bit token using `crypto.randomBytes(32).toString('hex')`.
@@ -538,9 +560,11 @@ Nestora standardizes on **opaque, high-entropy database-backed session tokens** 
    - `maxAge`: Calculated as `SESSION_TTL_HOURS * 3600` (e.g., 24 hours = 86,400 seconds)
 
 ### 8.2 Password Hashing Standard (Argon2id)
+
 The system strictly standardizes on **Argon2id** (RFC 9106) with unique per-user cryptographically random salts for all password hashing. Plaintext passwords or legacy weak hashes (MD5, SHA1, plain bcrypt) are strictly prohibited.
 
 ### 8.3 Account Lockout & Anti-Enumeration Algorithm
+
 To satisfy `FR-007` and `NFR-SEC-004`, account lockout is enforced via the `users` table:
 1. **Anti-Enumeration Protection**:
    - If an email is not found, Fastify computes a dummy Argon2id verification using a fixed dummy hash and returns HTTP 401 with generic message `"Invalid email or password"`. Eliminates timing discrepancies and prevents user enumeration.
@@ -554,8 +578,8 @@ To satisfy `FR-007` and `NFR-SEC-004`, account lockout is enforced via the `user
      - Else (`NOW() - failed_attempts_window_started_at <= 15 minutes`):
        Increment: `failed_login_attempts += 1`.
        If `failed_login_attempts >= 5`:
-         Set `locked_until = NOW() + INTERVAL '30 minutes'`.
-         Synchronously emit an immutable security audit entry (`action_name = 'ACCOUNT_LOCKOUT'`).
+       Set `locked_until = NOW() + INTERVAL '30 minutes'`.
+       Synchronously emit an immutable security audit entry (`action_name = 'ACCOUNT_LOCKOUT'`).
      - Save user state atomically and return HTTP 401 `"Invalid email or password"`.
 4. **Successful Authentication Reset**:
    - Upon successful credential verification:
@@ -564,6 +588,7 @@ To satisfy `FR-007` and `NFR-SEC-004`, account lockout is enforced via the `user
    - In addition to per-account database lockout, Fastify registers `@fastify/rate-limit` configured per-IP (maximum 10 failed login requests per IP per minute) to protect against distributed credential stuffing and denial of service.
 
 ### 8.4 Cross-Site Request Forgery (CSRF) Defense Strategy
+
 Because authentication utilizes ambient browser cookies, Fastify enforces an explicit multi-layered CSRF defense:
 - **CORS vs CSRF Distinction**: CORS controls cross-origin response reading via the browser; CSRF prevents unauthorized state-changing requests from being executed by the browser using ambient cookies.
 - **Strict Method Gating**: State-changing mutations are strictly restricted to `POST`, `PUT`, `PATCH`, and `DELETE`. `GET` and `HEAD` requests are strictly idempotent and read-only.
@@ -590,6 +615,7 @@ flowchart TD
 ```
 
 ### 9.1 Tenant Boundaries Across All Six User Roles
+
 1. **University Administrator**:
    - Possesses global oversight across all university hostels.
    - **Explicit Scope Distinction**:
@@ -612,6 +638,7 @@ flowchart TD
    - Attempting to query or mutate non-financial entities (room allocations, attendance records, gate passes, disciplinary files, emergency contacts) is rejected at the repository level with `ForbiddenError`.
 
 ### 9.2 Direct `hostel_id` Ownership on Operational Tables
+
 To satisfy the latency benchmarks ($\le 500\text{ms}$) defined in [04-non-functional-requirements.md](./04-non-functional-requirements.md) and eliminate 8-table relational joins, high-frequency operational tables maintain a direct, indexed `hostel_id` foreign key referencing `hostels(id)` (aligned with [07-database-design.md](./07-database-design.md) Section 9.1):
 - `attendance_records`
 - `leave_applications`
@@ -627,9 +654,10 @@ To satisfy the latency benchmarks ($\le 500\text{ms}$) defined in [04-non-functi
 - `hostel_rules` (nullable for university-wide rules)
 - `notices` (nullable for university-wide circulars)
 
-*Note on Non-Operational Tables*: Entities without direct `hostel_id` are scoped through explicit relational paths (e.g., `rooms` via `floor_id` $\rightarrow$ `block_id` $\rightarrow$ `building_id` $\rightarrow$ `hostel_id`; student profiles via `student_id`).
+_Note on Non-Operational Tables_: Entities without direct `hostel_id` are scoped through explicit relational paths (e.g., `rooms` via `floor_id` $\rightarrow$ `block_id` $\rightarrow$ `building_id` $\rightarrow$ `hostel_id`; student profiles via `student_id`).
 
 ### 9.3 Dual-Level Isolation Enforcement (Service + Repository)
+
 Isolation is enforced at both application layers to guarantee that unscoped queries cannot execute:
 1. **Service Layer**: Validates that the requested action matches the actor's jurisdiction.
 2. **Repository / Data-Access Layer**: Prisma query builders require typed, non-empty tenant scope parameters:
@@ -653,7 +681,9 @@ export async function findComplaintsByScope(scope: TenantScope) {
 
     case 'GLOBAL_ADMIN_HOSTEL':
       if (!scope.targetHostelId) {
-        throw new BadRequestError('Target hostel ID is mandatory for hostel-scoped administrator queries');
+        throw new BadRequestError(
+          'Target hostel ID is mandatory for hostel-scoped administrator queries',
+        );
       }
       where.hostel_id = scope.targetHostelId;
       break;
@@ -673,7 +703,9 @@ export async function findComplaintsByScope(scope: TenantScope) {
       break;
 
     case 'FINANCE_SCOPED':
-      throw new ForbiddenError('Access denied: Accountants are prohibited from accessing maintenance complaint records');
+      throw new ForbiddenError(
+        'Access denied: Accountants are prohibited from accessing maintenance complaint records',
+      );
 
     default:
       throw new ForbiddenError('Access denied: Unrecognized tenant query scope');
@@ -690,6 +722,7 @@ export async function findComplaintsByScope(scope: TenantScope) {
 Environment variables are validated at startup using typed Zod schemas. If any required variable is missing or malformed, application startup is aborted immediately with an explicit configuration error.
 
 ### 10.1 Environment Variable Taxonomy
+
 Configuration variables are divided into distinct operational domains:
 
 ```
@@ -742,21 +775,26 @@ MAX_UPLOAD_SIZE_BYTES=5242880             # 5 MB maximum attachment limit
 The workspace enforces environment isolation across development, continuous integration, and production deployment environments.
 
 ### 11.1 Local Development Environment
+
 - **Prerequisites**: Node.js 24 LTS (Active), `pnpm` (v9+), Docker & Docker Compose.
 - **Supporting Infrastructure Daemons**: Started via Docker Compose:
+
   ```bash
   # Start local PostgreSQL and MailHog background services
   docker compose -f docker/docker-compose.yml up -d
   ```
+
   - **PostgreSQL 15+**: Port `5432` with pre-configured development credentials.
   - **MailHog**: Port `1025` (SMTP) and `8025` (Web UI) for inspecting local emails without external cloud SMTP accounts.
 - **Application Startup**:
+
   ```bash
   # Launch all workspace packages, Fastify API, and Next.js concurrently
   pnpm dev
   ```
 
 ### 11.2 Production Deployment Environment
+
 - **Multi-Stage Container Builds**:
   - `docker/Dockerfile.api`: Compiles TypeScript, prunes devDependencies, and executes Fastify via `CMD ["node", "dist/server.js"]` under the official Node.js 24 Alpine image.
   - `docker/Dockerfile.web`: Leverages Next.js standalone output mode (`output: 'standalone'`), producing an optimized, self-contained server package executed via `CMD ["node", "server.js"]` under the official Node.js 24 Alpine image.
@@ -772,10 +810,11 @@ The workspace enforces environment isolation across development, continuous inte
 The monorepo uses **pnpm workspaces** for dependency deduplication, strict isolation, and deterministic lockfile resolution.
 
 ### 12.1 Workspace Configuration (`pnpm-workspace.yaml`)
+
 ```yaml
 packages:
-  - 'apps/*'
-  - 'packages/*'
+  - "apps/*"
+  - "packages/*"
 ```
 
 Internal workspace dependencies are declared strictly using the `workspace:*` protocol in `package.json`:
@@ -791,6 +830,7 @@ Internal workspace dependencies are declared strictly using the `workspace:*` pr
 ```
 
 ### 12.2 Turborepo Task Pipeline (`turbo.json`)
+
 Turborepo orchestrates task execution using the modern `tasks` schema, caching build and test outputs across packages:
 
 ```json
@@ -821,15 +861,15 @@ Turborepo orchestrates task execution using the modern `tasks` schema, caching b
 
 ### 12.3 Key Workspace Scripts
 
-| Command | Action Executed Across Workspace |
-| :--- | :--- |
-| `pnpm dev` | Starts local development server for all apps in parallel with hot reloading. |
-| `pnpm build` | Compiles `@nestora/types`, `@nestora/validators`, generates Prisma client, and builds Next.js and Fastify. |
-| `pnpm test` | Runs unit, integration, and contract test suites in topological dependency order. |
-| `pnpm lint` | Runs ESLint and Prettier across all packages. |
-| `pnpm db:migrate:dev` | Generates and applies a new development SQL migration in `@nestora/database`. |
-| `pnpm db:migrate:deploy` | Applies pending migrations in production environments without schema drift generation. |
-| `pnpm db:seed` | Populates development demo institutions, hostels, and test user accounts. |
+| Command                  | Action Executed Across Workspace                                                                           |
+| :----------------------- | :--------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`               | Starts local development server for all apps in parallel with hot reloading.                               |
+| `pnpm build`             | Compiles `@nestora/types`, `@nestora/validators`, generates Prisma client, and builds Next.js and Fastify. |
+| `pnpm test`              | Runs unit, integration, and contract test suites in topological dependency order.                          |
+| `pnpm lint`              | Runs ESLint and Prettier across all packages.                                                              |
+| `pnpm db:migrate:dev`    | Generates and applies a new development SQL migration in `@nestora/database`.                              |
+| `pnpm db:migrate:deploy` | Applies pending migrations in production environments without schema drift generation.                     |
+| `pnpm db:seed`           | Populates development demo institutions, hostels, and test user accounts.                                  |
 
 ---
 
@@ -838,17 +878,17 @@ Turborepo orchestrates task execution using the modern `tasks` schema, caching b
 The unresolved institutional decisions documented throughout the project specification suite remain **pending institutional confirmation**. The consolidated register with stable IDs (`ODR-001`–`ODR-005`) lives in [10-open-decisions-registry.md](./10-open-decisions-registry.md). The monorepo architecture and data models support any administrative outcome without requiring workspace restructuring:
 
 1. **Hostel Warden Assignment Cardinality ($1:1$ vs. $1:N$)**:
-   - *Current Status*: Pending institutional governance policy.
-   - *Architecture Support*: The database (`@nestora/database`) models assignments using the associative table `hostel_assignments`. The Fastify backend (`apps/api`) resolves `request.user.assignedHostelIds` as an array. If the university mandates a strict 1:1 policy, the array simply contains a single ID; if 1:N is permitted, the frontend renders a hostel switcher dropdown.
+   - _Current Status_: Pending institutional governance policy.
+   - _Architecture Support_: The database (`@nestora/database`) models assignments using the associative table `hostel_assignments`. The Fastify backend (`apps/api`) resolves `request.user.assignedHostelIds` as an array. If the university mandates a strict 1:1 policy, the array simply contains a single ID; if 1:N is permitted, the frontend renders a hostel switcher dropdown.
 2. **Extended Leave Escalation Threshold**:
-   - *Current Status*: Pending institutional policy determining the exact duration (e.g., $>7$ consecutive days) that requires University Administrator escalation.
-   - *Architecture Support*: Stored as an institutional parameter in `system_configurations` and read dynamically by `apps/api/src/modules/mod08-leaves/leaves.service.ts`.
+   - _Current Status_: Pending institutional policy determining the exact duration (e.g., $>7$ consecutive days) that requires University Administrator escalation.
+   - _Architecture Support_: Stored as an institutional parameter in `system_configurations` and read dynamically by `apps/api/src/modules/mod08-leaves/leaves.service.ts`.
 3. **Fee Schedule Scope (Uniform vs. Hostel-Specific Differentials)**:
-   - *Current Status*: Pending institutional financial governance sign-off.
-   - *Architecture Support*: The `fee_schedules` entity in `@nestora/database` maintains a nullable `hostel_id` foreign key. If university-wide, `hostel_id` remains NULL; if hostel-specific, it links to the respective hostel.
+   - _Current Status_: Pending institutional financial governance sign-off.
+   - _Architecture Support_: The `fee_schedules` entity in `@nestora/database` maintains a nullable `hostel_id` foreign key. If university-wide, `hostel_id` remains NULL; if hostel-specific, it links to the respective hostel.
 4. **Security Guard Shift Management Strategy**:
-   - *Current Status*: Pending operational determination on whether Security Guards are assigned daily duty rosters via `staff_profiles` / `duty_assignments` (using department `SECURITY`), or operate through gate-checkpoint credentials and shift change logs (`gate_movement_logs`).
-   - *Architecture Support*: Both tables exist in `@nestora/database` and can be leveraged collaboratively or independently based on institutional instructions.
+   - _Current Status_: Pending operational determination on whether Security Guards are assigned daily duty rosters via `staff_profiles` / `duty_assignments` (using department `SECURITY`), or operate through gate-checkpoint credentials and shift change logs (`gate_movement_logs`).
+   - _Architecture Support_: Both tables exist in `@nestora/database` and can be leveraged collaboratively or independently based on institutional instructions.
 
 ---
 
@@ -870,6 +910,7 @@ The monorepo architecture has been verified against all existing project documen
 `docs/09-monorepo-architecture.md` completes the technical design phase of Nestora by establishing an actionable, maintainable workspace architecture.
 
 ### Immediate Implementation Readiness:
+
 With Documents `01` through `09` finalized, the engineering team possesses complete requirements, security rules, database schemas, development milestones, and workspace blueprints. The recommended next technical step is the execution of **Milestone 1 (MS-1: Foundation & Security Core)**, which involves:
 1. Initializing the monorepo root manifest (`package.json`, `pnpm-workspace.yaml`, `turbo.json`).
 2. Scaffolding shared workspace packages (`packages/types`, `packages/validators`, `packages/database`, `packages/utils`, `packages/config`).

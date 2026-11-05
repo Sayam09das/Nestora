@@ -33,12 +33,12 @@ For a high-level project overview, see [README.md](./README.md). For the full sp
 
 ## Ways to contribute
 
-| Type | Examples |
-| :--- | :--- |
-| **Issues** | Bug reports, spec ambiguities, missing acceptance criteria, doc typos |
-| **Documentation** | Clarify requirements, fix broken links, update traceability tables |
+| Type                            | Examples                                                                                                                                                                     |
+| :------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Issues**                      | Bug reports, spec ambiguities, missing acceptance criteria, doc typos                                                                                                        |
+| **Documentation**               | Clarify requirements, fix broken links, update traceability tables                                                                                                           |
 | **Code** (when scaffold exists) | Module implementation per [08-module-development-plan.md](./docs/08-module-development-plan.md), following [09-monorepo-architecture.md](./docs/09-monorepo-architecture.md) |
-| **Tests** | Unit, integration, RBAC matrix, tenant isolation, and E2E flows per Section 10 of the module development plan |
+| **Tests**                       | Unit, integration, RBAC matrix, tenant isolation, and E2E flows per Section 10 of the module development plan                                                                |
 
 ---
 
@@ -96,16 +96,16 @@ Small documentation fixes can go straight to a pull request.
 
 Aligned with [08-module-development-plan.md](./docs/08-module-development-plan.md) and [09-monorepo-architecture.md](./docs/09-monorepo-architecture.md):
 
-| Area | Standard |
-| :--- | :--- |
-| **Runtime** | Node.js 24 LTS |
-| **Package manager** | pnpm workspaces + Turborepo |
-| **Backend** | Fastify modular monolith; REST under `/api/v1/*` |
-| **Frontend** | Next.js App Router; direct browser → API calls with session cookies |
-| **Database** | PostgreSQL + Prisma in `packages/database` |
-| **Auth** | Opaque session tokens (HTTP-only cookie); Argon2id passwords |
-| **Mutations** | Critical state changes + audit log in the same `prisma.$transaction()` |
-| **Testing** | Unit → integration (RBAC + tenant isolation) → E2E for core journeys |
+| Area                | Standard                                                               |
+| :------------------ | :--------------------------------------------------------------------- |
+| **Runtime**         | Node.js 24 LTS                                                         |
+| **Package manager** | pnpm workspaces + Turborepo                                            |
+| **Backend**         | Fastify modular monolith; REST under `/api/v1/*`                       |
+| **Frontend**        | Next.js App Router; direct browser → API calls with session cookies    |
+| **Database**        | PostgreSQL + Prisma in `packages/database`                             |
+| **Auth**            | Opaque session tokens (HTTP-only cookie); Argon2id passwords           |
+| **Mutations**       | Critical state changes + audit log in the same `prisma.$transaction()` |
+| **Testing**         | Unit → integration (RBAC + tenant isolation) → E2E for core journeys   |
 
 Module completion checklist: Section 12 of [08-module-development-plan.md](./docs/08-module-development-plan.md).
 
@@ -126,11 +126,11 @@ When editing specs in `docs/`:
 
 Policy items tracked as **Open** must not be hard-coded as final rules until closed in [10-open-decisions-registry.md](./docs/10-open-decisions-registry.md):
 
-| ID | Topic |
-| :--- | :--- |
-| ODR-001 | Warden ↔ hostel assignment (1:1 vs 1:N) |
-| ODR-002 | Extended leave escalation threshold |
-| ODR-003 | Uniform vs hostel-specific fee schedules |
+| ID      | Topic                                      |
+| :------ | :----------------------------------------- |
+| ODR-001 | Warden ↔ hostel assignment (1:1 vs 1:N)    |
+| ODR-002 | Extended leave escalation threshold        |
+| ODR-003 | Uniform vs hostel-specific fee schedules   |
 | ODR-004 | Attendance workflow ownership and sign-off |
 | ODR-005 | Security Guard shift / duty tracking model |
 
