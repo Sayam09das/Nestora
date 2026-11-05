@@ -59,5 +59,8 @@ coverage/
 
 # Runtime file uploads and temporary caches
 uploads/
+
+# Docker local volumes (when bind-mounting)
+docker/data/
 tmp/
 temp/

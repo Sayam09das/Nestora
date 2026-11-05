@@ -1,0 +1,31 @@
+# Nestora API — multi-stage production image (Node.js 24 LTS)
+FROM node:24-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="${PNPM_HOME}:${PATH}"
+RUN corepack enable
+WORKDIR /app
+
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/api/package.json ./apps/api/
+COPY packages/types/package.json ./packages/types/
+COPY packages/config/package.json ./packages/config/
+RUN pnpm install --frozen-lockfile --filter @nestora/api...
+
+FROM base AS builder
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps /app/packages/types/node_modules ./packages/types/node_modules
+COPY . .
+RUN pnpm --filter @nestora/types build && pnpm --filter @nestora/api build
+
+FROM node:24-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+RUN addgroup -S nestora && adduser -S nestora -G nestora
+COPY --from=builder /app/apps/api/dist ./dist
+COPY --from=builder /app/apps/api/package.json ./package.json
+COPY --from=builder /app/node_modules ./node_modules
+USER nestora
+EXPOSE 4000
+CMD ["node", "dist/server.js"]

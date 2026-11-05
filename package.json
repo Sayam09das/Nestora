@@ -12,7 +12,10 @@
     "typecheck": "turbo typecheck",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "check": "pnpm lint && pnpm typecheck && pnpm build"
+    "check": "pnpm lint && pnpm typecheck && pnpm build",
+    "docker:up": "docker compose -f docker/docker-compose.yml up -d",
+    "docker:down": "docker compose -f docker/docker-compose.yml down",
+    "docker:logs": "docker compose -f docker/docker-compose.yml logs -f"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.6",

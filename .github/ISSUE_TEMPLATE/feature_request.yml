@@ -1,0 +1,24 @@
+name: Feature or enhancement
+description: Propose in-scope capability aligned with the Nestora specifications
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+    validations:
+      required: true
+  - type: input
+    id: module
+    attributes:
+      label: Target module (MOD-xx)
+      placeholder: MOD-08
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope confirmation
+      options:
+        - label: This is not listed as an out-of-scope exclusion in docs/02-project-scope.md
+          required: true

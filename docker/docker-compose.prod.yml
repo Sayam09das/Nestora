@@ -1,0 +1,43 @@
+# Production orchestration scaffold — wire application services after container images are published.
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    env_file:
+      - ../apps/api/.env.example
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:4000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: nestora
+      POSTGRES_PASSWORD: nestora_dev_pw
+      POSTGRES_DB: nestora_db
+    volumes:
+      - nestora_postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nestora -d nestora_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nestora_postgres_prod_data:

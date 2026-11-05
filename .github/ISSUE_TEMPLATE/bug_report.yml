@@ -1,0 +1,28 @@
+name: Bug report
+description: Report incorrect behavior or a specification ambiguity
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Reference requirement IDs when possible (`FR-xxx`, `MOD-xx`, `AUTH-xxx`).
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened vs what you expected?
+    validations:
+      required: true
+  - type: input
+    id: traceability
+    attributes:
+      label: Traceability IDs
+      placeholder: FR-047, MOD-09, etc.
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: false
