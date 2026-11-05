@@ -1,4 +1,5 @@
 import cors from '@fastify/cors';
+import { databaseHealthCheck } from '@nestora/database';
 import type { ApiSuccessResponse } from '@nestora/types';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Env } from './config/env.js';
@@ -16,9 +17,18 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
   });
 
   app.get('/api/v1/health', async () => {
-    const body: ApiSuccessResponse<{ status: 'ok'; service: 'api' }> = {
+    const database =
+      process.env.DATABASE_URL !== undefined
+        ? { connected: await databaseHealthCheck() }
+        : undefined;
+
+    const body: ApiSuccessResponse<{
+      status: 'ok';
+      service: 'api';
+      database?: { connected: boolean };
+    }> = {
       success: true,
-      data: { status: 'ok', service: 'api' },
+      data: { status: 'ok', service: 'api', ...(database ? { database } : {}) },
       timestamp: new Date().toISOString(),
     };
     return body;

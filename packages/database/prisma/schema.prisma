@@ -1,0 +1,1015 @@
+// Nestora — Prisma schema (docs/07-database-design.md)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  UNIVERSITY_ADMINISTRATOR
+  HOSTEL_WARDEN
+  STUDENT
+  HOSTEL_STAFF
+  SECURITY_GUARD
+  ACCOUNTANT
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum GenderCategory {
+  BOYS_HOSTEL
+  GIRLS_HOSTEL
+}
+
+enum StudentGender {
+  MALE
+  FEMALE
+}
+
+enum RoomConfigCode {
+  SINGLE_NON_AC
+  SINGLE_AC
+  DOUBLE_NON_AC
+  DOUBLE_AC
+  TRIPLE_NON_AC
+  TRIPLE_AC
+}
+
+enum RoomStatus {
+  ACTIVE
+  UNDER_MAINTENANCE
+  DECOMMISSIONED
+}
+
+enum BedStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  MAINTENANCE
+}
+
+enum AllocationStatus {
+  ACTIVE
+  TRANSFERRED
+  TERMINATED
+}
+
+enum InventoryCondition {
+  INTACT
+  DAMAGED
+  MISSING
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  ON_LEAVE
+}
+
+enum StaffAttendanceStatus {
+  PRESENT
+  ABSENT
+  ON_LEAVE
+}
+
+
+model User {
+  id                            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                         String     @unique @db.VarChar(255)
+  passwordHash                  String     @map("password_hash") @db.VarChar(255)
+  role                          Role
+  firstName                     String     @map("first_name") @db.VarChar(100)
+  lastName                      String     @map("last_name") @db.VarChar(100)
+  phoneNumber                   String?    @map("phone_number") @db.VarChar(20)
+  status                        UserStatus @default(ACTIVE)
+  isVerified                    Boolean    @default(false) @map("is_verified")
+  failedLoginAttempts           Int        @default(0) @map("failed_login_attempts")
+  failedAttemptsWindowStartedAt DateTime?  @map("failed_attempts_window_started_at") @db.Timestamptz(6)
+  lockedUntil                   DateTime?  @map("locked_until") @db.Timestamptz(6)
+  createdAt                     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  student                       Student?
+  staffProfile                  StaffProfile?
+  sessions                      Session[]
+  passwordResetTokens           PasswordResetToken[]
+  hostelAssignments             HostelAssignment[] @relation("HostelAssignmentUser")
+  hostelAssignmentsCreated      HostelAssignment[] @relation("HostelAssignmentAssignedBy")
+  wardenInChargeHostels         Hostel[] @relation("HostelWardenInCharge")
+  notifications                 Notification[]
+  notificationPreference        NotificationPreference?
+
+  @@index([email], map: "idx_users_email")
+  @@map("users")
+}
+
+model HostelAssignment {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  hostelId   String   @map("hostel_id") @db.Uuid
+  assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
+  assignedBy String   @map("assigned_by") @db.Uuid
+
+  user       User     @relation("HostelAssignmentUser", fields: [userId], references: [id], onDelete: Cascade)
+  hostel     Hostel   @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+  assigner   User     @relation("HostelAssignmentAssignedBy", fields: [assignedBy], references: [id], onDelete: Restrict)
+
+  @@unique([userId, hostelId])
+  @@map("hostel_assignments")
+}
+
+model Session {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  sessionTokenHash String   @unique @map("session_token_hash") @db.VarChar(64)
+  ipAddress        String?  @map("ip_address") @db.VarChar(45)
+  userAgent        String?  @map("user_agent")
+  expiresAt        DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash") @db.VarChar(255)
+  isUsed    Boolean  @default(false) @map("is_used")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model University {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String   @db.VarChar(255)
+  code         String   @unique @db.VarChar(50)
+  address      String?
+  contactEmail String?  @map("contact_email") @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  hostels Hostel[]
+
+  @@map("universities")
+}
+
+model Hostel {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  universityId    String         @map("university_id") @db.Uuid
+  name            String         @db.VarChar(150)
+  code            String         @unique @db.VarChar(50)
+  genderCategory  GenderCategory @map("gender_category")
+  wardenInCharge  String?        @map("warden_in_charge") @db.Uuid
+  isActive        Boolean        @default(true) @map("is_active")
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  university           University            @relation(fields: [universityId], references: [id], onDelete: Restrict)
+  warden               User?                 @relation("HostelWardenInCharge", fields: [wardenInCharge], references: [id], onDelete: SetNull)
+  buildings            Building[]
+  hostelAssignments    HostelAssignment[]
+  admissionApplications AdmissionApplication[]
+  bedPreferences       BedPreference[]
+  attendanceRecords    AttendanceRecord[]
+  leaveApplications    LeaveApplication[]
+  outingRequests       OutingRequest[]
+  gateMovementLogs     GateMovementLog[]
+  visitorRecords       VisitorRecord[]
+  complaintTickets     ComplaintTicket[]
+  dutyAssignments      DutyAssignment[]
+  staffAttendances     StaffAttendance[]
+  emergencyIncidents   EmergencyIncident[]
+  notices              Notice[]
+  hostelRules          HostelRule[]
+  disciplinaryViolations DisciplinaryViolation[]
+
+  @@index([genderCategory], map: "idx_hostels_gender")
+  @@map("hostels")
+}
+
+model Building {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hostelId       String   @map("hostel_id") @db.Uuid
+  name           String   @db.VarChar(100)
+  buildingNumber String   @map("building_number") @db.VarChar(20)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  hostel Hostel  @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+  blocks Block[]
+
+  @@unique([hostelId, buildingNumber])
+  @@map("buildings")
+}
+
+model Block {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  buildingId String   @map("building_id") @db.Uuid
+  name       String   @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  building Building @relation(fields: [buildingId], references: [id], onDelete: Restrict)
+  floors   Floor[]
+
+  @@unique([buildingId, name])
+  @@map("blocks")
+}
+
+model Floor {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  blockId     String   @map("block_id") @db.Uuid
+  floorNumber Int      @map("floor_number")
+  name        String?  @db.VarChar(50)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  block Block @relation(fields: [blockId], references: [id], onDelete: Restrict)
+  rooms Room[]
+
+  @@unique([blockId, floorNumber])
+  @@map("floors")
+}
+
+model RoomConfiguration {
+  id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code        RoomConfigCode @unique
+  capacity    Int
+  hasAc       Boolean        @map("has_ac")
+  description String         @db.VarChar(255)
+
+  rooms         Room[]
+  bedPreferences BedPreference[]
+  roomChangeRequests RoomChangeRequest[]
+  feeSchedules  FeeSchedule[]
+
+  @@map("room_configurations")
+}
+
+model Room {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  floorId    String     @map("floor_id") @db.Uuid
+  configId   String     @map("config_id") @db.Uuid
+  roomNumber String     @map("room_number") @db.VarChar(20)
+  status     RoomStatus @default(ACTIVE)
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  floor  Floor             @relation(fields: [floorId], references: [id], onDelete: Restrict)
+  config RoomConfiguration @relation(fields: [configId], references: [id], onDelete: Restrict)
+  beds   Bed[]
+
+  @@unique([floorId, roomNumber])
+  @@index([floorId, status], map: "idx_rooms_floor")
+  @@map("rooms")
+}
+
+model Bed {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  roomId    String    @map("room_id") @db.Uuid
+  bedNumber String    @map("bed_number") @db.VarChar(10)
+  status    BedStatus @default(AVAILABLE)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  room                Room                 @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  allocationRecords   AllocationRecord[]
+  roomChangeRequests  RoomChangeRequest[]  @relation("RoomChangeCurrentBed")
+
+  @@unique([roomId, bedNumber])
+  @@index([roomId, status], map: "idx_beds_room_status")
+  @@map("beds")
+}
+
+model Student {
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String        @unique @map("user_id") @db.Uuid
+  registrationNumber String        @unique @map("registration_number") @db.VarChar(50)
+  course             String        @db.VarChar(100)
+  department         String        @db.VarChar(100)
+  academicYear       String        @map("academic_year") @db.VarChar(20)
+  currentSemester    String        @map("current_semester") @db.VarChar(20)
+  gender             StudentGender
+  dateOfBirth        DateTime      @map("date_of_birth") @db.Date
+  bloodGroup         String?       @map("blood_group") @db.VarChar(10)
+  medicalAlerts      String?       @map("medical_alerts")
+  guardianName       String        @map("guardian_name") @db.VarChar(150)
+  guardianPhone      String        @map("guardian_phone") @db.VarChar(20)
+  guardianRelation   String        @map("guardian_relation") @db.VarChar(50)
+  permanentAddress   String        @map("permanent_address")
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  admissionApplications   AdmissionApplication[]
+  bedPreferences          BedPreference[]
+  allocationRecords       AllocationRecord[]
+  roomChangeRequests      RoomChangeRequest[]
+  attendanceRecords       AttendanceRecord[]
+  attendanceDiscrepancies AttendanceDiscrepancy[]
+  leaveApplications       LeaveApplication[]
+  outingRequests          OutingRequest[]
+  gatePasses              GatePass[]
+  gateMovementLogs        GateMovementLog[]
+  visitorRecords          VisitorRecord[]
+  complaintTickets        ComplaintTicket[]
+  studentLedger           StudentLedger?
+  paymentRecords          PaymentRecord[]
+  feeAdjustments          FeeAdjustment[]
+  disciplinaryViolations  DisciplinaryViolation[]
+  disciplinaryAppeals     DisciplinaryAppeal[]
+  noticeAcknowledgements  NoticeAcknowledgement[]
+  incidentContactViewLogs IncidentContactViewLog[]
+
+  @@index([userId], map: "idx_students_user_id")
+  @@map("students")
+}
+
+model AdmissionApplication {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId       String   @map("student_id") @db.Uuid
+  hostelId        String   @map("hostel_id") @db.Uuid
+  academicSession String   @map("academic_session") @db.VarChar(20)
+  status          String   @default("SUBMITTED") @db.VarChar(30)
+  rejectionReason String?  @map("rejection_reason")
+  submittedAt     DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  student       Student                @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  hostel        Hostel                 @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+  verifications AdmissionVerification[]
+
+  @@unique([studentId, academicSession])
+  @@map("admission_applications")
+}
+
+model AdmissionVerification {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String   @map("application_id") @db.Uuid
+  verifiedBy    String   @map("verified_by") @db.Uuid
+  tier          String   @db.VarChar(20)
+  decision      String   @db.VarChar(20)
+  comments      String?
+  verifiedAt    DateTime @default(now()) @map("verified_at") @db.Timestamptz(6)
+
+  application AdmissionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("admission_verifications")
+}
+
+model BedPreference {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId   String   @map("student_id") @db.Uuid
+  hostelId    String   @map("hostel_id") @db.Uuid
+  configId    String   @map("config_id") @db.Uuid
+  submittedAt DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
+
+  student Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  hostel  Hostel            @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+  config  RoomConfiguration @relation(fields: [configId], references: [id], onDelete: Restrict)
+
+  @@map("bed_preferences")
+}
+
+model AllocationRecord {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId   String           @map("student_id") @db.Uuid
+  bedId       String           @map("bed_id") @db.Uuid
+  allocatedBy String           @map("allocated_by") @db.Uuid
+  status      AllocationStatus @default(ACTIVE)
+  startDate   DateTime         @map("start_date") @db.Date
+  endDate     DateTime?        @map("end_date") @db.Date
+  allocatedAt DateTime         @default(now()) @map("allocated_at") @db.Timestamptz(6)
+
+  student   Student         @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  bed       Bed             @relation(fields: [bedId], references: [id], onDelete: Restrict)
+  checkIn   CheckInRecord?
+  checkOut  CheckOutRecord?
+
+  @@index([studentId, bedId, status], map: "idx_allocations_active")
+  @@map("allocation_records")
+}
+
+model RoomChangeRequest {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId         String   @map("student_id") @db.Uuid
+  currentBedId      String   @map("current_bed_id") @db.Uuid
+  preferredConfigId String   @map("preferred_config_id") @db.Uuid
+  reason            String
+  status            String   @default("PENDING") @db.VarChar(20)
+  reviewedBy        String?  @map("reviewed_by") @db.Uuid
+  reviewedAt        DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  student         Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  currentBed      Bed               @relation("RoomChangeCurrentBed", fields: [currentBedId], references: [id], onDelete: Restrict)
+  preferredConfig RoomConfiguration @relation(fields: [preferredConfigId], references: [id], onDelete: Restrict)
+
+  @@map("room_change_requests")
+}
+
+model CheckInRecord {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  allocationId String   @unique @map("allocation_id") @db.Uuid
+  checkInTime  DateTime @map("check_in_time") @db.Timestamptz(6)
+  keysIssued   Boolean  @map("keys_issued")
+  verifiedBy   String   @map("verified_by") @db.Uuid
+  remarks      String?
+
+  allocation AllocationRecord @relation(fields: [allocationId], references: [id], onDelete: Restrict)
+
+  @@map("check_in_records")
+}
+
+model CheckOutRecord {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  allocationId String   @unique @map("allocation_id") @db.Uuid
+  checkOutTime DateTime @map("check_out_time") @db.Timestamptz(6)
+  keysReturned Boolean  @map("keys_returned")
+  duesCleared  Boolean  @map("dues_cleared")
+  clearedBy    String   @map("cleared_by") @db.Uuid
+  remarks      String?
+
+  allocation           AllocationRecord    @relation(fields: [allocationId], references: [id], onDelete: Restrict)
+  inventoryInspections InventoryInspection[]
+
+  @@map("check_out_records")
+}
+
+model InventoryInspection {
+  id          String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  checkOutId  String             @map("check_out_id") @db.Uuid
+  itemName    String             @map("item_name") @db.VarChar(100)
+  condition   InventoryCondition
+  damageFee   Decimal?           @map("damage_fee") @db.Decimal(10, 2)
+  inspectedBy String             @map("inspected_by") @db.Uuid
+
+  checkOut CheckOutRecord @relation(fields: [checkOutId], references: [id], onDelete: Cascade)
+
+  @@map("inventory_inspections")
+}
+
+model AttendanceRecord {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId      String           @map("student_id") @db.Uuid
+  hostelId       String           @map("hostel_id") @db.Uuid
+  attendanceDate DateTime         @map("attendance_date") @db.Date
+  status         AttendanceStatus
+  recordedBy     String           @map("recorded_by") @db.Uuid
+  recordedAt     DateTime         @default(now()) @map("recorded_at") @db.Timestamptz(6)
+
+  student      Student                  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  hostel       Hostel                   @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+  corrections  AttendanceCorrectionLog[]
+  discrepancies AttendanceDiscrepancy[]
+
+  @@unique([studentId, attendanceDate])
+  @@index([hostelId, attendanceDate], map: "idx_attendance_hostel_date")
+  @@map("attendance_records")
+}
+
+model AttendanceCorrectionLog {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  attendanceId   String           @map("attendance_id") @db.Uuid
+  previousStatus AttendanceStatus @map("previous_status")
+  newStatus      AttendanceStatus @map("new_status")
+  correctedBy    String           @map("corrected_by") @db.Uuid
+  reason         String
+  correctedAt    DateTime         @default(now()) @map("corrected_at") @db.Timestamptz(6)
+
+  attendance AttendanceRecord @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+
+  @@map("attendance_correction_logs")
+}
+
+model AttendanceDiscrepancy {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  attendanceId String   @map("attendance_id") @db.Uuid
+  studentId    String   @map("student_id") @db.Uuid
+  explanation  String
+  status       String   @default("PENDING") @db.VarChar(20)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  attendance AttendanceRecord @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@map("attendance_discrepancies")
+}
+
+model LeaveApplication {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId          String    @map("student_id") @db.Uuid
+  hostelId           String    @map("hostel_id") @db.Uuid
+  leaveType          String    @map("leave_type") @db.VarChar(50)
+  departureDate      DateTime  @map("departure_date") @db.Date
+  expectedReturnDate DateTime  @map("expected_return_date") @db.Date
+  destination        String
+  reason             String
+  emergencyContact   String    @map("emergency_contact") @db.VarChar(20)
+  status             String    @default("SUBMITTED") @db.VarChar(20)
+  reviewedBy         String?   @map("reviewed_by") @db.Uuid
+  reviewedAt         DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  hostel     Hostel           @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+  extensions LeaveExtension[]
+  gatePasses GatePass[]
+
+  @@index([hostelId, status], map: "idx_leaves_hostel_status")
+  @@map("leave_applications")
+}
+
+model LeaveExtension {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  leaveId       String    @map("leave_id") @db.Uuid
+  newReturnDate DateTime  @map("new_return_date") @db.Date
+  reason        String
+  status        String    @default("PENDING") @db.VarChar(20)
+  reviewedBy    String?   @map("reviewed_by") @db.Uuid
+  reviewedAt    DateTime? @map("reviewed_at") @db.Timestamptz(6)
+
+  leave LeaveApplication @relation(fields: [leaveId], references: [id], onDelete: Cascade)
+
+  @@map("leave_extensions")
+}
+
+model OutingRequest {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId          String   @map("student_id") @db.Uuid
+  hostelId           String   @map("hostel_id") @db.Uuid
+  outingDate         DateTime @map("outing_date") @db.Date
+  departureTime      DateTime @map("departure_time") @db.Time(6)
+  expectedReturnTime DateTime @map("expected_return_time") @db.Time(6)
+  destination        String   @db.VarChar(255)
+  isExceptional      Boolean  @default(false) @map("is_exceptional")
+  status             String   @default("SUBMITTED") @db.VarChar(20)
+  reviewedBy         String?  @map("reviewed_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  hostel     Hostel     @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+  gatePasses GatePass[]
+
+  @@map("outing_requests")
+}
+
+model GatePass {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  passToken  String   @unique @map("pass_token") @db.VarChar(64)
+  studentId  String   @map("student_id") @db.Uuid
+  leaveId    String?  @map("leave_id") @db.Uuid
+  outingId   String?  @map("outing_id") @db.Uuid
+  validFrom  DateTime @map("valid_from") @db.Timestamptz(6)
+  validUntil DateTime @map("valid_until") @db.Timestamptz(6)
+  isUsed     Boolean  @default(false) @map("is_used")
+
+  student       Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  leave         LeaveApplication? @relation(fields: [leaveId], references: [id], onDelete: Restrict)
+  outing        OutingRequest?    @relation(fields: [outingId], references: [id], onDelete: Restrict)
+  movementLogs  GateMovementLog[]
+
+  @@index([passToken], map: "idx_passes_token")
+  @@map("gate_passes")
+}
+
+model GateMovementLog {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  passId          String    @map("pass_id") @db.Uuid
+  studentId       String    @map("student_id") @db.Uuid
+  hostelId        String    @map("hostel_id") @db.Uuid
+  actualDeparture DateTime? @map("actual_departure") @db.Timestamptz(6)
+  actualReturn    DateTime? @map("actual_return") @db.Timestamptz(6)
+  isLateReturn    Boolean   @default(false) @map("is_late_return")
+  securityGuardId String    @map("security_guard_id") @db.Uuid
+  remarks         String?
+
+  pass    GatePass @relation(fields: [passId], references: [id], onDelete: Restrict)
+  student Student  @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  hostel  Hostel   @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+
+  @@map("gate_movement_logs")
+}
+
+model VisitorRecord {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hostelId      String    @map("hostel_id") @db.Uuid
+  studentId     String    @map("student_id") @db.Uuid
+  visitorName   String    @map("visitor_name") @db.VarChar(150)
+  visitorPhone  String    @map("visitor_phone") @db.VarChar(20)
+  idProofType   String    @map("id_proof_type") @db.VarChar(50)
+  idProofNumber String    @map("id_proof_number") @db.VarChar(100)
+  purpose       String
+  status        String    @default("PENDING_APPROVAL") @db.VarChar(20)
+  approvedBy    String?   @map("approved_by") @db.Uuid
+  checkInTime   DateTime? @map("check_in_time") @db.Timestamptz(6)
+  checkOutTime  DateTime? @map("check_out_time") @db.Timestamptz(6)
+  isException   Boolean   @default(false) @map("is_exception")
+  guardId       String    @map("guard_id") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  hostel  Hostel  @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@map("visitor_records")
+}
+
+model ComplaintTicket {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketNumber      String   @unique @map("ticket_number") @db.VarChar(50)
+  hostelId          String   @map("hostel_id") @db.Uuid
+  studentId         String   @map("student_id") @db.Uuid
+  category          String   @db.VarChar(50)
+  title             String   @db.VarChar(150)
+  description       String
+  location          String   @db.VarChar(150)
+  suggestedPriority String   @map("suggested_priority") @db.VarChar(20)
+  finalPriority     String?  @map("final_priority") @db.VarChar(20)
+  status            String   @default("SUBMITTED") @db.VarChar(20)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  hostel      Hostel               @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+  student     Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  attachments ComplaintAttachment[]
+  assignments TicketAssignment[]
+  statusHistory TicketStatusHistory[]
+
+  @@index([hostelId, status], map: "idx_complaints_hostel_status")
+  @@map("complaint_tickets")
+}
+
+model ComplaintAttachment {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId   String   @map("ticket_id") @db.Uuid
+  filePath   String   @map("file_path") @db.VarChar(500)
+  fileName   String   @map("file_name") @db.VarChar(255)
+  mimeType   String   @map("mime_type") @db.VarChar(100)
+  fileSize   Int      @map("file_size")
+  uploadedAt DateTime @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+
+  ticket ComplaintTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("complaint_attachments")
+}
+
+model TicketAssignment {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId   String   @map("ticket_id") @db.Uuid
+  staffId    String   @map("staff_id") @db.Uuid
+  assignedBy String   @map("assigned_by") @db.Uuid
+  assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
+  isActive   Boolean  @default(true) @map("is_active")
+
+  ticket ComplaintTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, isActive], map: "idx_complaints_staff")
+  @@map("ticket_assignments")
+}
+
+model TicketStatusHistory {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId  String   @map("ticket_id") @db.Uuid
+  status    String   @db.VarChar(20)
+  changedBy String   @map("changed_by") @db.Uuid
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  ticket ComplaintTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_status_histories")
+}
+
+model StaffProfile {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @unique @map("user_id") @db.Uuid
+  department      String   @db.VarChar(100)
+  designation     String   @db.VarChar(100)
+  shiftPreference String?  @map("shift_preference") @db.VarChar(50)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("staff_profiles")
+}
+
+model DutyAssignment {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  staffId    String   @map("staff_id") @db.Uuid
+  hostelId   String   @map("hostel_id") @db.Uuid
+  dutyDate   DateTime @map("duty_date") @db.Date
+  shiftType  String   @map("shift_type") @db.VarChar(50)
+  zone       String?  @db.VarChar(150)
+  assignedBy String   @map("assigned_by") @db.Uuid
+
+  hostel Hostel @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+
+  @@map("duty_assignments")
+}
+
+model StaffAttendance {
+  id         String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  staffId    String                @map("staff_id") @db.Uuid
+  hostelId   String                @map("hostel_id") @db.Uuid
+  workDate   DateTime              @map("work_date") @db.Date
+  status     StaffAttendanceStatus
+  recordedBy String                @map("recorded_by") @db.Uuid
+
+  hostel Hostel @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+
+  @@map("staff_attendances")
+}
+
+model StaffLeave {
+  id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  staffId       String  @map("staff_id") @db.Uuid
+  startDate     DateTime @map("start_date") @db.Date
+  endDate       DateTime @map("end_date") @db.Date
+  reason        String
+  isExceptional Boolean @default(false) @map("is_exceptional")
+  status        String  @default("PENDING") @db.VarChar(20)
+  reviewedBy    String? @map("reviewed_by") @db.Uuid
+
+  @@map("staff_leaves")
+}
+
+model FeeSchedule {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  academicSession String   @map("academic_session") @db.VarChar(20)
+  semester        String   @db.VarChar(20)
+  configId        String   @map("config_id") @db.Uuid
+  status          String   @default("DRAFT") @db.VarChar(20)
+  createdBy       String   @map("created_by") @db.Uuid
+  approvedBy      String?  @map("approved_by") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  config RoomConfiguration @relation(fields: [configId], references: [id], onDelete: Restrict)
+  items  FeeItem[]
+
+  @@map("fee_schedules")
+}
+
+model FeeItem {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scheduleId String  @map("schedule_id") @db.Uuid
+  itemName   String  @map("item_name") @db.VarChar(100)
+  amount     Decimal @db.Decimal(10, 2)
+
+  schedule FeeSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@map("fee_items")
+}
+
+model StudentLedger {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId       String   @unique @map("student_id") @db.Uuid
+  totalAssessed   Decimal  @default(0) @map("total_assessed") @db.Decimal(10, 2)
+  totalPaid       Decimal  @default(0) @map("total_paid") @db.Decimal(10, 2)
+  totalWaived     Decimal  @default(0) @map("total_waived") @db.Decimal(10, 2)
+  currentBalance  Decimal  @default(0) @map("current_balance") @db.Decimal(10, 2)
+  lastRecalculated DateTime @default(now()) @map("last_recalculated") @db.Timestamptz(6)
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@map("student_ledgers")
+}
+
+model PaymentRecord {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  receiptNumber        String   @unique @map("receipt_number") @db.VarChar(50)
+  studentId            String   @map("student_id") @db.Uuid
+  amount               Decimal  @db.Decimal(10, 2)
+  paymentMode          String   @map("payment_mode") @db.VarChar(50)
+  transactionReference String   @map("transaction_reference") @db.VarChar(100)
+  paymentDate          DateTime @map("payment_date") @db.Date
+  recordedBy           String   @map("recorded_by") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@index([studentId], map: "idx_payments_student")
+  @@map("payment_records")
+}
+
+model FeeAdjustment {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId      String   @map("student_id") @db.Uuid
+  adjustmentType String   @map("adjustment_type") @db.VarChar(50)
+  amount         Decimal  @db.Decimal(10, 2)
+  reason         String
+  status         String   @default("PENDING_ADMIN_APPROVAL") @db.VarChar(20)
+  proposedBy     String   @map("proposed_by") @db.Uuid
+  approvedBy     String?  @map("approved_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  approvedAt     DateTime? @map("approved_at") @db.Timestamptz(6)
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@map("fee_adjustments")
+}
+
+model HostelRule {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hostelId         String?  @map("hostel_id") @db.Uuid
+  ruleTitle        String   @map("rule_title") @db.VarChar(150)
+  ruleText         String   @map("rule_text")
+  isUniversityWide Boolean  @default(false) @map("is_university_wide")
+  createdBy        String   @map("created_by") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  hostel Hostel? @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+
+  @@map("hostel_rules")
+}
+
+model DisciplinaryViolation {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId        String   @map("student_id") @db.Uuid
+  hostelId         String   @map("hostel_id") @db.Uuid
+  violationDate    DateTime @map("violation_date") @db.Date
+  category         String   @db.VarChar(50)
+  description      String
+  evidenceFilePath String?  @map("evidence_file_path") @db.VarChar(500)
+  recordedBy       String   @map("recorded_by") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  student   Student                @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  hostel    Hostel                 @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+  sanctions DisciplinarySanction[]
+
+  @@map("disciplinary_violations")
+}
+
+model DisciplinarySanction {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  violationId           String   @map("violation_id") @db.Uuid
+  sanctionType          String   @map("sanction_type") @db.VarChar(50)
+  sanctionDetails       String   @map("sanction_details")
+  requiresAdminApproval Boolean  @default(false) @map("requires_admin_approval")
+  adminApproved         Boolean? @map("admin_approved")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  violation DisciplinaryViolation @relation(fields: [violationId], references: [id], onDelete: Cascade)
+  appeals   DisciplinaryAppeal[]
+
+  @@map("disciplinary_sanctions")
+}
+
+model DisciplinaryAppeal {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sanctionId    String   @map("sanction_id") @db.Uuid
+  studentId     String   @map("student_id") @db.Uuid
+  appealText    String   @map("appeal_text")
+  isEscalated   Boolean  @default(false) @map("is_escalated")
+  status        String   @default("PENDING_REVIEW") @db.VarChar(20)
+  reviewedBy    String?  @map("reviewed_by") @db.Uuid
+  decisionNotes String?  @map("decision_notes")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  sanction DisciplinarySanction @relation(fields: [sanctionId], references: [id], onDelete: Cascade)
+  student  Student              @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@map("disciplinary_appeals")
+}
+
+model EmergencyIncident {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hostelId         String    @map("hostel_id") @db.Uuid
+  reportedBy       String    @map("reported_by") @db.Uuid
+  incidentType     String    @map("incident_type") @db.VarChar(50)
+  title            String    @db.VarChar(150)
+  description      String
+  location         String    @db.VarChar(150)
+  initialSeverity  String    @map("initial_severity") @db.VarChar(20)
+  officialSeverity String?   @map("official_severity") @db.VarChar(20)
+  status           String    @default("REPORTED") @db.VarChar(20)
+  isEscalated      Boolean   @default(false) @map("is_escalated")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt       DateTime? @map("resolved_at") @db.Timestamptz(6)
+
+  hostel              Hostel                   @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+  actionLogs          IncidentActionLog[]
+  contactViewLogs     IncidentContactViewLog[]
+
+  @@index([hostelId, status], map: "idx_emergency_hostel_status")
+  @@map("emergency_incidents")
+}
+
+model IncidentActionLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  incidentId String   @map("incident_id") @db.Uuid
+  actionBy   String   @map("action_by") @db.Uuid
+  actionTaken String  @map("action_taken")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  incident EmergencyIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@map("incident_action_logs")
+}
+
+model IncidentContactViewLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  incidentId String   @map("incident_id") @db.Uuid
+  studentId  String   @map("student_id") @db.Uuid
+  viewedBy   String   @map("viewed_by") @db.Uuid
+  viewedAt   DateTime @default(now()) @map("viewed_at") @db.Timestamptz(6)
+
+  incident EmergencyIncident @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+  student  Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@map("incident_contact_view_logs")
+}
+
+model Notice {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hostelId              String?   @map("hostel_id") @db.Uuid
+  title                 String    @db.VarChar(200)
+  description           String
+  category              String    @db.VarChar(50)
+  requiresAcknowledgement Boolean @default(false) @map("requires_acknowledgement")
+  publishedBy           String    @map("published_by") @db.Uuid
+  publishedAt           DateTime  @default(now()) @map("published_at") @db.Timestamptz(6)
+  expiresAt             DateTime? @map("expires_at") @db.Timestamptz(6)
+
+  hostel         Hostel?                 @relation(fields: [hostelId], references: [id], onDelete: Restrict)
+  attachments    NoticeAttachment[]
+  acknowledgements NoticeAcknowledgement[]
+
+  @@index([hostelId, publishedAt], map: "idx_notices_hostel")
+  @@map("notices")
+}
+
+model NoticeAttachment {
+  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  noticeId String @map("notice_id") @db.Uuid
+  filePath String @map("file_path") @db.VarChar(500)
+  fileName String @map("file_name") @db.VarChar(255)
+  fileSize Int    @map("file_size")
+
+  notice Notice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+
+  @@map("notice_attachments")
+}
+
+model NoticeAcknowledgement {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  noticeId       String   @map("notice_id") @db.Uuid
+  studentId      String   @map("student_id") @db.Uuid
+  acknowledgedAt DateTime @default(now()) @map("acknowledged_at") @db.Timestamptz(6)
+
+  notice  Notice  @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([noticeId, studentId])
+  @@map("notice_acknowledgements")
+}
+
+model Notification {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  title      String   @db.VarChar(150)
+  message    String
+  category   String   @db.VarChar(50)
+  isRead     Boolean  @default(false) @map("is_read")
+  actionLink String?  @map("action_link") @db.VarChar(255)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id               String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String  @unique @map("user_id") @db.Uuid
+  emailLeaves      Boolean @default(true) @map("email_leaves")
+  emailMaintenance Boolean @default(true) @map("email_maintenance")
+  emailFees        Boolean @default(true) @map("email_fees")
+  emailNotices     Boolean @default(true) @map("email_notices")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model AuditLog {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorUserId   String?  @map("actor_user_id") @db.Uuid
+  actorRole     String   @map("actor_role") @db.VarChar(50)
+  actionName    String   @map("action_name") @db.VarChar(100)
+  entityType    String   @map("entity_type") @db.VarChar(100)
+  entityId      String   @map("entity_id") @db.VarChar(100)
+  previousState Json?    @map("previous_state")
+  newState      Json?    @map("new_state")
+  ipAddress     String?  @map("ip_address") @db.VarChar(45)
+  timestamp     DateTime @default(now()) @map("timestamp") @db.Timestamptz(6)
+
+  @@index([timestamp], map: "idx_audit_timestamp")
+  @@map("audit_logs")
+}

@@ -13,6 +13,11 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "check": "pnpm lint && pnpm typecheck && pnpm build",
+    "db:generate": "pnpm --filter @nestora/database db:generate",
+    "db:migrate:dev": "pnpm --filter @nestora/database db:migrate:dev",
+    "db:migrate:deploy": "pnpm --filter @nestora/database db:migrate:deploy",
+    "db:seed": "pnpm --filter @nestora/database db:seed",
+    "db:validate": "pnpm --filter @nestora/database db:validate",
     "docker:up": "docker compose -f docker/docker-compose.yml up -d",
     "docker:down": "docker compose -f docker/docker-compose.yml down",
     "docker:logs": "docker compose -f docker/docker-compose.yml logs -f"

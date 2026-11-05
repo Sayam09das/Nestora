@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Prisma ORM and PostgreSQL data layer (schema and migrations deferred to MS-1 database milestone)",
+  "description": "Prisma ORM and PostgreSQL data layer for Nestora",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -11,13 +11,27 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.build.json --noEmit",
-    "lint": "biome check src",
+    "db:generate": "prisma generate",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:validate": "prisma validate",
+    "db:seed": "tsx prisma/seed/seed.ts",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "typecheck": "prisma generate && tsc -p tsconfig.build.json --noEmit",
+    "lint": "biome check src prisma/seed/seed.ts",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.9.0"
   },
   "devDependencies": {
     "@nestora/config": "workspace:*",
+    "@types/node": "^22.15.30",
+    "prisma": "^6.9.0",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed/seed.ts"
   }
 }

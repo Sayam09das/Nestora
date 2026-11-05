@@ -1,3 +1,4 @@
+import { disconnectDatabase } from '@nestora/database';
 import { buildApp } from './app.js';
 import { loadEnv } from './config/env.js';
 
@@ -10,6 +11,7 @@ async function start(): Promise<void> {
   const shutdown = async (signal: string) => {
     app.log.info({ signal }, 'Shutting down HTTP server');
     await app.close();
+    await disconnectDatabase();
     process.exit(0);
   };
 
