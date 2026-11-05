@@ -4,10 +4,34 @@ PostgreSQL persistence for Nestora via [Prisma ORM](https://www.prisma.io/). The
 
 ## Environment
 
-Copy `.env.example` to `.env` and set `DATABASE_URL`. Start local PostgreSQL with:
+Copy `.env.example` to `.env` and set **`DATABASE_URL`** and **`DIRECT_DATABASE_URL`** (same value for Neon **direct** host — no `-pooler` in the hostname). Do **not** use `channel_binding=require` in the URL.
+
+### Neon looks empty (no tables)
+
+The Neon project only shows tables **after** migrations run. Empty `public` schema is normal until then.
+
+**Option A — your machine (fastest):**
+
+```bash
+cd packages/database
+cp .env.example .env   # paste Neon direct connection strings from console
+pnpm db:migrate:deploy
+pnpm db:seed
+```
+
+In Neon **SQL Editor**: `SELECT migration_name FROM _prisma_migrations;` — you should see `20251105143000_initial_schema`.
+
+**Option B — GitHub Actions (if local Prisma cannot reach Neon):**
+
+1. Repo **Settings → Secrets → Actions** → add `NEON_DATABASE_URL` and `NEON_DIRECT_DATABASE_URL` (Neon console → **direct** connection string, `sslmode=require` only).
+2. **Actions → Deploy database migrations → Run workflow**.
+
+### Local Docker
 
 ```bash
 pnpm docker:up
+# use localhost URLs from .env.example
+pnpm --filter @nestora/database db:migrate:deploy
 ```
 
 ## Commands

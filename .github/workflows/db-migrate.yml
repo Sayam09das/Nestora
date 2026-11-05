@@ -1,0 +1,39 @@
+name: Deploy database migrations
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply Prisma migrations to Neon
+        working-directory: packages/database
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          DIRECT_DATABASE_URL: ${{ secrets.NEON_DIRECT_DATABASE_URL }}
+        run: pnpm db:migrate:deploy
+
+      - name: Seed reference data (room configurations)
+        working-directory: packages/database
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          DIRECT_DATABASE_URL: ${{ secrets.NEON_DIRECT_DATABASE_URL }}
+          NODE_ENV: development
+        run: pnpm db:seed
