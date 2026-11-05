@@ -19,6 +19,11 @@ pnpm db:migrate:deploy
 pnpm db:seed
 ```
 
+> **Note on port 5432 blocks (ISP / Wi-Fi firewalls)**: If your network blocks outbound PostgreSQL port 5432 (producing `Can't reach database server`), run the HTTPS migration runner instead, which operates over port 443:
+> ```bash
+> pnpm --filter @nestora/database db:migrate:neon-http
+> ```
+
 In Neon **SQL Editor**: `SELECT migration_name FROM _prisma_migrations;` — you should see `20251105143000_initial_schema`.
 
 **Option B — GitHub Actions (if local Prisma cannot reach Neon):**

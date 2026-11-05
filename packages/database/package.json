@@ -14,6 +14,7 @@
     "db:generate": "prisma generate",
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:deploy": "node scripts/deploy-migration.mjs",
+    "db:migrate:neon-http": "node scripts/deploy-neon-http.mjs",
     "db:validate": "prisma validate",
     "db:seed": "tsx prisma/seed/seed.ts",
     "build": "prisma generate && tsc -p tsconfig.build.json",
