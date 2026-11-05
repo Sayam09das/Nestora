@@ -25,14 +25,14 @@ The database encompasses the entire operational lifecycle of university hostel a
 
 ### Relationship with Existing Documentation
 This specification is directly grounded in the authoritative requirements baseline:
-- [01-project-overview.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/01-project-overview.md): Institutional context, aim, and multi-hostel scope.
-- [02-project-scope.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/02-project-scope.md): In-scope functional domains and explicit exclusions.
-- [03-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/03-functional-requirements.md): 144 functional requirements and 16 business rules.
-- [04-non-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/04-non-functional-requirements.md): 61 quality benchmarks covering security, ACID transactions, and integrity.
-- [05-user-roles-and-permissions.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/05-user-roles-and-permissions.md): Six user roles, 19-module RBAC matrix, and hostel scoping rules.
-- [06-system-architecture.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/06-system-architecture.md): 3-tier architecture, PostgreSQL engine, and modular monolith design.
-- [08-module-development-plan.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/08-module-development-plan.md): 19 functional modules and 6-phase development roadmap.
-- [09-monorepo-architecture.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/09-monorepo-architecture.md): Monorepo workspace architecture, Fastify REST API, and Prisma package organization.
+- [01-project-overview.md](./01-project-overview.md): Institutional context, aim, and multi-hostel scope.
+- [02-project-scope.md](./02-project-scope.md): In-scope functional domains and explicit exclusions.
+- [03-functional-requirements.md](./03-functional-requirements.md): 144 functional requirements and 16 business rules.
+- [04-non-functional-requirements.md](./04-non-functional-requirements.md): 61 quality benchmarks covering security, ACID transactions, and integrity.
+- [05-user-roles-and-permissions.md](./05-user-roles-and-permissions.md): Six user roles, 19-module RBAC matrix, and hostel scoping rules.
+- [06-system-architecture.md](./06-system-architecture.md): 3-tier architecture, PostgreSQL engine, and modular monolith design.
+- [08-module-development-plan.md](./08-module-development-plan.md): 19 functional modules and 6-phase development roadmap.
+- [09-monorepo-architecture.md](./09-monorepo-architecture.md): Monorepo workspace architecture, Fastify REST API, and Prisma package organization.
 
 ---
 
@@ -54,7 +54,7 @@ The database architecture is engineered to fulfill eight foundational software e
 ## 3. Database Technology and Approach
 
 ### Database Engine: PostgreSQL
-As confirmed in [06-system-architecture.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/06-system-architecture.md), Nestora utilizes **PostgreSQL** as its enterprise-grade relational database management system.
+As confirmed in [06-system-architecture.md](./06-system-architecture.md), Nestora utilizes **PostgreSQL** as its enterprise-grade relational database management system.
 
 #### Rationale for Relational Technology:
 - **Relational Integrity**: University hostel management is fundamentally structured around rigid hierarchical relationships ($\text{University} \rightarrow \text{Hostel} \rightarrow \text{Building} \rightarrow \text{Block} \rightarrow \text{Floor} \rightarrow \text{Room} \rightarrow \text{Bed}$). Relational schemas model these 1:N hierarchies with mathematical precision and enforce foreign key constraints natively.
@@ -1406,7 +1406,7 @@ erDiagram
 Nestora strictly maintains the six confirmed roles as an enumerated column in the `users` table:
 `UNIVERSITY_ADMINISTRATOR`, `HOSTEL_WARDEN`, `STUDENT`, `HOSTEL_STAFF`, `SECURITY_GUARD`, `ACCOUNTANT`.
 
-No additional roles or permission tables are introduced. This design matches [05-user-roles-and-permissions.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/05-user-roles-and-permissions.md), ensuring that role authority remains unambiguous and performant.
+No additional roles or permission tables are introduced. This design matches [05-user-roles-and-permissions.md](./05-user-roles-and-permissions.md), ensuring that role authority remains unambiguous and performant.
 
 ### 2. User-to-Hostel Assignment
 - **University Administrator & Accountant**: Operate without records in `hostel_assignments`. Their queries execute globally or across financial schemas.
@@ -1557,13 +1557,13 @@ Multi-entity operations execute within atomic database transactions via `prisma.
 2. **Record Updates**: Tracked via automatic `updated_at` timestamps on mutable records.
 3. **Soft Deletion & Status Transitions**: Core entities (rooms, beds, student accounts) are not physically deleted during active semesters. They transition to operational states (`INACTIVE`, `MAINTENANCE`, `TERMINATED`) to preserve historical integrity.
 4. **Data Retention & Archival**: Historical attendance logs, gate movement timestamps, and closed complaint tickets are retained for regulatory compliance across consecutive academic terms.
-5. **Backup & Recovery Strategy**: Proposed daily logical backups (`pg_dump`) combined with continuous Write-Ahead Logging (WAL) archiving to achieve target Recovery Point Objectives ($\text{RPO} \le 24\text{h}$) and Recovery Time Objectives ($\text{RTO} \le 4\text{h}$) as defined in [04-non-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/04-non-functional-requirements.md).
+5. **Backup & Recovery Strategy**: Proposed daily logical backups (`pg_dump`) combined with continuous Write-Ahead Logging (WAL) archiving to achieve target Recovery Point Objectives ($\text{RPO} \le 24\text{h}$) and Recovery Time Objectives ($\text{RTO} \le 4\text{h}$) as defined in [04-non-functional-requirements.md](./04-non-functional-requirements.md).
 
 ---
 
 ## 16. Database-to-Module Mapping
 
-The following matrix maps all 56 entities to their corresponding functional modules from [08-module-development-plan.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/08-module-development-plan.md):
+The following matrix maps all 56 entities to their corresponding functional modules from [08-module-development-plan.md](./08-module-development-plan.md):
 
 | System Module | Associated Database Entities | Purpose of Data |
 | :--- | :--- | :--- |

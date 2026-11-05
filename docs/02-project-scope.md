@@ -5,7 +5,7 @@ The purpose of defining the project scope is to establish the clear functional, 
 
 In software engineering, a well-defined project scope provides a shared understanding of what the system will deliver, establishes baseline expectations for development, and prevents scope creep. For Nestora—an academic software engineering project undertaken for a Bachelor of Computer Applications (BCA) curriculum—defining the scope ensures that the proposed solution remains focused, technically feasible, and rigorously aligned with university administrative requirements.
 
-All functional areas, user boundaries, and organizational tiers detailed in this document represent planned capabilities and structural models designed to address the challenges identified in [01-project-overview.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/01-project-overview.md).
+All functional areas, user boundaries, and organizational tiers detailed in this document represent planned capabilities and structural models designed to address the challenges identified in [01-project-overview.md](./01-project-overview.md).
 
 ---
 
@@ -198,6 +198,9 @@ To maintain clarity and project feasibility within the academic timeframe, the f
 - **Controlled User Provisioning**: Initial user accounts (Administrators, Wardens, Accountants) are assumed to be provisioned through administrative workflows rather than open public self-registration.
 
 ### Unresolved Decisions (Pending Clarification)
+
+> **Authoritative register:** [10-open-decisions-registry.md](./10-open-decisions-registry.md) (`ODR-001`–`ODR-005`).
+
 The following decisions remain unresolved and are subject to clarification during subsequent design phases:
 - **Warden-to-Hostel Relationship**: Whether a Hostel Warden can be assigned to multiple hostels simultaneously or is strictly limited to a single hostel.
 - **Leave Escalation Hierarchy**: Whether certain categories of leaves (e.g., extended leaves exceeding a specific duration) require secondary escalation to the University Administrator or external guardian consent workflows.

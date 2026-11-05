@@ -5,7 +5,7 @@ The purpose of this Non-Functional Requirements (NFR) Specification is to define
 
 While functional requirements detail *what* the system must do, non-functional requirements define *how* the system must perform, operate, scale, and safeguard information. For Nestora—an academic software engineering project for a Bachelor of Computer Applications (BCA) curriculum—this specification establishes the engineering criteria necessary to ensure software robustness, data security, role-based isolation, user accessibility, and administrative trustworthiness.
 
-This document builds directly upon the foundational context of [01-project-overview.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/01-project-overview.md), the system boundaries in [02-project-scope.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/02-project-scope.md), and the functional behaviors documented in [03-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/03-functional-requirements.md).
+This document builds directly upon the foundational context of [01-project-overview.md](./01-project-overview.md), the system boundaries in [02-project-scope.md](./02-project-scope.md), and the functional behaviors documented in [03-functional-requirements.md](./03-functional-requirements.md).
 
 ---
 
@@ -196,7 +196,7 @@ Each requirement specifies a priority level defined as:
 - **Academic Project Scope**: Nestora is an academic software engineering project developed for a Bachelor of Computer Applications (BCA) curriculum. It provides a comprehensive conceptual model and functional prototype rather than an active commercial university deployment.
 - **Web-Only Platform**: The application is constrained to a web-based client-server architecture accessed via standard desktop and mobile web browsers; native mobile operating system builds are outside the project scope.
 - **Hardware Boundary**: Physical integration with biometric hardware, turnstiles, smart cards, or RFID readers is outside current scope; workflows operate through authenticated human role inputs.
-- **Excluded Features**: In accordance with [02-project-scope.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/02-project-scope.md), third-party SMS gateways, dashboard customization widgets, dynamic dashboard date-range pickers, and direct online payment gateway integrations are explicitly excluded from the initial scope.
+- **Excluded Features**: In accordance with [02-project-scope.md](./02-project-scope.md), third-party SMS gateways, dashboard customization widgets, dynamic dashboard date-range pickers, and direct online payment gateway integrations are explicitly excluded from the initial scope.
 
 ### Project Assumptions and Proposed Targets
 - **Performance Benchmarks**: Latency targets (e.g., $\le 2.0\text{s}$ dashboard loads, $\le 500\text{ms}$ reads) and availability targets (99.0%) represent **proposed design benchmarks** to be empirically evaluated during system testing, rather than contractual production SLAs.

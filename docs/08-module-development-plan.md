@@ -12,17 +12,17 @@ The roadmap encompasses both backend and frontend development across all confirm
 
 ### Relationship with Existing Documentation
 This plan is directly grounded in the project documentation created to date:
-- [01-project-overview.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/01-project-overview.md): Project background, aim, and institutional context.
-- [02-project-scope.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/02-project-scope.md): In-scope features and explicit exclusions.
-- [03-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/03-functional-requirements.md): 144 testable functional requirements and 16 business rules.
-- [04-non-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/04-non-functional-requirements.md): 61 quality benchmarks covering security, performance, and data integrity.
-- [05-user-roles-and-permissions.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/05-user-roles-and-permissions.md): Six user roles, 19-module permission matrix, and hostel scoping rules.
-- [06-system-architecture.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/06-system-architecture.md): Decoupled modular monolith, 3-tier architecture, and deployment model.
-- [07-database-design.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/07-database-design.md): 56 relational entities, DDL schemas, indexes, and ERDs.
-- [09-monorepo-architecture.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/09-monorepo-architecture.md): pnpm + Turborepo workspace topology, package boundaries, and runtime configurations.
+- [01-project-overview.md](./01-project-overview.md): Project background, aim, and institutional context.
+- [02-project-scope.md](./02-project-scope.md): In-scope features and explicit exclusions.
+- [03-functional-requirements.md](./03-functional-requirements.md): 144 testable functional requirements and 16 business rules.
+- [04-non-functional-requirements.md](./04-non-functional-requirements.md): 61 quality benchmarks covering security, performance, and data integrity.
+- [05-user-roles-and-permissions.md](./05-user-roles-and-permissions.md): Six user roles, 19-module permission matrix, and hostel scoping rules.
+- [06-system-architecture.md](./06-system-architecture.md): Decoupled modular monolith, 3-tier architecture, and deployment model.
+- [07-database-design.md](./07-database-design.md): 56 relational entities, DDL schemas, indexes, and ERDs.
+- [09-monorepo-architecture.md](./09-monorepo-architecture.md): pnpm + Turborepo workspace topology, package boundaries, and runtime configurations.
 
 > [!NOTE]
-> **Database Schema & Monorepo Foundation**: Detailed physical database schemas and entity-relationship models across all 56 relational tables are formally codified in [07-database-design.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/07-database-design.md), and workspace package topology is defined in [09-monorepo-architecture.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/09-monorepo-architecture.md). In accordance with project instructions, database entities and workspace boundaries referenced in this plan correspond to these authoritative baselines.
+> **Database Schema & Monorepo Foundation**: Detailed physical database schemas and entity-relationship models across all 56 relational tables are formally codified in [07-database-design.md](./07-database-design.md), and workspace package topology is defined in [09-monorepo-architecture.md](./09-monorepo-architecture.md). In accordance with project instructions, database entities and workspace boundaries referenced in this plan correspond to these authoritative baselines.
 
 ---
 
@@ -79,7 +79,7 @@ The following table summarizes all 19 major functional modules, their core purpo
 
 ### 3.1 Functional Requirement (FR) to Development Module (MOD) Cross-Reference Matrix
 
-To ensure seamless traceability between requirements engineering and physical implementation, the following matrix maps all 19 functional requirement modules from [03-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/03-functional-requirements.md) and [05-user-roles-and-permissions.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/05-user-roles-and-permissions.md) (`FR-01` to `FR-19`, comprising all 144 requirements `FR-001` through `FR-144`) to their authoritative development modules (`MOD-01` to `MOD-19`):
+To ensure seamless traceability between requirements engineering and physical implementation, the following matrix maps all 19 functional requirement modules from [03-functional-requirements.md](./03-functional-requirements.md) and [05-user-roles-and-permissions.md](./05-user-roles-and-permissions.md) (`FR-01` to `FR-19`, comprising all 144 requirements `FR-001` through `FR-144`) to their authoritative development modules (`MOD-01` to `MOD-19`):
 
 | Functional Requirement Module (docs/03 & docs/05) | Requirement ID Range | Functional Title | Development Module ID | Development Module Name | Development Milestone Phase |
 | :--- | :---: | :--- | :---: | :--- | :---: |
@@ -111,7 +111,7 @@ To ensure seamless traceability between requirements engineering and physical im
   3. `MOD-18` (Reports) and `MOD-19` (Dashboards) are scheduled for **Milestone 6** because analytical aggregation and dashboard KPIs consume data produced across all preceding operational modules.
 
 > [!NOTE]
-> All original requirement IDs (`FR-001` through `FR-144`) and development module IDs (`MOD-01` through `MOD-19`) remain canonical and unchanged. When implementing any development module, engineers should reference both the module specifications in this document and the exact functional acceptance criteria in [03-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/03-functional-requirements.md).
+> All original requirement IDs (`FR-001` through `FR-144`) and development module IDs (`MOD-01` through `MOD-19`) remain canonical and unchanged. When implementing any development module, engineers should reference both the module specifications in this document and the exact functional acceptance criteria in [03-functional-requirements.md](./03-functional-requirements.md).
 
 ---
 
@@ -699,7 +699,7 @@ The following milestone schedule establishes clear deliverables and completion g
 
 Before any module is marked as **Complete**, it must satisfy the following verification checklist:
 
-1. **Functional Completeness**: All functional requirements assigned to the module in [03-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/03-functional-requirements.md) are fully implemented.
+1. **Functional Completeness**: All functional requirements assigned to the module in [03-functional-requirements.md](./03-functional-requirements.md) are fully implemented.
 2. **Schema & Boundary Validation**: Inbound HTTP payloads are validated against strict Fastify JSON schemas; invalid inputs return HTTP 400 with actionable messages.
 3. **Role Authorization & Tenant Scoping**: RBAC guards enforce permissions across all six roles; tenant middleware enforces `hostel_id` isolation.
 4. **Data Integrity & Transactions**: Multi-entity mutations execute within `prisma.$transaction()`; database constraints prevent orphaned records.
@@ -717,7 +717,7 @@ Before any module is marked as **Complete**, it must satisfy the following verif
 | **Cross-Tenant Data Leakage** | Critical | Low | Enforce `hostel_id` filtering programmatically in backend middleware and service query builders; write automated tests specifically attempting cross-hostel access. |
 | **Bed Allocation Race Conditions** | High | Medium | Execute bed vacancy checks and status updates within atomic database transactions (`prisma.$transaction`) with database-level unique constraints. |
 | **Sequential Admission Bottlenecks** | Medium | Medium | Implement clear visual indicators for pending verification queues; allow rejected registrations to be corrected and resubmitted without restarting from scratch. |
-| **Database Schema Alignment** | Medium | Low | Align Prisma schema models strictly with the 56 relational entities codified in [07-database-design.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/07-database-design.md) prior to executing database migrations. |
+| **Database Schema Alignment** | Medium | Low | Align Prisma schema models strictly with the 56 relational entities codified in [07-database-design.md](./07-database-design.md) prior to executing database migrations. |
 | **Email Worker Service Downtime** | Medium | Low | Implement graceful degradation: if SMTP fails, log the failure and allow core in-app operations to proceed; queue failed messages for retry. |
 | **Complex Disciplinary / Appeal Logic** | Low | Low | Enforce strict state machines for disciplinary actions, ensuring progressive sanctions and formal escalation paths are auditable. |
 

@@ -835,7 +835,7 @@ Turborepo orchestrates task execution using the modern `tasks` schema, caching b
 
 ## 13. Institutional Decisions & Open Questions
 
-The four unresolved institutional decisions documented throughout the project specification suite remain explicitly documented as **pending institutional confirmation**. The monorepo architecture and data models support any administrative outcome without requiring workspace restructuring:
+The unresolved institutional decisions documented throughout the project specification suite remain **pending institutional confirmation**. The consolidated register with stable IDs (`ODR-001`–`ODR-005`) lives in [10-open-decisions-registry.md](./10-open-decisions-registry.md). The monorepo architecture and data models support any administrative outcome without requiring workspace restructuring:
 
 1. **Hostel Warden Assignment Cardinality ($1:1$ vs. $1:N$)**:
    - *Current Status*: Pending institutional governance policy.

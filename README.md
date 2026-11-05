@@ -224,7 +224,11 @@ Nestora/
 │   ├── 06-system-architecture.md          # 3-tier modular monolith architecture & diagrams
 │   ├── 07-database-design.md              # 56 relational entities, DDL schemas, indexes & ERDs
 │   ├── 08-module-development-plan.md      # 6-phase development roadmap and milestones
-│   └── 09-monorepo-architecture.md        # pnpm + Turborepo monorepo specification & runtime configs
+│   ├── 09-monorepo-architecture.md        # pnpm + Turborepo monorepo specification & runtime configs
+│   ├── 10-open-decisions-registry.md      # Consolidated pending institutional decisions (ODR-001–ODR-005)
+│   ├── 11-glossary-and-traceability.md    # Domain glossary, ID conventions, 18 vs 19 module mapping
+│   ├── README.md                          # Documentation index and recommended reading order
+│   └── CHANGELOG.md                       # Documentation suite revision history
 ├── .gitignore                             # Monorepo git ignore rules
 └── README.md                              # Project overview and architectural index
 ```
@@ -271,13 +275,33 @@ The project maintains a sequential documentation suite serving as the primary so
 | **Database Design** | [07-database-design.md](docs/07-database-design.md) | Formal entity-relationship models across 56 tables, 6 Mermaid ER diagrams, physical DDL schemas, indexing strategies, and tenant data isolation rules. |
 | **Module Development Plan** | [08-module-development-plan.md](docs/08-module-development-plan.md) | Outlines the 6 sequential development phases (`MS-1` to `MS-6`), module dependencies, frontend/backend plans, testing pyramid, and quality criteria. |
 | **Monorepo Architecture** | [09-monorepo-architecture.md](docs/09-monorepo-architecture.md) | Defines the pnpm + Turborepo workspace topology, Fastify request lifecycle, direct client-API communication, SHA-256 session security, multi-hostel tenant isolation, and Node.js 24 LTS runtime baseline. |
+| **Open Decisions Registry** | [10-open-decisions-registry.md](docs/10-open-decisions-registry.md) | Single register of pending institutional policies (`ODR-001`–`ODR-005`) with architecture impact and source cross-references. |
+| **Glossary & Traceability** | [11-glossary-and-traceability.md](docs/11-glossary-and-traceability.md) | Domain terms, `FR`/`MOD`/`BR`/`AUTH` ID conventions, and explanation of 18 scope areas vs 19 implementation modules. |
+| **Documentation Index** | [docs/README.md](docs/README.md) | Recommended reading order for reviewers and implementers, plus documentation conventions. |
 
 ---
 
 ## Installation and Setup
 
 > [!NOTE]
-> **Implementation Status**: Application implementation has not yet started. Nestora has completed its formal documentation and architectural specifications suite (`docs/01` through `docs/09`). Complete setup, environment configuration, database migration, and local execution instructions will be added during the implementation phase.
+> **Implementation Status**: Application code is not scaffolded yet. The specification suite (`docs/01` through `docs/11`) is complete. The steps below describe the **planned** local workflow once Milestone 1 (MS-1) begins; exact commands will be verified when `package.json` and Docker files land in the repository.
+
+### Prerequisites (planned)
+
+- **Node.js 24 LTS**
+- **pnpm** v9+
+- **Docker** and **Docker Compose** (PostgreSQL and MailHog for development)
+
+### Planned local workflow (from MS-1)
+
+1. Clone the repository and install dependencies: `pnpm install`
+2. Start supporting services: `docker compose -f docker/docker-compose.yml up -d`
+3. Copy environment templates: `apps/api/.env.example` → `apps/api/.env`, `apps/web/.env.example` → `apps/web/.env` (see [09-monorepo-architecture.md](docs/09-monorepo-architecture.md) §10 for variable definitions)
+4. Apply database migrations: `pnpm db:migrate:dev`
+5. (Development only) Seed demo data: `pnpm db:seed`
+6. Run the monorepo dev servers: `pnpm dev` — web on port **3000**, API on port **4000** (`/api/v1/*`)
+
+Production initial administrator provisioning (no hardcoded credentials): `pnpm --filter @nestora/database admin:init --email <admin_email>` — detailed in [09-monorepo-architecture.md](docs/09-monorepo-architecture.md) §6.3.
 
 ---
 
@@ -285,7 +309,7 @@ The project maintains a sequential documentation suite serving as the primary so
 
 Nestora is progressing through a disciplined software engineering lifecycle:
 
-- **System Documentation & Architecture Specifications**: Complete (All 9 primary design documents: `01` through `09`).
+- **System Documentation & Architecture Specifications**: Complete (Design documents `01` through `09`, plus registry/glossary/index: `10`, `11`, `docs/README.md`).
 - **Database Schema Modeling (`07-database-design.md`)**: Complete (56 relational entities, PostgreSQL constraints, and 6 ERDs).
 - **Workspace Topology & Architecture (`09-monorepo-architecture.md`)**: Complete (pnpm + Turborepo decoupled modular monolith specification).
 - **Application Code Implementation**: Not Yet Started (Planned following implementation planning).
@@ -308,7 +332,7 @@ The following capabilities represent valuable future enhancements identified in 
 
 Nestora is developed as an academic software engineering project for a Bachelor of Computer Applications (BCA) curriculum. Academic collaborators and contributors are invited to propose enhancements, report issues, and participate in development:
 
-1. **Review Requirements**: Ensure all proposals align with the documented requirements in `docs/01` through `docs/09`.
+1. **Review Requirements**: Ensure all proposals align with the documented requirements in `docs/01` through `docs/11` (start from [docs/README.md](docs/README.md)).
 2. **Open an Issue**: Describe the bug, clarification, or architectural improvement with reference to specific functional IDs (`FR-xxx`) or architectural rules (`AUTH-xxx`).
 3. **Submit a Pull Request**: Follow the modular package conventions and testing standards outlined in [08-module-development-plan.md](docs/08-module-development-plan.md).
 

@@ -5,7 +5,7 @@ The purpose of this Functional Requirements Specification is to define the compl
 
 In software engineering, functional requirements define the fundamental capabilities, behaviors, and data transformations that a software system must execute to satisfy user and institutional requirements. For Nestora—an academic software engineering project for a Bachelor of Computer Applications (BCA) curriculum—this specification establishes the authoritative baseline for system design, database architecture, user interface development, and verification testing.
 
-All requirements detailed in this document describe **planned system behaviors** rather than completed features, aligning with the architectural scope and principles defined in [01-project-overview.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/01-project-overview.md) and [02-project-scope.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/02-project-scope.md).
+All requirements detailed in this document describe **planned system behaviors** rather than completed features, aligning with the architectural scope and principles defined in [01-project-overview.md](./01-project-overview.md) and [02-project-scope.md](./02-project-scope.md).
 
 ---
 
@@ -341,3 +341,5 @@ The following items are identified as open questions requiring clarification dur
 4. **Attendance Roster Execution Duties**:
    - *Question*: What is the precise operational boundary between Hostel Wardens and Hostel Staff regarding daily night attendance—can staff independently sign off on daily rosters, or is Warden countersignature mandatory?
    - *Status*: Open for operational clarification.
+
+> **Consolidated register:** All open items above are tracked as `ODR-001` through `ODR-005` in [10-open-decisions-registry.md](./10-open-decisions-registry.md).

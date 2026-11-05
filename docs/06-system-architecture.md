@@ -16,11 +16,11 @@ The system operates across six confirmed user roles:
 This specification bridges the project's foundational requirements and physical implementation. It is an architectural design document for a Bachelor of Computer Applications (BCA) software engineering project, serving as the primary design baseline before physical database modeling and application development commence. 
 
 This document directly derives its requirements from:
-- [01-project-overview.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/01-project-overview.md)
-- [02-project-scope.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/02-project-scope.md)
-- [03-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/03-functional-requirements.md)
-- [04-non-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/04-non-functional-requirements.md)
-- [05-user-roles-and-permissions.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/05-user-roles-and-permissions.md)
+- [01-project-overview.md](./01-project-overview.md)
+- [02-project-scope.md](./02-project-scope.md)
+- [03-functional-requirements.md](./03-functional-requirements.md)
+- [04-non-functional-requirements.md](./04-non-functional-requirements.md)
+- [05-user-roles-and-permissions.md](./05-user-roles-and-permissions.md)
 
 ---
 
@@ -696,4 +696,4 @@ By combining:
 - Rigid **hostel-level tenant data isolation** enforced authoritatively at the backend service layer, and
 - Asynchronous **background processing** for non-blocking notifications,
 
-Nestora fulfills all functional capabilities and quality benchmarks defined in earlier requirements documents. This specification stands as the authoritative architectural blueprint guiding the database design ([07-database-design.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/07-database-design.md)), module development plan ([08-module-development-plan.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/08-module-development-plan.md)), and monorepo architecture ([09-monorepo-architecture.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/09-monorepo-architecture.md)).
+Nestora fulfills all functional capabilities and quality benchmarks defined in earlier requirements documents. This specification stands as the authoritative architectural blueprint guiding the database design ([07-database-design.md](./07-database-design.md)), module development plan ([08-module-development-plan.md](./08-module-development-plan.md)), and monorepo architecture ([09-monorepo-architecture.md](./09-monorepo-architecture.md)).
