@@ -5,6 +5,8 @@ All notable changes to the Nestora **documentation suite** (`docs/` and root `RE
 ## [Unreleased]
 
 ### Added
+- Root `LICENSE` — academic project license (MIT terms with BCA academic context).
+- Root `CONTRIBUTING.md` — contribution workflow, PR standards, and traceability conventions.
 - `docs/README.md` — documentation index, reading order, and conventions.
 - `docs/10-open-decisions-registry.md` — consolidated open institutional decisions (`ODR-001`–`ODR-005`).
 - `docs/11-glossary-and-traceability.md` — glossary and FR/MOD/scope traceability guide.

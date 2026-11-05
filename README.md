@@ -230,6 +230,8 @@ Nestora/
 │   ├── README.md                          # Documentation index and recommended reading order
 │   └── CHANGELOG.md                       # Documentation suite revision history
 ├── .gitignore                             # Monorepo git ignore rules
+├── CONTRIBUTING.md                        # Contribution guidelines and PR standards
+├── LICENSE                                # Academic project license (MIT terms)
 └── README.md                              # Project overview and architectural index
 ```
 
@@ -330,14 +332,16 @@ The following capabilities represent valuable future enhancements identified in 
 
 ## Contributing
 
-Nestora is developed as an academic software engineering project for a Bachelor of Computer Applications (BCA) curriculum. Academic collaborators and contributors are invited to propose enhancements, report issues, and participate in development:
+Nestora is developed as an academic software engineering project for a Bachelor of Computer Applications (BCA) curriculum. See **[CONTRIBUTING.md](CONTRIBUTING.md)** for issue templates, pull request expectations, monorepo conventions, testing standards, and how to handle open institutional decisions (`ODR-001`–`ODR-005`).
 
-1. **Review Requirements**: Ensure all proposals align with the documented requirements in `docs/01` through `docs/11` (start from [docs/README.md](docs/README.md)).
-2. **Open an Issue**: Describe the bug, clarification, or architectural improvement with reference to specific functional IDs (`FR-xxx`) or architectural rules (`AUTH-xxx`).
-3. **Submit a Pull Request**: Follow the modular package conventions and testing standards outlined in [08-module-development-plan.md](docs/08-module-development-plan.md).
+Quick start:
+
+1. **Review requirements** in `docs/01` through `docs/11` ([docs/README.md](docs/README.md)).
+2. **Open an issue** with references to `FR-xxx`, `MOD-xx`, or `AUTH-xxx` where applicable.
+3. **Submit a pull request** following [08-module-development-plan.md](docs/08-module-development-plan.md) and [09-monorepo-architecture.md](docs/09-monorepo-architecture.md).
 
 ---
 
 ## License
 
-The license for this project has not yet been specified.
+Copyright (c) 2026 Sayam Das. Nestora is licensed under an **academic project license** (MIT terms with academic context). See **[LICENSE](LICENSE)** for the full text.

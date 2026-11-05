@@ -62,4 +62,6 @@ Authoritative design and requirements documentation for **Nestora — University
 ## Related project files
 
 - Root overview and quick index: [../README.md](../README.md)
+- Contribution guidelines: [../CONTRIBUTING.md](../CONTRIBUTING.md)
+- License: [../LICENSE](../LICENSE)
 - Version history of the documentation suite: [CHANGELOG.md](./CHANGELOG.md)
