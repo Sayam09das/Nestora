@@ -1,0 +1,23 @@
+{
+  "name": "@nestora/database",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Prisma ORM and PostgreSQL data layer (schema and migrations deferred to MS-1 database milestone)",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "lint": "biome check src",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput"
+  },
+  "devDependencies": {
+    "@nestora/config": "workspace:*",
+    "typescript": "^5.8.3"
+  }
+}

@@ -24,6 +24,7 @@ dist/
 build/
 out/
 .tsbuildinfo
+*.tsbuildinfo
 
 # Turborepo execution cache
 .turbo/
