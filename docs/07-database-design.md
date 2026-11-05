@@ -170,6 +170,8 @@ Represents all authenticated human actors across the six confirmed roles.
 | `phone_number` | `VARCHAR(20)` | - | Yes | Primary contact phone number. |
 | `status` | `VARCHAR(20)` | - | No | Account status: `ACTIVE`, `INACTIVE`, `SUSPENDED` (default: `ACTIVE`). |
 | `is_verified` | `BOOLEAN` | - | No | Email verification flag (default: `false`). |
+| `failed_login_attempts` | `INTEGER` | - | No | Consecutive failed authentication attempts counter (default: `0`). Incremented on failed auth; resets to 0 on success. Account locks when reaching 5 within a 15-minute window (`FR-007`, `NFR-SEC-004`). |
+| `locked_until` | `TIMESTAMPTZ` | - | Yes | Timestamp until which the account is temporarily locked (NULL if active). Automatically expires after 30 minutes or via administrative unlock (`NFR-SEC-004`). |
 | `created_at` | `TIMESTAMPTZ` | - | No | Timestamp of account provisioning (default: `NOW()`). |
 | `updated_at` | `TIMESTAMPTZ` | - | No | Timestamp of last profile update. |
 
@@ -332,9 +334,12 @@ Extended resident master record linked to user account.
 | `registration_number`| `VARCHAR(50)`| UK | No | University student registration / roll number. |
 | `course` | `VARCHAR(100)` | - | No | Academic program of study. |
 | `department` | `VARCHAR(100)` | - | No | Academic department. |
+| `academic_year` | `VARCHAR(20)` | - | No | Academic year of study (e.g., "1st Year", "2nd Year", "2026-2027") (`FR-009`). |
+| `current_semester` | `VARCHAR(20)` | - | No | Current academic semester (e.g., "Semester 1", "Semester 4") (`FR-009`). |
 | `gender` | `VARCHAR(20)` | - | No | Gender: `MALE`, `FEMALE`. |
 | `date_of_birth` | `DATE` | - | No | Date of birth. |
 | `blood_group` | `VARCHAR(10)` | - | Yes | Medical blood group. |
+| `medical_alerts` | `TEXT` | - | Yes | Medical conditions, allergies, or dietary alerts accessible to Wardens during emergencies (`FR-009`, `FR-112`). |
 | `guardian_name` | `VARCHAR(150)` | - | No | Full name of primary parent / guardian. |
 | `guardian_phone`| `VARCHAR(20)` | - | No | Primary emergency contact number (Protected). |
 | `guardian_relation`| `VARCHAR(50)` | - | No | Relationship (Father, Mother, Local Guardian). |
@@ -1012,7 +1017,7 @@ The schema models complex domain dependencies through explicit relational cardin
 
 ## 7. Entity Relationship Diagrams (ERD)
 
-To maintain clarity across all 55 entities, the database schema is visualized across five domain-specific Mermaid ER diagrams:
+To maintain clarity across all 56 entities, the database schema is visualized across six domain-specific Mermaid ER diagrams:
 
 ### Diagram 1: Core Physical Infrastructure & User Access Control
 ```mermaid
@@ -1084,6 +1089,8 @@ erDiagram
     string password_hash
     string role
     string status
+    int failed_login_attempts
+    timestamptz locked_until
   }
   HOSTEL_ASSIGNMENT {
     uuid id PK
@@ -1112,8 +1119,13 @@ erDiagram
     uuid id PK
     uuid user_id FK
     string registration_number UK
+    string course
+    string department
+    string academic_year
+    string current_semester
     string gender
     string guardian_phone
+    string medical_alerts
   }
   ADMISSION_APPLICATION {
     uuid id PK
@@ -1240,6 +1252,13 @@ erDiagram
     uuid config_id FK
     string status
   }
+  FEE_ITEM {
+    uuid id PK
+    uuid schedule_id FK
+    string item_name
+    decimal amount
+    boolean is_refundable
+  }
   STUDENT_LEDGER {
     uuid id PK
     uuid student_id FK
@@ -1276,8 +1295,24 @@ erDiagram
   NOTICE ||--o{ NOTICE_ACKNOWLEDGEMENT : "acknowledged_by"
 
   USER ||--o{ NOTIFICATION : "receives"
+  USER ||--o{ NOTIFICATION_PREFERENCE : "configures"
   USER ||--o{ AUDIT_LOG : "executes"
 
+  HOSTEL_RULE {
+    uuid id PK
+    uuid hostel_id FK
+    string rule_code UK
+    string title
+    string severity_level
+    boolean is_active
+  }
+  NOTIFICATION_PREFERENCE {
+    uuid id PK
+    uuid user_id FK
+    string category
+    boolean in_app_enabled
+    boolean email_enabled
+  }
   DISCIPLINARY_SANCTION {
     uuid id PK
     uuid violation_id FK
@@ -1307,6 +1342,50 @@ erDiagram
     jsonb previous_state
     jsonb new_state
     timestamptz timestamp
+  }
+```
+
+---
+
+### Diagram 6: Staff Operations, Duty Rostering & Staff Attendance
+```mermaid
+erDiagram
+  USER ||--o| STAFF_PROFILE : "profile_for"
+  HOSTEL ||--o{ DUTY_ASSIGNMENT : "scoped_to"
+  STAFF_PROFILE ||--o{ DUTY_ASSIGNMENT : "assigned"
+  STAFF_PROFILE ||--o{ STAFF_ATTENDANCE : "logged_for"
+  HOSTEL ||--o{ STAFF_ATTENDANCE : "recorded_at"
+  STAFF_PROFILE ||--o{ STAFF_LEAVE : "submits"
+
+  STAFF_PROFILE {
+    uuid id PK
+    uuid user_id FK
+    string department
+    string designation
+    string shift_preference
+  }
+  DUTY_ASSIGNMENT {
+    uuid id PK
+    uuid staff_id FK
+    uuid hostel_id FK
+    string shift
+    string work_zone
+    date duty_date
+  }
+  STAFF_ATTENDANCE {
+    uuid id PK
+    uuid staff_id FK
+    uuid hostel_id FK
+    date duty_date
+    string status
+  }
+  STAFF_LEAVE {
+    uuid id PK
+    uuid staff_id FK
+    date start_date
+    date end_date
+    string reason
+    string status
   }
 ```
 
@@ -1475,7 +1554,7 @@ Multi-entity operations execute within atomic database transactions via `prisma.
 
 ## 16. Database-to-Module Mapping
 
-The following matrix maps all 55 entities to their corresponding functional modules from [08-module-development-plan.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/08-module-development-plan.md):
+The following matrix maps all 56 entities to their corresponding functional modules from [08-module-development-plan.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/08-module-development-plan.md):
 
 | System Module | Associated Database Entities | Purpose of Data |
 | :--- | :--- | :--- |
@@ -1518,8 +1597,9 @@ The following matrix maps all 55 entities to their corresponding functional modu
 
 ### Unresolved Decisions (Pending Institutional Finalization)
 - **Warden Multi-Hostel Assignment Policy**: Whether institutional policy restricts Wardens to a strict 1:1 mapping or permits 1:N oversight (the database schema supports 1:N via `hostel_assignments`).
-- **Extended Leave Escalation Threshold**: The exact duration threshold (e.g., $>7$ days) that requires administrative escalation.
+- **Extended Leave Escalation Threshold**: The exact duration threshold (e.g., $>7$ consecutive days) that requires administrative escalation.
 - **Standardized vs. Hostel-Differential Fee Schedules**: Whether fee schedules are strictly uniform university-wide or permit hostel-specific fee line items.
+- **Security Guard Duty Scheduling Policy**: Whether Security Guards have shift allocations and daily attendance formally tracked through `staff_profiles`, `duty_assignments`, and `staff_attendances` (using department `SECURITY`), or operate through gate-checkpoint credentials and shift change logs (`gate_movement_logs`).
 
 ---
 

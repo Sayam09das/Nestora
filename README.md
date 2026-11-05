@@ -221,9 +221,9 @@ Nestora/
 │   ├── 04-non-functional-requirements.md   # 61 quality attributes and performance benchmarks
 │   ├── 05-user-roles-and-permissions.md   # 6 user roles and 19-module RBAC matrix
 │   ├── 06-system-architecture.md          # 3-tier modular monolith architecture & diagrams
+│   ├── 07-database-design.md              # 56 relational entities, DDL schemas, indexes & ERDs
 │   └── 08-module-development-plan.md      # 6-phase development roadmap and milestones
-├── README.md                              # Project overview and architectural index
-└── (Implementation pending Document 07)
+└── README.md                              # Project overview and architectural index
 ```
 
 ### Planned Implementation Structure
@@ -254,14 +254,14 @@ The project maintains a sequential documentation suite serving as the primary so
 
 | Document | File Link | Description & Key Contents |
 | :--- | :--- | :--- |
-| **Project Overview** | [01-project-overview.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/01-project-overview.md) | Introduces Nestora, university multi-hostel background, problem statement, project objectives, and intended users. |
-| **Project Scope** | [02-project-scope.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/02-project-scope.md) | Defines the 18 in-scope functional domains, 7-tier organizational scope, data visibility, and 4 explicit exclusions (SMS, customization, date-filters, payment gateway). |
-| **Functional Requirements** | [03-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/03-functional-requirements.md) | Specifies 144 formal functional requirements (`FR-001` to `FR-144`) and 16 core business rules (`BR-001` to `BR-016`). |
-| **Non-Functional Requirements** | [04-non-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/04-non-functional-requirements.md) | Defines 61 quality benchmarks (`NFR-PER`, `NFR-SEC`, `NFR-PRI`, `NFR-REL`, `NFR-USA`, etc.) covering security, performance, and reliability. |
-| **User Roles & Permissions** | [05-user-roles-and-permissions.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/05-user-roles-and-permissions.md) | Establishes access boundaries for all six roles, the complete 19-module RBAC matrix, and 12 authorization enforcement rules (`AUTH-001` to `AUTH-012`). |
-| **System Architecture** | [06-system-architecture.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/06-system-architecture.md) | Details the decoupled modular monolith, 3-tier architecture, technology stack, security design, and 5 Mermaid architecture diagrams. |
-| **Database Design** | `docs/07-database-design.md` *(Upcoming)* | Formal entity-relationship models, physical DDL schemas, field types, and relational constraints *(Scheduled next in documentation pipeline)*. |
-| **Module Development Plan** | [08-module-development-plan.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/08-module-development-plan.md) | Outlines the 6 sequential development phases (`MS-1` to `MS-6`), module dependencies, frontend/backend plans, testing pyramid, and quality criteria. |
+| **Project Overview** | [01-project-overview.md](docs/01-project-overview.md) | Introduces Nestora, university multi-hostel background, problem statement, project objectives, and intended users. |
+| **Project Scope** | [02-project-scope.md](docs/02-project-scope.md) | Defines the 18 in-scope functional domains, 7-tier organizational scope, data visibility, and 4 explicit exclusions (SMS, customization, date-filters, payment gateway). |
+| **Functional Requirements** | [03-functional-requirements.md](docs/03-functional-requirements.md) | Specifies 144 formal functional requirements (`FR-001` to `FR-144`) and 16 core business rules (`BR-001` to `BR-016`). |
+| **Non-Functional Requirements** | [04-non-functional-requirements.md](docs/04-non-functional-requirements.md) | Defines 61 quality benchmarks (`NFR-PER`, `NFR-SEC`, `NFR-PRI`, `NFR-REL`, `NFR-USA`, etc.) covering security, performance, and reliability. |
+| **User Roles & Permissions** | [05-user-roles-and-permissions.md](docs/05-user-roles-and-permissions.md) | Establishes access boundaries for all six roles, the complete 19-module RBAC matrix, and 12 authorization enforcement rules (`AUTH-001` to `AUTH-012`). |
+| **System Architecture** | [06-system-architecture.md](docs/06-system-architecture.md) | Details the decoupled modular monolith, 3-tier architecture, technology stack, security design, and 5 Mermaid architecture diagrams. |
+| **Database Design** | [07-database-design.md](docs/07-database-design.md) | Formal entity-relationship models across 56 tables, 6 Mermaid ER diagrams, physical DDL schemas, indexing strategies, and tenant data isolation rules. |
+| **Module Development Plan** | [08-module-development-plan.md](docs/08-module-development-plan.md) | Outlines the 6 sequential development phases (`MS-1` to `MS-6`), module dependencies, frontend/backend plans, testing pyramid, and quality criteria. |
 
 ---
 
@@ -276,9 +276,9 @@ The project maintains a sequential documentation suite serving as the primary so
 
 Nestora is progressing through a disciplined software engineering lifecycle:
 
-- **Documentation & Requirements Engineering**: Complete (Documents `01`, `02`, `03`, `04`, `05`, `06`, `08`).
-- **Database Schema Modeling (`07-database-design.md`)**: In Progress (Next documentation milestone).
-- **Application Code Implementation**: Not Yet Started (Planned following Document 07 completion).
+- **System Documentation & Architecture Specifications**: Complete (All 8 primary design documents: `01` through `08`).
+- **Database Schema Modeling (`07-database-design.md`)**: Complete (56 relational entities, PostgreSQL constraints, and 6 ERDs).
+- **Application Code Implementation**: Not Yet Started (Planned following implementation planning).
 - **Testing & System Hardening**: Not Yet Started.
 
 ---
@@ -298,9 +298,9 @@ The following capabilities represent valuable future enhancements identified in 
 
 Nestora is developed as an academic software engineering project for a Bachelor of Computer Applications (BCA) curriculum. Academic collaborators and contributors are invited to propose enhancements, report issues, and participate in development:
 
-1. **Review Requirements**: Ensure all proposals align with the documented requirements in `docs/01` through `docs/06`.
+1. **Review Requirements**: Ensure all proposals align with the documented requirements in `docs/01` through `docs/08`.
 2. **Open an Issue**: Describe the bug, clarification, or architectural improvement with reference to specific functional IDs (`FR-xxx`) or architectural rules (`AUTH-xxx`).
-3. **Submit a Pull Request**: Follow the modular package conventions and testing standards outlined in [08-module-development-plan.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/08-module-development-plan.md).
+3. **Submit a Pull Request**: Follow the modular package conventions and testing standards outlined in [08-module-development-plan.md](docs/08-module-development-plan.md).
 
 ---
 

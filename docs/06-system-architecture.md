@@ -302,7 +302,7 @@ backend/
 │   │   ├── auth/           # Login, sessions, password recovery
 │   │   ├── users/          # User accounts and provisioning
 │   │   ├── admissions/     # Two-tier admission verifications
-│   │   ├── infrastructure/ # Hostels, buildings, floors, rooms, beds
+│   │   ├── infrastructure/ # Hostels, buildings, blocks, floors, rooms, beds
 │   │   ├── allocation/     # Bed assignment and vacancy management
 │   │   ├── checkin-out/    # Arrival logging and departure clearance
 │   │   ├── leaves/         # Leave and outing applications
@@ -696,4 +696,4 @@ By combining:
 - Rigid **hostel-level tenant data isolation** enforced authoritatively at the backend service layer, and
 - Asynchronous **background processing** for non-blocking notifications,
 
-Nestora fulfills all functional capabilities and quality benchmarks defined in earlier requirements documents. This specification stands as the authoritative architectural blueprint guiding the upcoming database design ([07-database-design.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/07-database-design.md)).
+Nestora fulfills all functional capabilities and quality benchmarks defined in earlier requirements documents. This specification stands as the authoritative architectural blueprint guiding the database design ([07-database-design.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/07-database-design.md)) and module development plan ([08-module-development-plan.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/08-module-development-plan.md)).

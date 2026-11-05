@@ -75,6 +75,42 @@ The following table summarizes all 19 major functional modules, their core purpo
 | **MOD-18** | **Reports & Administrative Monitoring** | Operational analytics and audit review | 10 administrative report categories, aggregated university metrics, hostel-scoped operational reports | MOD-01 to MOD-17 | Must (Phase 6) |
 | **MOD-19** | **Role-Specific Dashboards** | Role-tailored user interfaces | Six dedicated dashboards (Admin, Warden, Student, Staff, Guard, Accountant) rendering metrics and quick actions | MOD-01 to MOD-18 | Must (Phase 6) |
 
+### 3.1 Functional Requirement (FR) to Development Module (MOD) Cross-Reference Matrix
+
+To ensure seamless traceability between requirements engineering and physical implementation, the following matrix maps all 19 functional requirement modules from [03-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/03-functional-requirements.md) and [05-user-roles-and-permissions.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/05-user-roles-and-permissions.md) (`FR-01` to `FR-19`, comprising all 144 requirements `FR-001` through `FR-144`) to their authoritative development modules (`MOD-01` to `MOD-19`):
+
+| Functional Requirement Module (docs/03 & docs/05) | Requirement ID Range | Functional Title | Development Module ID | Development Module Name | Development Milestone Phase |
+| :--- | :---: | :--- | :---: | :--- | :---: |
+| **Module FR-01** | `FR-001` – `FR-009` | Authentication and Account Management | **MOD-01** | Authentication & Account Management | Phase 1 (MS-1) |
+| **Module FR-02** | `FR-010` – `FR-017` | Student Admission and Registration | **MOD-04** | Student Admission & Registration | Phase 2 (MS-2) |
+| **Module FR-03** | `FR-018` – `FR-023` | Hostel Infrastructure Management | **MOD-02** | Hostel Infrastructure Management | Phase 1 (MS-1) |
+| **Module FR-04** | `FR-024` – `FR-031` | Room and Bed Allocation | **MOD-05** | Room & Bed Allocation | Phase 2 (MS-2) |
+| **Module FR-05** | `FR-032` – `FR-037` | Student Check-in and Check-out | **MOD-06** | Student Check-In & Check-Out | Phase 2 (MS-2) |
+| **Module FR-06** | `FR-038` – `FR-044` | Temporary Leave and Late Return | **MOD-08** | Temporary Leave & Outings | Phase 3 (MS-3) |
+| **Module FR-07** | `FR-045` – `FR-052` | Student Attendance | **MOD-09** | Student Attendance | Phase 3 (MS-3) |
+| **Module FR-08** | `FR-053` – `FR-058` | Student Movement and Outings | **MOD-10** | Student Movement & Gate Security | Phase 3 (MS-3) |
+| **Module FR-09** | `FR-059` – `FR-064` | Visitor Management | **MOD-11** | Visitor Management | Phase 3 (MS-3) |
+| **Module FR-10** | `FR-065` – `FR-073` | Complaints and Maintenance Management | **MOD-12** | Complaints & Maintenance Management | Phase 4 (MS-4) |
+| **Module FR-11** | `FR-074` – `FR-083` | Hostel Fee and Financial Management | **MOD-14** | Hostel Fee & Financial Management | Phase 4 (MS-4) |
+| **Module FR-12** | `FR-084` – `FR-090` | Notices and Announcements | **MOD-17** | Notices & Announcements | Phase 5 (MS-5) |
+| **Module FR-13** | `FR-091` – `FR-098` | Staff Management | **MOD-13** | Staff Management | Phase 4 (MS-4) |
+| **Module FR-14** | `FR-099` – `FR-107` | Hostel Rules and Disciplinary Management | **MOD-15** | Hostel Rules & Disciplinary Management | Phase 5 (MS-5) |
+| **Module FR-15** | `FR-108` – `FR-117` | Emergency and Incident Management | **MOD-16** | Emergency & Incident Management | Phase 5 (MS-5) |
+| **Module FR-16** | `FR-118` – `FR-122` | Notification Management | **MOD-07** | Notification Engine | Phase 2 (MS-2) |
+| **Module FR-17** | `FR-123` – `FR-128` | Role-Specific Dashboards | **MOD-19** | Role-Specific Dashboards | Phase 6 (MS-6) |
+| **Module FR-18** | `FR-129` – `FR-139` | Reports and Administrative Monitoring | **MOD-18** | Reports & Administrative Monitoring | Phase 6 (MS-6) |
+| **Module FR-19** | `FR-140` – `FR-144` | Audit History | **MOD-03** | Audit Logging Service | Phase 1 (MS-1) |
+
+#### Rationale for Differing Sequencing Between Catalogues:
+- **Requirements Catalogue (`FR-01` to `FR-19`)**: Structured domain-first from the perspective of institutional stakeholders and student residential journeys (e.g., student admissions `FR-02` precede physical allocations `FR-04`, while cross-cutting audit oversight `FR-19` sits at the culmination of the requirement inventory).
+- **Development Plan Modules (`MOD-01` to `MOD-19`)**: Sequenced strictly in **technical dependency order**:
+  1. `MOD-02` (Infrastructure) and `MOD-03` (Audit Logging) are elevated into **Milestone 1** alongside `MOD-01` (Authentication) because admissions and allocations cannot execute without pre-existing physical assets (hostels, rooms, beds) and require immutable audit logging from day one.
+  2. `MOD-07` (Notification Engine) is built in **Milestone 2** so that subsequent operational modules (leave approvals, emergency alerts, fee notices) have a functional in-app and email dispatch channel to call.
+  3. `MOD-18` (Reports) and `MOD-19` (Dashboards) are scheduled for **Milestone 6** because analytical aggregation and dashboard KPIs consume data produced across all preceding operational modules.
+
+> [!NOTE]
+> All original requirement IDs (`FR-001` through `FR-144`) and development module IDs (`MOD-01` through `MOD-19`) remain canonical and unchanged. When implementing any development module, engineers should reference both the module specifications in this document and the exact functional acceptance criteria in [03-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/03-functional-requirements.md).
+
 ---
 
 ## 4. Module Development Breakdown
@@ -668,7 +704,7 @@ Before any module is marked as **Complete**, it must satisfy the following verif
 5. **Audit Trail Compliance**: Sensitive mutations synchronously emit audit log records to the append-only `AuditLog` table.
 6. **UI State & Accessibility**: Frontend components provide loading, empty, success, and error states; responsive layouts adapt across Desktop, Tablet, and Mobile viewports.
 7. **Automated Test Coverage**: Unit and integration tests pass with zero errors in CI/CD pipelines.
-8. **Documentation Alignment**: API endpoints and component behaviors match the specifications in documents 01 through 06.
+8. **Documentation Alignment**: API endpoints and component behaviors match the specifications in documents 01 through 07.
 
 ---
 
@@ -679,7 +715,7 @@ Before any module is marked as **Complete**, it must satisfy the following verif
 | **Cross-Tenant Data Leakage** | Critical | Low | Enforce `hostel_id` filtering programmatically in backend middleware and service query builders; write automated tests specifically attempting cross-hostel access. |
 | **Bed Allocation Race Conditions** | High | Medium | Execute bed vacancy checks and status updates within atomic database transactions (`prisma.$transaction`) with database-level unique constraints. |
 | **Sequential Admission Bottlenecks** | Medium | Medium | Implement clear visual indicators for pending verification queues; allow rejected registrations to be corrected and resubmitted without restarting from scratch. |
-| **Pending Database Design (Doc 07)** | Medium | Low | Structure module interfaces around domain entities established in `06-system-architecture.md`; complete `07-database-design.md` prior to executing database migrations. |
+| **Database Schema Alignment** | Medium | Low | Align Prisma schema models strictly with the 56 relational entities codified in [07-database-design.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/07-database-design.md) prior to executing database migrations. |
 | **Email Worker Service Downtime** | Medium | Low | Implement graceful degradation: if SMTP fails, log the failure and allow core in-app operations to proceed; queue failed messages for retry. |
 | **Complex Disciplinary / Appeal Logic** | Low | Low | Enforce strict state machines for disciplinary actions, ensuring progressive sanctions and formal escalation paths are auditable. |
 

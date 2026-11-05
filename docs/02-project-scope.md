@@ -99,6 +99,13 @@ The proposed system capabilities for Nestora are organized into 18 functional ar
 - Compilation of administrative reports covering occupancy statistics, fee collection status, attendance records, gate logs, and maintenance ticket turnaround.
 - Aggregated university-level analytical views for central administration alongside operational reports for individual hostels.
 
+### 19. Relationship Between Functional Capability Areas and Implementation Modules
+To maintain clarity between high-level project scoping and technical system development:
+- **18 Functional Areas in Project Scope**: Section 2 defines the project's scope across 18 user-facing functional capability areas reflecting the operational lifecycle of university hostel administration from an institutional perspective (where User Management and Authentication are scoped collaboratively, and Attendance and Movement are framed together).
+- **19 Requirement Catalogues (`FR-01` to `FR-19`)**: In [03-functional-requirements.md](docs/03-functional-requirements.md) and [05-user-roles-and-permissions.md](docs/05-user-roles-and-permissions.md), these capability areas are formally structured into 19 discrete requirement catalogues by isolating **Audit History** as an independent institutional compliance catalogue (`FR-19`) and separating Student Attendance (`FR-07`) from Gate Movement (`FR-08`).
+- **19 Implementation Modules (`MOD-01` to `MOD-19`)**: In [06-system-architecture.md](docs/06-system-architecture.md), [07-database-design.md](docs/07-database-design.md), and [08-module-development-plan.md](docs/08-module-development-plan.md), the application is engineered into 19 modular packages. The technical development sequence prioritizes foundational infrastructure (`MOD-02`), audit logging (`MOD-03`), and notification dispatching (`MOD-07`) in early milestones to satisfy architectural dependencies of downstream operational modules.
+- **Traceability Guarantee**: A comprehensive cross-reference mapping between the 19 functional requirement groups (`FR-01` to `FR-19`, covering all 144 requirements `FR-001` through `FR-144`) and the 19 implementation modules (`MOD-01` to `MOD-19`) is codified in Section 3.1 of [08-module-development-plan.md](docs/08-module-development-plan.md).
+
 ---
 
 ## 3. User Scope
@@ -208,7 +215,7 @@ The following decisions remain unresolved and are subject to clarification durin
 
 Nestora is scoped as an integrated, multi-tier web application designed to digitize and unify university hostel operations. Its scope encompasses:
 
-- **18 Planned Functional Areas** covering the complete resident lifecycle—from student registration, bed allocation, and daily movement tracking to fee recording, maintenance resolution, and incident reporting.
+- **18 Planned Functional Capability Areas (Mapped to 19 Implementation Modules)** covering the complete resident lifecycle—from student registration, bed allocation, and daily movement tracking to fee recording, maintenance resolution, incident reporting, and autonomous audit logging.
 - **6 Distinct User Roles** operating within clearly defined privilege boundaries that enforce least-privilege data access and maintain student privacy.
 - **A 7-Tier Structural Hierarchy** supporting multiple Boys' and Girls' hostels under one university, with guaranteed hostel-level data isolation for administrative and operational staff.
 - **4 Explicit Exclusions** (SMS gateways, dashboard customization, dashboard date-range filters, and online payment gateways) that safeguard academic feasibility while delivering comprehensive core management capabilities.
