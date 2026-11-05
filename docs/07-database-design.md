@@ -32,6 +32,7 @@ This specification is directly grounded in the authoritative requirements baseli
 - [05-user-roles-and-permissions.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/05-user-roles-and-permissions.md): Six user roles, 19-module RBAC matrix, and hostel scoping rules.
 - [06-system-architecture.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/06-system-architecture.md): 3-tier architecture, PostgreSQL engine, and modular monolith design.
 - [08-module-development-plan.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/08-module-development-plan.md): 19 functional modules and 6-phase development roadmap.
+- [09-monorepo-architecture.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/09-monorepo-architecture.md): Monorepo workspace architecture, Fastify REST API, and Prisma package organization.
 
 ---
 
@@ -72,7 +73,7 @@ The backend interacts with PostgreSQL via **Prisma ORM**, providing:
 
 ## 4. Entity Identification
 
-The functional requirements across all 19 system modules translate into **55 core relational entities**, organized into nine cohesive logical domains:
+The functional requirements across all 19 system modules translate into **56 core relational entities**, organized into nine cohesive logical domains:
 
 ### Domain 1: User & Access Control Entities
 - `User`: Base authentication and identity record for all system actors.
@@ -171,6 +172,7 @@ Represents all authenticated human actors across the six confirmed roles.
 | `status` | `VARCHAR(20)` | - | No | Account status: `ACTIVE`, `INACTIVE`, `SUSPENDED` (default: `ACTIVE`). |
 | `is_verified` | `BOOLEAN` | - | No | Email verification flag (default: `false`). |
 | `failed_login_attempts` | `INTEGER` | - | No | Consecutive failed authentication attempts counter (default: `0`). Incremented on failed auth; resets to 0 on success. Account locks when reaching 5 within a 15-minute window (`FR-007`, `NFR-SEC-004`). |
+| `failed_attempts_window_started_at` | `TIMESTAMPTZ` | - | Yes | Timestamp when the current 15-minute sliding window of failed authentication attempts began (NULL if no active failed attempts). |
 | `locked_until` | `TIMESTAMPTZ` | - | Yes | Timestamp until which the account is temporarily locked (NULL if active). Automatically expires after 30 minutes or via administrative unlock (`NFR-SEC-004`). |
 | `created_at` | `TIMESTAMPTZ` | - | No | Timestamp of account provisioning (default: `NOW()`). |
 | `updated_at` | `TIMESTAMPTZ` | - | No | Timestamp of last profile update. |
@@ -195,7 +197,7 @@ Tracks active authenticated user sessions.
 | :--- | :--- | :--- | :--- | :--- |
 | `id` | `UUID` | PK | No | Unique session identifier. |
 | `user_id` | `UUID` | FK | No | References `users.id` (`ON DELETE CASCADE`). |
-| `session_token` | `VARCHAR(255)` | UK | No | Cryptographic session token stored in HTTP cookie. |
+| `session_token_hash` | `VARCHAR(64)` | UK | No | SHA-256 hash of the 256-bit cryptographic session token sent via HTTP-only cookie. Raw token is never stored in plaintext. |
 | `ip_address` | `VARCHAR(45)` | - | Yes | Client IP address at session creation. |
 | `user_agent` | `TEXT` | - | Yes | Browser / client user-agent string. |
 | `expires_at` | `TIMESTAMPTZ` | - | No | Expiration timestamp of the session. |
@@ -1090,12 +1092,19 @@ erDiagram
     string role
     string status
     int failed_login_attempts
+    timestamptz failed_attempts_window_started_at
     timestamptz locked_until
   }
   HOSTEL_ASSIGNMENT {
     uuid id PK
     uuid user_id FK
     uuid hostel_id FK
+  }
+  SESSION {
+    uuid id PK
+    uuid user_id FK
+    string session_token_hash UK
+    timestamptz expires_at
   }
 ```
 

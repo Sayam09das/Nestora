@@ -18,9 +18,11 @@ This plan is directly grounded in the project documentation created to date:
 - [04-non-functional-requirements.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/04-non-functional-requirements.md): 61 quality benchmarks covering security, performance, and data integrity.
 - [05-user-roles-and-permissions.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/05-user-roles-and-permissions.md): Six user roles, 19-module permission matrix, and hostel scoping rules.
 - [06-system-architecture.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/06-system-architecture.md): Decoupled modular monolith, 3-tier architecture, and deployment model.
+- [07-database-design.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/07-database-design.md): 56 relational entities, DDL schemas, indexes, and ERDs.
+- [09-monorepo-architecture.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/09-monorepo-architecture.md): pnpm + Turborepo workspace topology, package boundaries, and runtime configurations.
 
 > [!NOTE]
-> **Pending Documentation Dependency**: Detailed physical database schemas and entity-relationship models belong to `docs/07-database-design.md`, which is scheduled in the sequential documentation pipeline prior to physical coding. In accordance with project instructions, database entities referenced in this plan correspond to the domain entity models established in [06-system-architecture.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/06-system-architecture.md) and will be formally bound upon completion of Document 07.
+> **Database Schema & Monorepo Foundation**: Detailed physical database schemas and entity-relationship models across all 56 relational tables are formally codified in [07-database-design.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/07-database-design.md), and workspace package topology is defined in [09-monorepo-architecture.md](file:///Users/sayamdas/Documents/Programming/Mern%20Stack/My%20Website/Nestora/docs/09-monorepo-architecture.md). In accordance with project instructions, database entities and workspace boundaries referenced in this plan correspond to these authoritative baselines.
 
 ---
 

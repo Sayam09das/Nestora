@@ -130,11 +130,12 @@ The planned technology stack comprises modern, type-safe, and production-tested 
 | **UI Library** | **React 18+** | Declarative, component-driven user interface construction |
 | **Language** | **TypeScript** | End-to-end static typing across frontend, backend, and data models |
 | **Styling & Components** | **Tailwind CSS + shadcn/ui** | Responsive utility styling, accessible WCAG-compliant UI primitives |
-| **Backend Runtime** | **Node.js (LTS)** | Asynchronous, event-driven server runtime |
+| **Backend Runtime** | **Node.js 24 LTS** | Asynchronous, event-driven server runtime |
 | **Backend Framework** | **Fastify** | High-throughput REST API gateway, native JSON schema validation |
 | **Database Engine** | **PostgreSQL** | Relational data persistence, referential constraints, ACID transactions |
 | **ORM / Query Builder** | **Prisma ORM** | Type-safe database queries, declarative migrations, connection pooling |
-| **Authentication & Security** | **Argon2 / bcrypt + HTTP-Only Cookies** | Salted adaptive password hashing, secure session management, RBAC |
+| **Authentication & Security** | **Argon2id + HTTP-Only Cookies** | Salted adaptive password hashing, opaque SHA-256 session token hashes, RBAC |
+| **Monorepo & Task Pipeline** | **pnpm Workspaces + Turborepo** | Strict workspace dependency isolation, topological execution graph, task caching |
 | **Asynchronous Workers** | **Node.js Task Worker** | Non-blocking background email dispatch and heavy report compilation |
 | **Caching & Queue (Optional)** | **Redis** | In-memory caching, rate-limiting counters, and job queues *(Proposed)* |
 | **Containerization** | **Docker & Docker Compose** | Reproducible multi-container development and deployment environments |
@@ -203,7 +204,7 @@ The persistence architecture utilizes **PostgreSQL** configured with relational 
 - **Indexing Strategy**: B-Tree composite indexing on `hostel_id`, foreign keys, and timestamps ensures fast querying as attendance and gate logs grow.
 
 > [!NOTE]
-> Detailed physical DDL schemas, table structures, and Prisma schema definitions will be formally codified in `docs/07-database-design.md` prior to physical database migration.
+> Detailed physical DDL schemas, table structures, and Prisma schema definitions are formally codified in `docs/07-database-design.md`.
 
 ---
 
@@ -222,28 +223,35 @@ Nestora/
 │   ├── 05-user-roles-and-permissions.md   # 6 user roles and 19-module RBAC matrix
 │   ├── 06-system-architecture.md          # 3-tier modular monolith architecture & diagrams
 │   ├── 07-database-design.md              # 56 relational entities, DDL schemas, indexes & ERDs
-│   └── 08-module-development-plan.md      # 6-phase development roadmap and milestones
+│   ├── 08-module-development-plan.md      # 6-phase development roadmap and milestones
+│   └── 09-monorepo-architecture.md        # pnpm + Turborepo monorepo specification & runtime configs
+├── .gitignore                             # Monorepo git ignore rules
 └── README.md                              # Project overview and architectural index
 ```
 
 ### Planned Implementation Structure
-When application implementation commences, the repository will be structured as follows:
+When application implementation commences, the repository will be structured as an enterprise pnpm + Turborepo monorepo defined in [09-monorepo-architecture.md](docs/09-monorepo-architecture.md):
 
 ```
 Nestora/
-├── frontend/                              # Next.js App Router application
-│   ├── src/app/                           # Role-based dashboard routes
-│   ├── src/components/                    # Reusable shadcn/ui and domain components
-│   └── src/lib/                           # API client and client validators
-├── backend/                               # Fastify modular monolith API
-│   ├── src/modules/                       # 19 domain business modules
-│   ├── src/plugins/                       # Fastify security and database plugins
-│   ├── src/middleware/                    # Auth, RBAC, and tenant scoping hooks
-│   └── src/workers/                       # Background task worker
-├── prisma/                                # Database schema, migrations, seed fixtures
-├── docker/                                # Docker Compose and container definitions
-├── docs/                                  # Complete project documentation suite
-└── README.md
+├── apps/
+│   ├── web/                               # Presentation Tier: Next.js 14+ App Router, Tailwind CSS, shadcn/ui
+│   └── api/                               # Application Tier: Fastify Modular Monolith REST API (19 modules)
+├── packages/
+│   ├── database/                          # Prisma ORM, PostgreSQL schema (56 entities), migrations, seeders
+│   ├── types/                             # Canonical TypeScript domain types, DTOs, and role enums
+│   ├── validators/                        # Shared Zod validation schemas (consumed by web & compiled for api)
+│   ├── utils/                             # Deterministic shared utilities, formatters, and helpers
+│   └── config/                            # Shared ESLint, Prettier, TypeScript, and Tailwind configurations
+├── docker/                                # Docker Compose and multi-stage container definitions (Node 24)
+├── docs/                                  # Complete project documentation suite (Documents 01 through 09)
+├── .editorconfig
+├── .gitignore
+├── .prettierrc
+├── package.json                           # Root pnpm workspaces manifest
+├── pnpm-workspace.yaml                    # Workspace packages declaration
+├── turbo.json                             # Turborepo task pipeline execution graph
+└── README.md                              # Project overview and architectural index
 ```
 
 ---
@@ -262,13 +270,14 @@ The project maintains a sequential documentation suite serving as the primary so
 | **System Architecture** | [06-system-architecture.md](docs/06-system-architecture.md) | Details the decoupled modular monolith, 3-tier architecture, technology stack, security design, and 5 Mermaid architecture diagrams. |
 | **Database Design** | [07-database-design.md](docs/07-database-design.md) | Formal entity-relationship models across 56 tables, 6 Mermaid ER diagrams, physical DDL schemas, indexing strategies, and tenant data isolation rules. |
 | **Module Development Plan** | [08-module-development-plan.md](docs/08-module-development-plan.md) | Outlines the 6 sequential development phases (`MS-1` to `MS-6`), module dependencies, frontend/backend plans, testing pyramid, and quality criteria. |
+| **Monorepo Architecture** | [09-monorepo-architecture.md](docs/09-monorepo-architecture.md) | Defines the pnpm + Turborepo workspace topology, Fastify request lifecycle, direct client-API communication, SHA-256 session security, multi-hostel tenant isolation, and Node.js 24 LTS runtime baseline. |
 
 ---
 
 ## Installation and Setup
 
 > [!NOTE]
-> **Implementation Status**: Application implementation has not yet started. Nestora is completing its formal documentation and architectural specifications sequentially. Complete setup, environment configuration, database migration, and local execution instructions will be added during the implementation phase.
+> **Implementation Status**: Application implementation has not yet started. Nestora has completed its formal documentation and architectural specifications suite (`docs/01` through `docs/09`). Complete setup, environment configuration, database migration, and local execution instructions will be added during the implementation phase.
 
 ---
 
@@ -276,8 +285,9 @@ The project maintains a sequential documentation suite serving as the primary so
 
 Nestora is progressing through a disciplined software engineering lifecycle:
 
-- **System Documentation & Architecture Specifications**: Complete (All 8 primary design documents: `01` through `08`).
+- **System Documentation & Architecture Specifications**: Complete (All 9 primary design documents: `01` through `09`).
 - **Database Schema Modeling (`07-database-design.md`)**: Complete (56 relational entities, PostgreSQL constraints, and 6 ERDs).
+- **Workspace Topology & Architecture (`09-monorepo-architecture.md`)**: Complete (pnpm + Turborepo decoupled modular monolith specification).
 - **Application Code Implementation**: Not Yet Started (Planned following implementation planning).
 - **Testing & System Hardening**: Not Yet Started.
 
@@ -298,7 +308,7 @@ The following capabilities represent valuable future enhancements identified in 
 
 Nestora is developed as an academic software engineering project for a Bachelor of Computer Applications (BCA) curriculum. Academic collaborators and contributors are invited to propose enhancements, report issues, and participate in development:
 
-1. **Review Requirements**: Ensure all proposals align with the documented requirements in `docs/01` through `docs/08`.
+1. **Review Requirements**: Ensure all proposals align with the documented requirements in `docs/01` through `docs/09`.
 2. **Open an Issue**: Describe the bug, clarification, or architectural improvement with reference to specific functional IDs (`FR-xxx`) or architectural rules (`AUTH-xxx`).
 3. **Submit a Pull Request**: Follow the modular package conventions and testing standards outlined in [08-module-development-plan.md](docs/08-module-development-plan.md).
 

@@ -3,33 +3,34 @@
 ## 1. Document Purpose and Architecture Overview
 
 ### 1.1 Document Purpose
-This specification establishes the official monorepo architecture and workspace topology for **Nestora — University Hostel Management System**. It translates the system architecture ([06-system-architecture.md](docs/06-system-architecture.md)), database design ([07-database-design.md](docs/07-database-design.md)), and phased development roadmap ([08-module-development-plan.md](docs/08-module-development-plan.md)) into a unified, physical workspace structure.
+This specification establishes the authoritative monorepo architecture and workspace topology for **Nestora — University Hostel Management System**. It translates the system architecture ([06-system-architecture.md](./06-system-architecture.md)), database design ([07-database-design.md](./07-database-design.md)), and phased module development plan ([08-module-development-plan.md](./08-module-development-plan.md)) into an actionable physical workspace organization.
 
-This document serves as the technical blueprint for repository organization, package boundaries, code-sharing mechanisms, build pipelines, and development workflows. It is designed to guide developers during initial project scaffolding and throughout the six planned implementation milestones (`MS-1` through `MS-6`).
+This document serves as the technical blueprint for repository structure, package boundaries, code-sharing protocols, build pipelines, and development workflows. It governs the transition from architectural specifications into code across all six planned development milestones (`MS-1` through `MS-6`).
 
 ### 1.2 Core Architectural Philosophy
-Nestora is architected as a **Decoupled Client-Server Modular Monolith** housed within a single version-controlled repository. This architectural approach is governed by four core principles:
+Nestora is engineered as a **Decoupled Client-Server Modular Monolith** contained within a single version-controlled repository using **pnpm workspaces** and coordinated by **Turborepo**. The architecture adheres to five core principles:
 
-1. **Strict Separation of Concerns**: The Next.js presentation layer (`apps/web`) and the Fastify API application layer (`apps/api`) maintain distinct runtime boundaries. The frontend never accesses the database directly, and the backend never renders presentation HTML. Communication occurs strictly over HTTP/REST using typed JSON envelopes.
-2. **Single Source of Truth for Types and Validation**: Domain entities, role enums, API request/response contracts, and validation schemas are maintained in centralized internal workspace packages (`packages/types`, `packages/validators`, `packages/database`). Both frontend forms and backend controllers import identical validation rules, guaranteeing 100% contract parity.
-3. **High-Cohesion, Low-Coupling Domain Modularity**: The backend API organizes business logic into 19 self-contained domain modules (`MOD-01` through `MOD-19`), following the canonical module development plan. Cross-module communication occurs via in-process service interfaces, avoiding distributed network overhead.
-4. **Pragmatic Workspace Simplicity**: Engineered for an academic software engineering team, the monorepo leverages lightweight package workspaces (`pnpm` or `npm`) coordinated by Turborepo. It eliminates microservice operational complexity, multi-repository version desynchronization, and heavy orchestration tooling.
+1. **Strict Separation of Concerns**: The Next.js presentation layer (`apps/web`) and Fastify application layer (`apps/api`) maintain independent runtime boundaries. The frontend never communicates directly with the database, and the backend never renders presentation HTML. Communication occurs exclusively over HTTP/REST using typed JSON envelopes.
+2. **Direct Client-to-API Communication**: Browser clients communicate directly with the Fastify REST API (`/api/v1/*`). Next.js operates as an application server for rendering views and layouts, not as an intermediate duplicate Backend-for-Frontend (BFF) proxy layer.
+3. **Single Source of Truth for Types and Validation**: Domain entities, role enums, API request/response contracts, and validation rules are centralized in dedicated shared workspace packages (`packages/types`, `packages/validators`, `packages/database`). Both frontend forms and backend controllers consume identical validation rules, verified by automated contract tests.
+4. **Defense-in-Depth Authorization and Tenant Isolation**: Enforces a strict default-deny policy at the API gateway, verified through Fastify lifecycle hooks (`onRequest` authentication, `preValidation` CSRF protection, `preHandler` role and tenant scoping) and enforced at both the service and repository data-access layers.
+5. **Runtime Engine Baseline**: Standardized on **Node.js 24 LTS** across all applications, packages, Docker containers, and CI workflows.
 
 ---
 
 ## 2. Proposed Monorepo Directory Structure
 
-The repository is structured into two primary directories: `apps/` (deployable applications) and `packages/` (shared libraries, schemas, and configurations).
+The repository organizes source code into two primary directories: `apps/` (deployable services) and `packages/` (shared libraries, schemas, and configurations).
 
 ```
 Nestora/
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml                           # Automated lint, type-check, and unit test workflow
+│       ├── ci.yml                           # Automated lint, type-check, contract test & migration diff
 │       └── release.yml                      # Production container build & verification workflow
 │
 ├── apps/
-│   ├── web/                                 # Presentation Tier: Next.js App Router Application
+│   ├── web/                                 # Presentation Tier: Next.js 14+ App Router
 │   │   ├── public/                          # Static web assets (logos, favicons, campus maps)
 │   │   ├── src/
 │   │   │   ├── app/                         # Next.js App Router file-system routes
@@ -44,8 +45,8 @@ Nestora/
 │   │   │   │   │   ├── staff/               # Hostel Maintenance Staff portal
 │   │   │   │   │   ├── guard/               # Security Guard gate checkpoint portal
 │   │   │   │   │   └── accountant/          # Accountant financial portal
-│   │   │   │   ├── api/                     # Local Next.js route handlers (reverse proxy/BFF if needed)
-│   │   │   │   ├── layout.tsx               # Root application layout (fonts, providers)
+│   │   │   │   ├── api/                     # Local Next.js route handlers (local health checks only)
+│   │   │   │   ├── layout.tsx               # Root application layout (fonts, theme, providers)
 │   │   │   │   └── page.tsx                 # Root landing page / smart role redirector
 │   │   │   ├── components/                  # Reusable UI component hierarchy
 │   │   │   │   ├── ui/                      # Primitive accessible controls (shadcn/ui based)
@@ -59,7 +60,7 @@ Nestora/
 │   │   │   │       ├── complaints/          # Maintenance ticketing board, image preview
 │   │   │   │       └── finance/             # Fee collection ledger, challan receipt printer
 │   │   │   ├── hooks/                       # Custom React hooks (useAuth, useHostelFilter, useToast)
-│   │   │   ├── lib/                         # Browser API client, formatting utilities, session helpers
+│   │   │   ├── lib/                         # Browser API client (apiClient), formatters, session state
 │   │   │   └── providers/                   # Context providers (AuthContext, QueryClientProvider)
 │   │   ├── .env.example                     # Frontend environment variables template
 │   │   ├── next.config.mjs                  # Next.js build and routing configuration
@@ -70,15 +71,16 @@ Nestora/
 │   │
 │   └── api/                                 # Application Tier: Fastify Modular Monolith REST API
 │       ├── src/
-│       │   ├── config/                      # Server configuration, typed environment variables
+│       │   ├── config/                      # Server configuration, typed environment schemas
 │       │   ├── plugins/                     # Fastify infrastructure plugins
 │       │   │   ├── cors.ts                  # Cross-Origin Resource Sharing configuration
+│       │   │   ├── csrf.ts                  # Custom header & Origin validation plugin
 │       │   │   ├── helmet.ts                # HTTP security headers
-│       │   │   ├── rate-limit.ts            # Brute-force protection & endpoint rate limits
+│       │   │   ├── rate-limit.ts            # Network IP & credential rate limiting
 │       │   │   ├── prisma.ts                # Database client plugin and lifecycle hook
-│       │   │   └── auth.ts                  # Session cookie parser and JWT verification
+│       │   │   └── session.ts               # Database session lookup & verification plugin
 │       │   ├── middleware/                  # Request lifecycle interceptors
-│       │   │   ├── authenticate.ts          # Session validation hook (onRequest)
+│       │   │   ├── authenticate.ts          # Session lookup hook (onRequest)
 │       │   │   ├── authorize.ts             # RBAC role capability guard (preHandler)
 │       │   │   └── tenant-scope.ts          # Multi-hostel isolation guard (preHandler)
 │       │   ├── common/                      # Shared backend infrastructure
@@ -88,7 +90,7 @@ Nestora/
 │       │   ├── modules/                     # 19 In-Process Domain Business Modules
 │       │   │   ├── mod01-auth/              # MOD-01: Authentication & Account Management
 │       │   │   ├── mod02-infrastructure/    # MOD-02: Hostel Infrastructure Management
-│       │   │   ├── mod03-audit/             # MOD-03: Audit Logging Service
+│       │   │   ├── mod03-audit/             # MOD-03: Audit Logging Service (Transactional)
 │       │   │   ├── mod04-admissions/        # MOD-04: Student Admission & Registration
 │       │   │   ├── mod05-allocation/        # MOD-05: Room & Bed Allocation
 │       │   │   ├── mod06-checkin-checkout/  # MOD-06: Student Check-In & Check-Out
@@ -105,7 +107,7 @@ Nestora/
 │       │   │   ├── mod17-notices/           # MOD-17: Notices & Announcements
 │       │   │   ├── mod18-reports/           # MOD-18: Reports & Administrative Monitoring
 │       │   │   └── mod19-dashboards/        # MOD-19: Role-Specific Dashboards Data Service
-│       │   ├── workers/                     # Background Task Workers
+│       │   ├── workers/                     # Background Task Workers (Durable Queue)
 │       │   │   ├── email-worker.ts          # Asynchronous transactional email dispatcher
 │       │   │   └── report-worker.ts         # Asynchronous heavy report generator
 │       │   ├── app.ts                       # Fastify application assembly & route registration
@@ -118,25 +120,26 @@ Nestora/
 │   ├── database/                            # Centralized Data Layer: Prisma ORM & PostgreSQL
 │   │   ├── prisma/
 │   │   │   ├── migrations/                  # Version-controlled SQL migration history
-│   │   │   ├── seed/                        # Institutional seed fixtures (Admin, Hostels, Rooms)
-│   │   │   │   ├── seed.ts                  # Main seed execution entry point
+│   │   │   ├── seed/                        # Institutional seed fixtures & admin CLI
+│   │   │   │   ├── seed.ts                  # Development demo seed entry point
+│   │   │   │   ├── init-admin.ts            # Production initial administrator CLI provisioning
 │   │   │   │   ├── infrastructure-seed.ts   # 7-tier hierarchy demo fixtures
-│   │   │   │   └── users-seed.ts            # Default role accounts
+│   │   │   │   └── users-seed.ts            # Default development role accounts
 │   │   │   └── schema.prisma                # Definitive Prisma Schema (56 relational entities)
 │   │   ├── src/
 │   │   │   ├── client.ts                    # Singleton PrismaClient factory with logging
-│   │   │   └── index.ts                     # Re-exported PrismaClient, generated types, constants
+│   │   │   └── index.ts                     # Re-exported PrismaClient, generated types, enums
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
 │   ├── types/                               # Shared TypeScript Type Definitions & Enums
 │   │   ├── src/
-│   │   │   ├── roles.ts                     # Six user roles enum & privilege definition
-│   │   │   ├── infrastructure.ts            # 7-tier hierarchy interfaces & 6 room config types
-│   │   │   ├── auth.ts                      # JWT payload, session user claims, login responses
+│   │   │   ├── roles.ts                     # Re-exported canonical role enum & capability flags
+│   │   │   ├── infrastructure.ts            # 7-tier hierarchy interfaces & room config types
+│   │   │   ├── auth.ts                      # Session claims, login responses, session token types
 │   │   │   ├── api.ts                       # Standard JSON response envelope, error codes
-│   │   │   ├── modules/                     # DTO interfaces per module (MOD-01 to MOD-19)
-│   │   │   └── index.ts                     # Barrel export for all domain types
+│   │   │   ├── modules/                     # Composite DTO interfaces per module (MOD-01..19)
+│   │   │   └── index.ts                     # Barrel export for domain types
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
@@ -154,7 +157,7 @@ Nestora/
 │   │
 │   ├── utils/                               # Shared Deterministic Utility Functions
 │   │   ├── src/
-│   │   │   ├── date.ts                      # Date formatting, semester calculation, curfew checks
+│   │   │   ├── date.ts                      # Date formatting, academic calendar calculations
 │   │   │   ├── formatters.ts                # Currency formatting (paise/rupees), registration IDs
 │   │   │   ├── string.ts                    # Slug generators, safe string sanitizers
 │   │   │   └── index.ts
@@ -169,24 +172,25 @@ Nestora/
 ├── docker/                                  # Containerization Definitions
 │   ├── docker-compose.yml                   # Local development services (PostgreSQL, MailHog)
 │   ├── docker-compose.prod.yml              # Production container orchestration
-│   ├── Dockerfile.api                       # Multi-stage production container for Fastify API
-│   └── Dockerfile.web                       # Multi-stage production container for Next.js App
+│   ├── Dockerfile.api                       # Multi-stage production container for Fastify API (Node 24)
+│   └── Dockerfile.web                       # Multi-stage production container for Next.js App (Node 24)
 │
 ├── docs/                                    # Project Documentation Suite (Documents 01 to 09)
 ├── .editorconfig
 ├── .gitignore
 ├── .prettierrc
-├── package.json                             # Monorepo root package manifest
+├── package.json                             # Monorepo root package manifest (pnpm workspaces)
+├── pnpm-lock.yaml                           # Pinned workspace lockfile
 ├── pnpm-workspace.yaml                      # Workspace package inclusion definitions
 ├── README.md                                # Project root README and architectural index
-└── turbo.json                               # Turborepo task pipeline execution graph
+└── turbo.json                               # Turborepo task pipeline execution graph (tasks schema)
 ```
 
 ---
 
 ## 3. Frontend Application Responsibilities (`apps/web`)
 
-The Next.js web application serves as the system's presentation layer, providing responsive, accessible web interfaces tailored to each of the six confirmed user roles.
+The Next.js web application operates strictly as the system's presentation tier, providing responsive, role-tailored user interfaces for each of the six confirmed user roles.
 
 ### 3.1 Role-Based Route Organization
 The frontend employs Next.js App Router route groups to isolate authenticated experiences while enforcing role boundaries at the UI layout level:
@@ -202,12 +206,12 @@ flowchart TD
   end
 
   subgraph ProtectedRoutes["Authenticated Route Group: (dashboard)"]
-    Admin["/admin/* (University Administrator Dashboard & Central Controls)"]
-    Warden["/warden/* (Hostel Warden Dashboard & Scoped Operations)"]
-    Student["/student/* (Student Resident Portal & Self-Service)"]
-    Staff["/staff/* (Hostel Staff Task Queue & Duty View)"]
-    Guard["/guard/* (Security Guard Gate Checkpoint Console)"]
-    Accountant["/accountant/* (Accountant Financial Management Portal)"]
+    Admin["/admin/* (University Administrator Portal)"]
+    Warden["/warden/* (Hostel Warden Portal)"]
+    Student["/student/* (Student Resident Portal)"]
+    Staff["/staff/* (Hostel Maintenance Staff Portal)"]
+    Guard["/guard/* (Security Guard Gate Checkpoint Portal)"]
+    Accountant["/accountant/* (Accountant Financial Portal)"]
   end
 
   Root --> PublicRoutes
@@ -215,31 +219,41 @@ flowchart TD
 ```
 
 ### 3.2 Key Frontend Technical Responsibilities
-1. **User Authentication & Session State Management**:
-   - Maintains an `AuthContext` provider storing the authenticated user profile, active role, and assigned hostel scope.
-   - Leverages HTTP-only session cookies managed automatically by browser requests; client code never parses or stores raw session tokens in `localStorage`.
-2. **Form Handling & Client Validation**:
-   - Implements React Hook Form paired with `@hookform/resolvers/zod` utilizing identical schemas imported directly from `@nestora/validators`.
-   - Form inputs validate synchronously on the client, providing immediate inline feedback while guaranteeing conformity with backend API expectations.
-3. **Data Fetching, Caching, and Server State**:
-   - Uses TanStack Query (`@tanstack/react-query`) to coordinate all client-side data fetching.
-   - Enforces automated query key scoping by hostel (e.g., `['hostels', hostelId, 'rooms']`) to guarantee cache invalidation when switching views.
-   - Provides optimistic updates for high-frequency actions (e.g., toggling attendance marks, acknowledging notices).
-4. **Accessible Design System**:
-   - Constructed with `shadcn/ui` accessible headless primitives (Radix UI) styled using utility classes from `Tailwind CSS`.
-   - Adheres to WCAG 2.1 Level AA accessibility standards, including keyboard navigation, ARIA attributes, and accessible color contrast.
-5. **Centralized API Client**:
-   - Exposes a typed `apiClient` wrapper built on browser `fetch()`:
-     - Automatically prepends base API routes (`/api/v1`).
-     - Includes credentials (`credentials: 'include'`) for cross-origin cookie transmission.
-     - Intercepts HTTP 401 Unauthorized errors to trigger automated redirection to `/login`.
-     - Intercepts HTTP 403 Forbidden errors to display a standardized permission denial banner.
+1. **Direct Browser Communication with Fastify REST API**:
+   - The browser client executes all interactive data-fetching and mutation queries directly against Fastify at `http://localhost:4000/api/v1` (or relative path `/api/v1` behind an Nginx reverse proxy in production).
+   - Next.js is not used as an intermediate BFF proxy; `apps/web/src/app/api/` contains only frontend-local utility routes (e.g. local health checks).
+2. **Authenticated Server-Side Rendering (RSC) Data Fetching**:
+   - When Next.js React Server Components (RSC) render an initial server layout:
+     - The Server Component reads incoming session cookies using the Next.js `cookies()` header utility (`cookies().get('nestora_session')?.value`).
+     - It executes a direct server-to-server HTTP request to Fastify (`http://localhost:4000/api/v1/...`) forwarding the raw session cookie in the `Cookie: nestora_session=${cookie}` header.
+     - Fastify hashes the token, validates the session against PostgreSQL, and returns the standard JSON envelope.
+     - This preserves the direct client-server architecture without maintaining a separate session store or stateful BFF on Next.js.
+3. **User Authentication & Session State Management**:
+   - Maintains an `AuthContext` provider storing the authenticated user profile, active role, and authorized hostel IDs.
+   - Session state is sustained via browser cookies (`nestora_session`) transmitted automatically via `credentials: 'include'`; client-side JavaScript never parses, stores, or manipulates raw session tokens in `localStorage`.
+4. **Form Handling & Client Validation**:
+   - Utilizes React Hook Form paired with `@hookform/resolvers/zod` consuming schemas directly from `@nestora/validators`.
+   - Forms validate synchronously in the browser, providing instant visual feedback while guaranteeing schema parity with the Fastify backend.
+5. **Data Fetching, Caching, and Server State**:
+   - Coordinates asynchronous state using TanStack Query (`@tanstack/react-query`).
+   - Query keys are strictly scoped by hostel context (e.g., `['hostels', hostelId, 'rooms']`), preventing stale cache leakage when switching views.
+   - Provides optimistic UI updates for frequent operational tasks (e.g., toggling roll-call marks, acknowledging circulars).
+6. **Accessible Design System**:
+   - Built on `shadcn/ui` accessible headless primitives (Radix UI) styled using `Tailwind CSS`.
+   - Enforces WCAG 2.1 Level AA accessibility standards, including keyboard navigation, focus management, and accessible color contrast.
+7. **Centralized API Client (`apiClient`)**:
+   - Exposes a typed wrapper around `window.fetch`:
+     - Prepends the configured API base URL (`process.env.NEXT_PUBLIC_API_URL`).
+     - Transmits HTTP-only session cookies with every request (`credentials: 'include'`).
+     - Includes mandatory anti-CSRF request headers (`X-Nestora-Requested-With: XMLHttpRequest`) on all state-changing mutations (`POST`, `PUT`, `PATCH`, `DELETE`).
+     - Intercepts HTTP 401 Unauthorized responses to trigger automatic redirection to `/login`.
+     - Intercepts HTTP 403 Forbidden responses to display standardized access denial notices.
 
 ---
 
 ## 4. Backend Application Responsibilities (`apps/api`)
 
-The Fastify backend serves as the authoritative application layer, orchestrating business logic, data persistence, and security enforcement across all 19 system modules.
+The Fastify backend serves as the authoritative application layer, orchestrating business domain workflows, database transactions, and security enforcement across all 19 system modules.
 
 ### 4.1 Internal Modular Structure
 Each of the 19 domain modules (`MOD-01` to `MOD-19`) inside `apps/api/src/modules/` is encapsulated within a standardized sub-directory structure:
@@ -253,100 +267,126 @@ apps/api/src/modules/mod04-admissions/
 └── admissions.schema.ts       # Fastify JSON schemas compiled from @nestora/validators
 ```
 
-### 4.2 Lifecycle Interceptor & Middleware Pipeline
-Fastify processes every incoming HTTP request through an explicit, performant lifecycle hook pipeline:
+### 4.2 Authoritative Fastify Request Lifecycle
+Fastify processes every incoming HTTP request through an explicit, sequential lifecycle pipeline. The sequence strictly reflects Fastify's actual engine architecture:
 
 ```mermaid
 sequenceDiagram
   autonumber
   participant Client as Web Client (Next.js)
   participant Fastify as Fastify Engine
-  participant AuthHook as onRequest (Auth)
-  participant ScopeHook as preHandler (RBAC & Tenant)
-  participant Schema as Validation (Ajv/Zod)
-  participant Service as Domain Service
+  participant AuthHook as onRequest (Session Auth)
+  participant Parser as Body Parsing
+  participant CsrfHook as preValidation (CSRF Check)
+  participant Validator as Schema Validation (Ajv)
+  participant GuardHook as preHandler (RBAC & Tenant)
+  participant Handler as Controller & Domain Service
   participant DB as PostgreSQL (Prisma)
-  participant Audit as onResponse (Audit Logger)
+  participant ResponseHook as onResponse (Pino Logger)
 
   Client->>Fastify: HTTP Request (e.g., POST /api/v1/admissions/verify)
-  Fastify->>AuthHook: Parse Cookie & Verify Session
-  AuthHook-->>Fastify: Attach request.user (ID, Role, Assigned Hostels)
-  Fastify->>ScopeHook: Enforce Role Capability & Hostel Scope
-  ScopeHook-->>Fastify: Scope Verified (or abort HTTP 403)
-  Fastify->>Schema: Validate Payload Body against Compiled Schema
-  Schema-->>Fastify: Payload Validated (or abort HTTP 400)
-  Fastify->>Service: Execute Business Logic
-  Service->>DB: Atomic Query / prisma.$transaction()
-  DB-->>Service: Return Result
-  Service-->>Fastify: Return Domain DTO
+  
+  Note over Fastify,AuthHook: Phase 1: Authentication Hook
+  Fastify->>AuthHook: Extract 'nestora_session' cookie & SHA-256 hash token
+  AuthHook->>DB: Query sessions table (WHERE session_token_hash = :hash)
+  AuthHook-->>Fastify: Attach request.user (ID, Role, Assigned Hostels) or 401
+  
+  Note over Fastify,Parser: Phase 2: Payload Parsing
+  Fastify->>Parser: Parse raw JSON body into request.body
+  
+  Note over Fastify,CsrfHook: Phase 3: CSRF & Header Verification
+  Fastify->>CsrfHook: Validate Origin & custom 'X-Nestora-Requested-With' header
+  CsrfHook-->>Fastify: Verified (or abort immediately with HTTP 403)
+  
+  Note over Fastify,Validator: Phase 4: Fastify Schema Validation
+  Fastify->>Validator: Validate params, query, body against compiled JSON schema
+  Validator-->>Fastify: Payload valid (or abort immediately with HTTP 400)
+  
+  Note over Fastify,GuardHook: Phase 5: Authorization & Tenant Hook
+  Fastify->>GuardHook: Verify role capability (RBAC) & authorized hostel jurisdiction
+  GuardHook-->>Fastify: Authorized (or abort immediately with HTTP 403)
+  
+  Note over Fastify,Handler: Phase 6: Domain Execution & Transactional Audit
+  Fastify->>Handler: Execute controller & domain service
+  Handler->>DB: Atomic mutation + audit_logs insert in prisma.$transaction()
+  DB-->>Handler: Return committed state
+  Handler-->>Fastify: Return domain DTO
+  
   Fastify->>Client: Send Standard JSON Envelope (HTTP 200/201)
-  Fastify->>Audit: Asynchronously Emit Immutable Audit Record (MOD-03)
+  
+  Note over Fastify,ResponseHook: Phase 7: Operational Logging
+  Fastify->>ResponseHook: Asynchronously emit request-level Pino access log
 ```
 
 ### 4.3 Key Backend Technical Responsibilities
-1. **Authoritative Authorization & Scoping**:
-   - Enforces the RBAC matrix ([05-user-roles-and-permissions.md](docs/05-user-roles-and-permissions.md)) and tenant isolation rules at the server layer. Client claims are never trusted without cryptographic session verification.
-2. **Transactional Integrity**:
-   - Coordinates complex multi-step state mutations (such as bed allocation, admission sign-offs, and check-out clearances) within atomic database transactions via `prisma.$transaction()`.
-3. **Asynchronous Background Processing**:
-   - Houses an in-process background worker (`workers/email-worker.ts`) executing decoupled, non-blocking asynchronous tasks (SMTP email dispatching for password resets, activation invites, and emergency broadcasts).
-4. **Centralized Error Handling**:
-   - Catches all uncaught exceptions via a global Fastify `setErrorHandler`. Unhandled errors are logged with stack traces and returned to clients as sanitized HTTP 500 error envelopes with a unique correlation ID.
+1. **Authoritative Authorization & Tenant Scoping**:
+   - Enforces the RBAC matrix ([05-user-roles-and-permissions.md](./05-user-roles-and-permissions.md)) and multi-hostel tenant isolation authoritatively at the server boundary. Client claims are never trusted without cryptographic database session validation.
+2. **Dual-Layer Audit Logging Strategy**:
+   - **Operational Request Logging**: Fastify's Pino logger records HTTP method, route, status code, response time, and client IP asynchronously in the `onResponse` hook for performance monitoring and telemetry.
+   - **Guaranteed Business Audit Persistence (`MOD-03`)**: For state-mutating institutional actions (bed allocations, admission sign-offs, fee adjustments, disciplinary sanctions, account deactivations), the audit record MUST be written **synchronously within the exact same database transaction (`prisma.$transaction()`)** as the mutation itself. If the business mutation commits, the audit log is guaranteed to be saved; if the transaction fails, both roll back atomically.
+3. **Audit Log Immutability Protections**:
+   - Transactionality alone guarantees atomicity, not immutability. Append-only immutability is enforced through three distinct layers:
+     - **Application Layer**: `AuditRepository` exports strictly `create` and `findMany` methods; no update or delete methods exist in the codebase.
+     - **Database Role Privileges**: The application database user (`nestora_app`) is granted strictly `SELECT` and `INSERT` permissions on `audit_logs`:
+       ```sql
+       GRANT SELECT, INSERT ON audit_logs TO nestora_app;
+       REVOKE UPDATE, DELETE, TRUNCATE ON audit_logs FROM nestora_app;
+       ```
+     - **Database Trigger**: An immutable trigger raises an exception if any SQL `UPDATE` or `DELETE` is attempted against `audit_logs`:
+       ```sql
+       CREATE OR REPLACE FUNCTION protect_audit_logs() RETURNS TRIGGER AS $$
+       BEGIN
+         RAISE EXCEPTION 'Audit log entries are immutable and cannot be updated or deleted.';
+       END;
+       $$ LANGUAGE plpgsql;
+
+       CREATE TRIGGER trg_audit_logs_immutable
+       BEFORE UPDATE OR DELETE ON audit_logs
+       FOR EACH ROW EXECUTE FUNCTION protect_audit_logs();
+       ```
+4. **Durable Background Job Processing**:
+   - Background jobs (transactional emails, report compilation) are managed through durable database state tables (`scheduled_jobs`, `job_execution_logs` from Document 07) with unique `idempotency_key` constraints.
+   - If the server restarts, interrupted jobs are recovered safely without duplicate execution. Workers implement exponential backoff retries (maximum 3 attempts).
+5. **Centralized Error Handling**:
+   - All unhandled exceptions are intercepted by a global Fastify `setErrorHandler`. Unhandled errors are logged with stack traces and returned to clients as sanitized HTTP 500 error envelopes with a unique correlation ID.
 
 ---
 
-## 5. Shared Packages and Their Responsibilities (`packages/*`)
+## 5. Shared Packages and Contract Ownership (`packages/*`)
 
-Shared packages decouple reusable domain assets from specific runtime applications, preventing code duplication and drift.
+Shared packages decouple reusable domain assets from specific runtime applications. To eliminate redundancy and prevent contract drift, each package maintains strict ownership over specific aspects of the data contract:
 
-| Package Name | Workspace Scope | Runtime Type | Core Responsibilities |
+| Package Name | Workspace Scope | Runtime Type | Authoritative Contract Ownership |
 | :--- | :--- | :--- | :--- |
-| **`@nestora/types`** | `packages/types` | Compile-time only (Types) | Central catalog of all TypeScript interfaces, enums, DTOs, and API contract payloads. Zero runtime overhead. |
-| **`@nestora/validators`** | `packages/validators` | Runtime (Zod) | Central repository of Zod schemas validating form inputs and API payloads. Imported by both `web` and `api`. |
-| **`@nestora/database`** | `packages/database` | Runtime (Prisma) | Owns `schema.prisma`, SQL migration history, seed fixtures, and exports a singleton `PrismaClient`. |
-| **`@nestora/utils`** | `packages/utils` | Runtime (Pure TS) | Deterministic utility functions: currency arithmetic (paise conversion), academic year formatters, date maths. |
-| **`@nestora/config`** | `packages/config` | Development Tooling | Shared ESLint rules, Prettier configurations, and TypeScript compiler base presets (`tsconfig.base.json`). |
+| **`@nestora/database`** | `packages/database` | Runtime (Prisma) | **Persistence Models & Canonical Enums**: Owns `schema.prisma`, SQL migrations, and exports the canonical Prisma-generated model types (`User`, `Student`, `Bed`, `AllocationRecord`, etc.) and database enum types (`Role`, `GenderCategory`, `BedStatus`, `RoomConfigCode`, `AdmissionStatus`, `TicketStatus`). |
+| **`@nestora/validators`** | `packages/validators` | Runtime (Zod) | **Mutation Input Contracts**: Owns runtime Zod schemas and derives TypeScript types via `z.infer<typeof Schema>` (`LoginInput`, `AllocateBedInput`, `CreateNoticeInput`). |
+| **`@nestora/types`** | `packages/types` | Compile-time only | **API Contracts & Envelopes**: Re-exports canonical database enums from `@nestora/database`, owns `ApiResponse<T>`, `ApiError`, `SessionUser` claims, and Composite DTOs (e.g., sanitized profiles omitting passwords, composite dashboard views). |
+| **`@nestora/utils`** | `packages/utils` | Runtime (Pure TS) | **Deterministic Helpers**: Owns date formatters, currency conversions in minor units (paise/cents), registration ID formatters, and slug generators. |
+| **`@nestora/config`** | `packages/config` | Development Tooling | **Shared Tooling**: Base configurations for ESLint, Prettier, and TypeScript compiler presets (`tsconfig.base.json`). |
 
-### 5.1 `@nestora/types` Specification
-Contains immutable definitions representing domain models and communication envelopes:
-- **Role Enumerations**: `UNIVERSITY_ADMINISTRATOR`, `HOSTEL_WARDEN`, `STUDENT`, `HOSTEL_STAFF`, `SECURITY_GUARD`, `ACCOUNTANT`.
-- **Infrastructure Hierarchy Types**: Strongly typed interfaces for University, Hostel, Building, Block, Floor, Room, and Bed.
-- **Room Configuration Codes**: `SINGLE_NON_AC`, `SINGLE_AC`, `DOUBLE_NON_AC`, `DOUBLE_AC`, `TRIPLE_NON_AC`, `TRIPLE_AC`.
-- **API Response Envelope**:
-  ```typescript
-  export interface ApiResponse<T = unknown> {
-    success: boolean;
-    data?: T;
-    error?: {
-      code: string;
-      message: string;
-      details?: Record<string, string[]>;
+### 5.1 Canonical Enum Ownership and Import Isolation
+- **Canonical Enums**: Declared once in `packages/database/prisma/schema.prisma` as PostgreSQL enums (`Role`, `GenderCategory`, `BedStatus`, `RoomConfigCode`). Generated by Prisma into `@nestora/database`. `@nestora/types` re-exports these enums to ensure zero manual duplication.
+- **Import Boundary Rule**:
+  - `apps/web` is **strictly prohibited from importing `@nestora/database`** or Prisma Client code. The frontend interacts only with `@nestora/types`, `@nestora/validators`, and `@nestora/utils`.
+  - Enforced in CI via ESLint `no-restricted-imports` configuration:
+    ```javascript
+    // apps/web/.eslintrc.js
+    module.exports = {
+      rules: {
+        'no-restricted-imports': ['error', {
+          patterns: [{
+            group: ['@nestora/database', '@prisma/client'],
+            message: 'Frontend is strictly prohibited from importing database packages.'
+          }]
+        }]
+      }
     };
-    meta?: {
-      page?: number;
-      limit?: number;
-      total?: number;
-      totalPages?: number;
-    };
-    timestamp: string;
-  }
-  ```
+    ```
 
-### 5.2 `@nestora/validators` Specification
-Defines runtime Zod schemas used across the workspace:
-- Frontend uses `z.infer<typeof Schema>` to generate form types and validate form state before network dispatch.
-- Backend compiles the same Zod schemas via `zod-to-json-schema` into Fastify route validation options.
-- Example (`auth.validator.ts`):
-  ```typescript
-  import { z } from 'zod';
-
-  export const LoginSchema = z.object({
-    email: z.string().email('Please enter a valid university email address'),
-    password: z.string().min(8, 'Password must contain at least 8 characters'),
-  });
-
-  export type LoginInput = z.infer<typeof LoginSchema>;
-  ```
+### 5.2 Validation Contract Consumption & Verification
+- **Frontend Consumption**: Direct client execution using `react-hook-form` with `@hookform/resolvers/zod`.
+- **Backend Consumption**: Fastify routes compile shared Zod schemas into JSON Schemas at server registration using `zod-to-json-schema`. Fastify's compiled Ajv engine validates incoming `params`, `query`, and `body` at native C-level speed.
+- **Automated Parity Verification**: Rather than assuming 100% parity, an automated contract test suite in `packages/validators` executes in CI, asserting that representative valid and invalid payload fixtures yield identical validation passes and rejection codes under both Zod's parser and Fastify's compiled Ajv validator.
 
 ---
 
@@ -358,8 +398,8 @@ The data persistence layer is strictly centralized in `packages/database`. Neith
 flowchart LR
   subgraph DataPackage["packages/database"]
     PrismaSchema["schema.prisma (56 Relational Entities)"]
-    Migrations["prisma/migrations/ (SQL Scripts)"]
-    SeedScripts["prisma/seed/ (Initial Data)"]
+    Migrations["prisma/migrations/ (Versioned SQL Scripts)"]
+    SeedScripts["prisma/seed/ (Dev Fixtures & Admin CLI)"]
     PrismaClientInst["Singleton PrismaClient Factory"]
     
     PrismaSchema --> Migrations
@@ -377,27 +417,62 @@ flowchart LR
 
 ### 6.1 Database Schema Principles
 - **PostgreSQL Relational Engine**: Relational integrity enforced at the database level via foreign key constraints.
-- **Physical Asset Protection**: All physical infrastructure tables (`universities`, `hostels`, `buildings`, `blocks`, `floors`, `rooms`, `beds`) enforce `ON DELETE RESTRICT` constraints to prevent accidental cascade destruction of campus assets.
+- **Physical Asset Protection**: All physical accommodation hierarchy tables (`universities`, `hostels`, `buildings`, `blocks`, `floors`, `rooms`, `beds`) enforce `ON DELETE RESTRICT` constraints to prevent accidental cascade destruction of campus assets.
 - **Single Active Bed Occupancy**: Guaranteed at the database level via a partial unique index on `allocation_records(bed_id) WHERE status = 'ACTIVE'`.
-- **Account Lockout Columns**: The `users` entity maintains `failed_login_attempts` (`INT`, default 0) and `locked_until` (`TIMESTAMPTZ`, nullable) to satisfy `FR-007` and `NFR-SEC-004`.
-- **Student Academic & Medical Attributes**: The `students` entity maintains `academic_year`, `current_semester`, and `medical_alerts` to satisfy `FR-009`.
+- **Account Lockout Columns**: The `users` entity maintains `failed_login_attempts` (`INT`, default 0), `failed_attempts_window_started_at` (`TIMESTAMPTZ`, nullable), and `locked_until` (`TIMESTAMPTZ`, nullable) to satisfy `FR-007` and `NFR-SEC-004`.
+- **Student Profile Attributes**: The `students` entity maintains `academic_year`, `current_semester`, and `medical_alerts` to satisfy `FR-009`.
+- **Hashed Session Tokens**: The `sessions` table maintains `session_token_hash: VARCHAR(64)` storing a SHA-256 digest of the token rather than the raw plaintext token.
 
-### 6.2 Database Migration and Seeding Workflows
-1. **Schema Mutations**:
-   - Developers edit `packages/database/prisma/schema.prisma`.
-   - Run `pnpm --filter @nestora/database db:migrate:dev --name <descriptive_name>`.
-   - Prisma automatically generates a new timestamped SQL migration in `packages/database/prisma/migrations/` and updates the locally generated Prisma Client.
-2. **Deterministic Seeding**:
-   - Running `pnpm --filter @nestora/database db:seed` executes `prisma/seed/seed.ts`.
-   - Provisions 1 University institution, 2 Hostels (Boys' & Girls' categories), 2 Buildings, 4 Blocks, 8 Floors, 24 Rooms across all six room configurations, default Administrator credentials, demo Wardens, and test student profiles.
+### 6.2 Database Migration Workflows
+The workspace establishes distinct, explicit migration workflows for development, verification, and production:
+
+1. **Local Development Migration Workflow**:
+   - Developers modify `packages/database/prisma/schema.prisma`.
+   - Run: `pnpm --filter @nestora/database db:migrate:dev --name <descriptive_name>`
+   - Prisma creates a timestamped SQL migration file in `packages/database/prisma/migrations/`, executes it against the local PostgreSQL container, and regenerates the Prisma Client.
+2. **Automated CI Schema Drift Detection**:
+   - In CI/CD pipelines, schema drift is checked before deployment:
+     ```bash
+     pnpm --filter @nestora/database prisma migrate diff \
+       --from-schema-datamodel prisma/schema.prisma \
+       --to-migrations prisma/migrations \
+       --exit-code
+     ```
+   - If `schema.prisma` contains changes that have not been committed as a migration, this command exits with a non-zero code, failing the build.
+3. **Production Deployment Migration Workflow**:
+   - In production deployment pipelines, run: `pnpm --filter @nestora/database db:migrate:deploy`
+   - Applies pending versioned SQL migrations in strict chronological sequence. It does not compare live schema against data models; schema integrity is guaranteed by prior CI drift verification. Fails fast if migration checksums mismatch.
+
+### 6.3 Secure Database Seeding Strategy
+- **Development Environment Seeding**:
+  - Running `pnpm --filter @nestora/database db:seed` executes `prisma/seed/seed.ts`.
+  - Guarded by an explicit environment check: executes strictly when `NODE_ENV === 'development'`.
+  - Populates 1 University, 2 Hostels (Boys' & Girls' categories), 2 Buildings, 4 Blocks, 8 Floors, 24 Rooms across all 6 configurations, and test user accounts for each role.
+  - Emits a prominent console alert: `[SECURITY NOTICE: Demo seed accounts are active for local development only]`.
+- **Production Initial Administrator Provisioning**:
+  - Default administrative credentials are **never hardcoded or committed**.
+  - Production initial setup uses a dedicated CLI script:
+    `pnpm --filter @nestora/database admin:init --email <admin_email>`
+  - The script:
+    1. Provisions a user record with `role = 'UNIVERSITY_ADMINISTRATOR'`, `status = 'INACTIVE'`, `is_verified = false`.
+    2. Generates a secure, 256-bit activation token, computes its SHA-256 hash, and stores it in `password_reset_tokens` with `expires_at = NOW() + INTERVAL '24 hours'` and `used_at = NULL`.
+    3. Outputs the single-use activation URL to standard output.
+    4. Upon access, the administrator establishes their password via Argon2id; an atomic transaction sets `status = 'ACTIVE'`, `is_verified = true`, and `used_at = NOW()`, permanently invalidating the token.
 
 ---
 
 ## 7. API Communication Flow
 
-Communication between the Next.js presentation layer and the Fastify backend follows strict RESTful conventions using standardized JSON envelope structures.
+Communication between the Next.js presentation layer and the Fastify backend follows RESTful conventions using standardized JSON envelope structures.
 
-### 7.1 Standardized HTTP Response Envelope
+### 7.1 Client-to-API Topology & CORS Alignment
+- **Direct Communication**: Browser clients make HTTP requests directly to Fastify (`apps/api`) at `http://localhost:4000/api/v1` (or via reverse proxy in production).
+- **CORS Configuration**: Fastify registers `@fastify/cors` configured with:
+  - `origin`: Matches explicit allowlist from `process.env.CORS_ORIGIN` (default: `http://localhost:3000`). Wildcards (`*`) are strictly prohibited.
+  - `credentials`: `true` (enabling cross-origin transmission of HTTP-only session cookies).
+- **Client Configuration**: Next.js `apiClient` sets `credentials: 'include'` on all `fetch()` calls.
+
+### 7.2 Standardized HTTP Response Envelope
 Every API response returned by `apps/api` adheres to a uniform JSON envelope:
 
 #### Successful Response (`200 OK`, `201 Created`):
@@ -415,7 +490,7 @@ Every API response returned by `apps/api` adheres to a uniform JSON envelope:
 }
 ```
 
-#### Error Response (`400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found`, `422 Unprocessable`):
+#### Error Response (`400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found`, `423 Locked`, `500 Internal Error`):
 ```json
 {
   "success": false,
@@ -435,52 +510,109 @@ Every API response returned by `apps/api` adheres to a uniform JSON envelope:
 
 ## 8. Authentication and Authorization Boundaries
 
-Nestora enforces a defense-in-depth security model separating presentation conveniences from server-side security enforcement:
+Nestora enforces a defense-in-depth security model separating client-side UX navigation from authoritative backend security gates:
 
-```mermaid
-flowchart TD
-  subgraph ClientBoundary["Client Boundary (apps/web)"]
-    UIRouteGuard["Next.js Route Middleware\n(Checks Cookie Presence & Cached Role)"]
-    UIComponent["Role-Conditional Component Rendering\n(Hides Action Buttons & Nav Links)"]
-  end
+### 8.1 Primary Authentication Model (Opaque Database Sessions)
+Nestora standardizes on **opaque, high-entropy database-backed session tokens** stored in the `sessions` table (defined in [07-database-design.md](./07-database-design.md) Section 5.1). Stateless JWTs are not used for user sessions.
 
-  subgraph Transport["Secure Network Transport"]
-    HTTPS["HTTPS / Secure HTTP-Only Cookie Transmission"]
-  end
+1. **Token Generation**: Upon successful login, Fastify generates a cryptographically secure 256-bit token using `crypto.randomBytes(32).toString('hex')`.
+2. **Session Storage (SHA-256 Hashing)**:
+   - The **raw token is never stored in the database**.
+   - The token is hashed using SHA-256: `const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')`.
+   - The hash is stored in `sessions.session_token_hash: VARCHAR(64)`. If the database is compromised, active session tokens cannot be derived from stored hashes.
+3. **Cookie Transmission & Verification**:
+   - The **raw token** is delivered to the browser exclusively through the signed, HTTP-only `nestora_session` cookie.
+   - On incoming requests, the Fastify `onRequest` hook extracts and unsigns the cookie using `COOKIE_SECRET`, hashes the token via SHA-256, and queries:
+     `SELECT * FROM sessions WHERE session_token_hash = :hash AND expires_at > NOW()`
+   - Fastify joins `users` (verifying `status = 'ACTIVE'`) and `hostel_assignments` to populate `request.user`.
+4. **Instant Revocation**:
+   - Logout, password updates, account suspensions, or administrative deactivations execute:
+     `DELETE FROM sessions WHERE session_token_hash = :hash` or `DELETE FROM sessions WHERE user_id = :userId`
+   - Instantly terminates session validity across all client devices.
+5. **Cookie Security Attributes**:
+   - `name`: `nestora_session`
+   - `httpOnly`: `true` (blocks client script access, preventing XSS token theft)
+   - `secure`: `true` in production (`process.env.NODE_ENV === 'production'`); permits HTTP in local development
+   - `sameSite`: `'lax'` (protects against CSRF while permitting standard top-level site navigation)
+   - `path`: `/`
+   - `maxAge`: Calculated as `SESSION_TTL_HOURS * 3600` (e.g., 24 hours = 86,400 seconds)
 
-  subgraph ServerBoundary["Server Boundary (apps/api) — AUTHORITATIVE"]
-    AuthHook["Fastify onRequest Hook\n(Validates Session Token & Resolves Actor Profile)"]
-    RBACGuard["Fastify preHandler RBAC Guard\n(Verifies Role Capability: AUTH-001 / AUTH-002)"]
-    TenantGuard["Fastify preHandler Tenant Scoping Guard\n(Verifies Hostel Jurisdiction: AUTH-004)"]
-    DomainAction["Domain Service Execution\n(Invokes Prisma Transactions)"]
-  end
+### 8.2 Password Hashing Standard (Argon2id)
+The system strictly standardizes on **Argon2id** (RFC 9106) with unique per-user cryptographically random salts for all password hashing. Plaintext passwords or legacy weak hashes (MD5, SHA1, plain bcrypt) are strictly prohibited.
 
-  UIRouteGuard -.->|"Navigates"| UIComponent
-  UIComponent -->|"API Request"| HTTPS
-  HTTPS --> AuthHook
-  AuthHook --> RBACGuard
-  RBACGuard --> TenantGuard
-  TenantGuard --> DomainAction
-```
+### 8.3 Account Lockout & Anti-Enumeration Algorithm
+To satisfy `FR-007` and `NFR-SEC-004`, account lockout is enforced via the `users` table:
+1. **Anti-Enumeration Protection**:
+   - If an email is not found, Fastify computes a dummy Argon2id verification using a fixed dummy hash and returns HTTP 401 with generic message `"Invalid email or password"`. Eliminates timing discrepancies and prevents user enumeration.
+2. **Active Lockout Inspection**:
+   - If `users.locked_until > NOW()`, Fastify aborts with HTTP 423 Locked.
+   - If `users.locked_until <= NOW()` and `locked_until` is not null, the lockout period has expired: `failed_login_attempts` is reset to 0, `locked_until` to NULL, and `failed_attempts_window_started_at` to NULL.
+3. **15-Minute Window Tracking & Failed Attempt Handling**:
+   - When password verification fails:
+     - If `failed_attempts_window_started_at IS NULL` or `NOW() - failed_attempts_window_started_at > 15 minutes`:
+       Start new window: `failed_login_attempts = 1`, `failed_attempts_window_started_at = NOW()`.
+     - Else (`NOW() - failed_attempts_window_started_at <= 15 minutes`):
+       Increment: `failed_login_attempts += 1`.
+       If `failed_login_attempts >= 5`:
+         Set `locked_until = NOW() + INTERVAL '30 minutes'`.
+         Synchronously emit an immutable security audit entry (`action_name = 'ACCOUNT_LOCKOUT'`).
+     - Save user state atomically and return HTTP 401 `"Invalid email or password"`.
+4. **Successful Authentication Reset**:
+   - Upon successful credential verification:
+     `failed_login_attempts = 0`, `locked_until = NULL`, `failed_attempts_window_started_at = NULL`.
+5. **Network Rate Limiting**:
+   - In addition to per-account database lockout, Fastify registers `@fastify/rate-limit` configured per-IP (maximum 10 failed login requests per IP per minute) to protect against distributed credential stuffing and denial of service.
 
-### 8.1 Authentication Architecture
-- **Password Protection**: Passwords are cryptographically salted and hashed using Argon2id (or bcrypt) prior to database persistence.
-- **Session Tokens**: Authenticated sessions issue a high-entropy session token stored in an HTTP-only, secure, `SameSite=Lax/Strict` cookie (`nestora_session`). Client-side JavaScript cannot read or modify this token.
-- **Account Lockout Protection**: Tracked in the `users` table via `failed_login_attempts` and `locked_until`. When failed attempts reach 5 within a 15-minute window, the account is locked for 30 minutes (`FR-007`, `NFR-SEC-004`).
-
-### 8.2 Authorization Architecture (RBAC & Tenant Guards)
-Authorization enforces a strict **Default-Deny** policy (`AUTH-002`):
-1. **Role Capability Verification**: The backend inspects whether `request.user.role` possesses the permission flag required by the route controller (e.g., only `UNIVERSITY_ADMINISTRATOR` and `HOSTEL_WARDEN` can verify admissions).
-2. **Hostel Scoping Verification**: If the user is a `HOSTEL_WARDEN`, `HOSTEL_STAFF`, or `SECURITY_GUARD`, the request's target `hostel_id` parameter is verified against `request.user.assignedHostelIds`. If mismatched, the request is aborted immediately with HTTP 403 Forbidden (`AUTH-004`).
+### 8.4 Cross-Site Request Forgery (CSRF) Defense Strategy
+Because authentication utilizes ambient browser cookies, Fastify enforces an explicit multi-layered CSRF defense:
+- **CORS vs CSRF Distinction**: CORS controls cross-origin response reading via the browser; CSRF prevents unauthorized state-changing requests from being executed by the browser using ambient cookies.
+- **Strict Method Gating**: State-changing mutations are strictly restricted to `POST`, `PUT`, `PATCH`, and `DELETE`. `GET` and `HEAD` requests are strictly idempotent and read-only.
+- **Strict Origin Validation**: On all state-changing requests, Fastify's `preValidation` hook checks the `Origin` and `Referer` headers against `process.env.CORS_ORIGIN`. Mismatched or absent origin headers abort with HTTP 403 Forbidden.
+- **Custom Request Header Requirement**: All mutating requests from `apiClient` must include a custom header (`X-Nestora-Requested-With: XMLHttpRequest`). Because browsers forbid cross-origin scripts from setting custom headers without explicit CORS preflight authorization, cross-origin attackers cannot forge this header.
 
 ---
 
 ## 9. Multi-Hostel Tenant Isolation Strategy
 
-Nestora utilizes a **Shared Database, Shared Schema with Direct Foreign Key Scoping** architecture. Tenant isolation is guaranteed through three coordinated layers:
+Nestora enforces a **Shared Database, Shared Schema with Direct Foreign Key Scoping** architecture. Tenant isolation applies a strict **Default-Deny** policy across all six user roles:
 
-### 9.1 Direct `hostel_id` Ownership on Operational Tables
-High-frequency operational tables store a direct, indexed foreign key referencing `hostels(id)`:
+```mermaid
+flowchart TD
+  Request["Incoming Fastify Request"] --> AuthCheck{"Authenticated Session?"}
+  AuthCheck -- "No" --> Ret401["HTTP 401 Unauthorized"]
+  AuthCheck -- "Yes" --> RBACCheck{"Role Allowed Endpoint?"}
+  RBACCheck -- "No" --> Ret403["HTTP 403 Forbidden (RBAC)"]
+  RBACCheck -- "Yes" --> TenantCheck{"Tenant Scope Verified?"}
+  TenantCheck -- "No" --> Ret403Tenant["HTTP 403 Forbidden (Tenant Scope)"]
+  TenantCheck -- "Yes" --> ServiceLayer["Service Layer Verification"]
+  ServiceLayer --> RepoLayer["Repository Query Building (WHERE hostel_id = ...)"]
+  RepoLayer --> DBQuery["PostgreSQL Execution"]
+```
+
+### 9.1 Tenant Boundaries Across All Six User Roles
+1. **University Administrator**:
+   - Possesses global oversight across all university hostels.
+   - **Explicit Scope Distinction**:
+     - `GLOBAL_ADMIN_HOSTEL`: Admin operating within a specific hostel (e.g. reviewing Hostel A's complaints). `scope.targetHostelId` is **mandatory**; if missing, throws `BadRequestError`.
+     - `GLOBAL_ADMIN_ALL`: Explicitly authorized campus-wide queries (e.g. `MOD-18` institutional occupancy reports). Must be explicitly typed and emits an audit log record. An omitted parameter can never accidentally execute an unrestricted query.
+2. **Hostel Warden**:
+   - Operational jurisdiction is strictly constrained to assigned hostel(s) recorded in `hostel_assignments`.
+   - Accessing or modifying records of unassigned hostels is rejected with HTTP 403 Forbidden.
+3. **Student**:
+   - Scoped strictly to their own personal records (`student_id`) and assigned resident hostel context (`STUDENT_SCOPED`).
+   - Prohibited from viewing other residents' personal, financial, or leave records.
+4. **Hostel Staff**:
+   - Scoped strictly to maintenance tickets and facilities within their assigned hostel (`hostel_id`).
+   - Prohibited from accessing academic, financial, or disciplinary records.
+5. **Security Guard**:
+   - Scoped strictly to gate passes, visitor logs, and movement logs for their assigned hostel gate checkpoint (`hostel_id`).
+   - Prohibited from accessing room allocations, student academic profiles, or financial records.
+6. **Accountant (`FINANCE_SCOPED`)**:
+   - Possesses university-wide financial visibility, BUT repository access is strictly restricted to financial tables (`fee_schedules`, `fee_items`, `student_ledgers`, `payment_records`, `fee_adjustments`).
+   - Attempting to query or mutate non-financial entities (room allocations, attendance records, gate passes, disciplinary files, emergency contacts) is rejected at the repository level with `ForbiddenError`.
+
+### 9.2 Direct `hostel_id` Ownership on Operational Tables
+To satisfy the latency benchmarks ($\le 500\text{ms}$) defined in [04-non-functional-requirements.md](./04-non-functional-requirements.md) and eliminate 8-table relational joins, high-frequency operational tables maintain a direct, indexed `hostel_id` foreign key referencing `hostels(id)` (aligned with [07-database-design.md](./07-database-design.md) Section 9.1):
 - `attendance_records`
 - `leave_applications`
 - `outing_requests`
@@ -490,69 +622,100 @@ High-frequency operational tables store a direct, indexed foreign key referencin
 - `duty_assignments`
 - `staff_attendances`
 - `emergency_incidents`
-- `notices` (nullable for university-wide broadcasts)
+- `admission_applications`
+- `buildings`
+- `hostel_rules` (nullable for university-wide rules)
+- `notices` (nullable for university-wide circulars)
 
-*Design Rationale*: Incorporating direct `hostel_id` foreign keys avoids expensive 8-table relational joins during daily roll-calls and gate movements, enabling queries to filter directly via B-Tree index lookups (`WHERE hostel_id = :hostelId`).
+*Note on Non-Operational Tables*: Entities without direct `hostel_id` are scoped through explicit relational paths (e.g., `rooms` via `floor_id` $\rightarrow$ `block_id` $\rightarrow$ `building_id` $\rightarrow$ `hostel_id`; student profiles via `student_id`).
 
-### 9.2 Programmatic Backend Query Scoping
-Database queries are constructed using tenant-scoped helper functions:
+### 9.3 Dual-Level Isolation Enforcement (Service + Repository)
+Isolation is enforced at both application layers to guarantee that unscoped queries cannot execute:
+1. **Service Layer**: Validates that the requested action matches the actor's jurisdiction.
+2. **Repository / Data-Access Layer**: Prisma query builders require typed, non-empty tenant scope parameters:
+
 ```typescript
-// Example: Scoped complaint ticket retrieval in mod12-complaints
-export async function getComplaints(user: SessionUser, hostelId?: string) {
-  const whereClause: Prisma.ComplaintTicketWhereInput = {};
+// Example: Scoped repository query in mod12-complaints
+export type TenantScope =
+  | { type: 'GLOBAL_ADMIN_ALL' }
+  | { type: 'GLOBAL_ADMIN_HOSTEL'; targetHostelId: string }
+  | { type: 'HOSTEL_SCOPED'; hostelIds: string[] }
+  | { type: 'STUDENT_SCOPED'; studentId: string }
+  | { type: 'FINANCE_SCOPED' };
 
-  if (user.role === 'UNIVERSITY_ADMINISTRATOR') {
-    // Administrator can view all hostels or filter by specific hostel
-    if (hostelId) whereClause.hostel_id = hostelId;
-  } else if (user.role === 'HOSTEL_WARDEN' || user.role === 'HOSTEL_STAFF') {
-    // Operational roles are strictly constrained to their assigned hostel(s)
-    whereClause.hostel_id = { in: user.assignedHostelIds };
-  } else if (user.role === 'STUDENT') {
-    // Students view only their own filed complaints
-    whereClause.student_id = user.studentId;
+export async function findComplaintsByScope(scope: TenantScope) {
+  const where: Prisma.ComplaintTicketWhereInput = {};
+
+  switch (scope.type) {
+    case 'GLOBAL_ADMIN_ALL':
+      // Explicitly authorized campus-wide query (requires audit record in service)
+      break;
+
+    case 'GLOBAL_ADMIN_HOSTEL':
+      if (!scope.targetHostelId) {
+        throw new BadRequestError('Target hostel ID is mandatory for hostel-scoped administrator queries');
+      }
+      where.hostel_id = scope.targetHostelId;
+      break;
+
+    case 'HOSTEL_SCOPED':
+      if (!scope.hostelIds || scope.hostelIds.length === 0) {
+        throw new ForbiddenError('Access denied: User possesses no authorized hostel assignments');
+      }
+      where.hostel_id = { in: scope.hostelIds };
+      break;
+
+    case 'STUDENT_SCOPED':
+      if (!scope.studentId) {
+        throw new ForbiddenError('Access denied: Unresolved student identity');
+      }
+      where.student_id = scope.studentId;
+      break;
+
+    case 'FINANCE_SCOPED':
+      throw new ForbiddenError('Access denied: Accountants are prohibited from accessing maintenance complaint records');
+
+    default:
+      throw new ForbiddenError('Access denied: Unrecognized tenant query scope');
   }
 
-  return prisma.complaintTicket.findMany({ where: whereClause });
+  return prisma.complaintTicket.findMany({ where });
 }
 ```
-
-### 9.3 Prevention of Horizontal Privilege Escalation (URL Tampering)
-If an actor attempts to inspect or mutate records outside their jurisdiction by altering URL path parameters (e.g., a Warden assigned to Hostel A attempting `GET /api/v1/hostels/hostel-b/residents`), the Fastify `tenant-scope` preHandler hook verifies parameter equality against `user.assignedHostelIds` and rejects the request before business logic executes.
 
 ---
 
 ## 10. Environment Configuration Strategy
 
-Environment variables are validated at application startup using typed Zod schemas. If any required environment variable is missing or malformed, the application crashes immediately with an informative startup error.
+Environment variables are validated at startup using typed Zod schemas. If any required variable is missing or malformed, application startup is aborted immediately with an explicit configuration error.
 
 ### 10.1 Environment Variable Taxonomy
-The system divides configuration variables into logical categories:
+Configuration variables are divided into distinct operational domains:
 
 ```
 # ==============================================================================
-# 1. SERVER & NETWORK CONFIGURATION
+# 1. RUNTIME & NETWORK CONFIGURATION
 # ==============================================================================
 NODE_ENV=development                       # 'development' | 'test' | 'production'
 PORT=4000                                 # Fastify API listening port
 HOST=0.0.0.0                              # Fastify bind address
 API_URL=http://localhost:4000             # Canonical backend URL
 WEB_URL=http://localhost:3000             # Canonical frontend URL
-CORS_ORIGIN=http://localhost:3000         # Allowed CORS origins
+CORS_ORIGIN=http://localhost:3000         # Allowed frontend CORS origins (exact match)
 
 # ==============================================================================
-# 2. DATABASE CONFIGURATION
+# 2. DATABASE PERSISTENCE (POSTGRESQL)
 # ==============================================================================
 DATABASE_URL=postgresql://nestora:nestora_dev_pw@localhost:5432/nestora_db?schema=public&connection_limit=10
 
 # ==============================================================================
 # 3. SECURITY & CRYPTOGRAPHY
 # ==============================================================================
-COOKIE_SECRET=change_me_to_a_32_byte_secure_random_string
-SESSION_SECRET=change_me_to_another_secure_signing_secret
-SESSION_TTL_HOURS=24                      # Session duration before expiry
+COOKIE_SECRET=change_me_to_a_32_byte_secure_random_string  # Cryptographic cookie signing secret
+SESSION_TTL_HOURS=24                      # Database session validity window (hours)
 
 # ==============================================================================
-# 4. EMAIL / TRANSACTIONAL NOTIFICATIONS (SMTP)
+# 4. TRANSACTIONAL EMAIL NOTIFICATIONS (SMTP)
 # ==============================================================================
 SMTP_HOST=localhost                       # MailHog for dev / real SMTP for prod
 SMTP_PORT=1025                            # MailHog port 1025 / SMTP 587
@@ -565,62 +728,75 @@ SMTP_FROM="Nestora University System <no-reply@nestora.university.edu>"
 # ==============================================================================
 STORAGE_DRIVER=local                      # 'local' | 's3'
 UPLOAD_LOCAL_PATH=./uploads               # Local storage directory for attachments
-MAX_UPLOAD_SIZE_BYTES=5242880             # 5 MB maximum attachment size
+S3_BUCKET_NAME=nestora-attachments        # S3 bucket for production storage
+S3_REGION=us-east-1                       # S3 region
+S3_ACCESS_KEY_ID=                         # S3 credentials (production)
+S3_SECRET_ACCESS_KEY=
+MAX_UPLOAD_SIZE_BYTES=5242880             # 5 MB maximum attachment limit
 ```
-
-### 10.2 Variable Segregation Across Workspace
-- `apps/web/.env.local`: Contains `NEXT_PUBLIC_API_URL` and frontend-specific client flags.
-- `apps/api/.env`: Contains backend secrets, database connection strings, and SMTP credentials.
-- Root `.env.example`: Provides a comprehensive reference template for developer onboarding.
 
 ---
 
 ## 11. Development and Production Configuration
 
-The monorepo architecture maintains reproducible configurations across development, continuous integration, and production environments.
+The workspace enforces environment isolation across development, continuous integration, and production deployment environments.
 
 ### 11.1 Local Development Environment
-- **Prerequisites**: Node.js 18+ (LTS), `pnpm` (or `npm`), Docker & Docker Compose.
-- **Local Supporting Services**: Managed via `docker/docker-compose.yml`:
-  - **PostgreSQL 15+**: Persistent database running on port `5432`.
-  - **MailHog**: Lightweight local SMTP server and web inbox on port `8025` for testing email dispatch without cloud credentials.
-- **Workflow Orchestration**:
-  - `pnpm dev`: Single root command launching PostgreSQL via Docker, compiling shared workspace packages, and initiating both Next.js and Fastify in watch/hot-reload mode concurrently.
+- **Prerequisites**: Node.js 24 LTS (Active), `pnpm` (v9+), Docker & Docker Compose.
+- **Supporting Infrastructure Daemons**: Started via Docker Compose:
+  ```bash
+  # Start local PostgreSQL and MailHog background services
+  docker compose -f docker/docker-compose.yml up -d
+  ```
+  - **PostgreSQL 15+**: Port `5432` with pre-configured development credentials.
+  - **MailHog**: Port `1025` (SMTP) and `8025` (Web UI) for inspecting local emails without external cloud SMTP accounts.
+- **Application Startup**:
+  ```bash
+  # Launch all workspace packages, Fastify API, and Next.js concurrently
+  pnpm dev
+  ```
 
 ### 11.2 Production Deployment Environment
-- **Containerization Strategy**: Multi-stage Docker builds optimize container images by separating compilation tooling from runtime artifacts:
-  - `Dockerfile.api`: Builds production JavaScript from TypeScript, prunes devDependencies, and runs Fastify under the official Node.js Alpine base.
-  - `Dockerfile.web`: Leverages Next.js standalone output mode (`output: 'standalone'`), generating a minimal, self-contained server package that excludes unnecessary node_modules.
-- **Reverse Proxy Architecture**: In production deployments, Next.js and Fastify operate behind an Nginx reverse proxy or cloud ingress controller routing `/` to the Next.js container and `/api/v1/*` to the Fastify container over an isolated internal container network.
+- **Multi-Stage Container Builds**:
+  - `docker/Dockerfile.api`: Compiles TypeScript, prunes devDependencies, and executes Fastify via `CMD ["node", "dist/server.js"]` under the official Node.js 24 Alpine image.
+  - `docker/Dockerfile.web`: Leverages Next.js standalone output mode (`output: 'standalone'`), producing an optimized, self-contained server package executed via `CMD ["node", "server.js"]` under the official Node.js 24 Alpine image.
+- **Reverse Proxy Architecture**: Production deployments place Next.js and Fastify behind an Nginx reverse proxy or cloud ingress:
+  - `/` routes to the Next.js container (port 3000).
+  - `/api/v1/*` routes to the Fastify API container (port 4000).
+- **Durable File Uploads**: Production uses S3-compatible object storage (`STORAGE_DRIVER=s3`) with pre-signed upload URLs to guarantee attachment persistence across stateless container lifecycles.
 
 ---
 
 ## 12. Dependency and Package Management Strategy
 
-The workspace relies on modern package management standards engineered to eliminate dependency duplication while preserving lightning-fast build times.
+The monorepo uses **pnpm workspaces** for dependency deduplication, strict isolation, and deterministic lockfile resolution.
 
-### 12.1 Workspace Configuration
-- **Package Manager**: `pnpm` (or standard `npm workspaces`).
-- **Internal Linking**: Internal packages are linked using the workspace protocol (`workspace:*`):
-  ```json
-  // apps/api/package.json
-  {
-    "dependencies": {
-      "@nestora/database": "workspace:*",
-      "@nestora/types": "workspace:*",
-      "@nestora/validators": "workspace:*",
-      "@nestora/utils": "workspace:*"
-    }
+### 12.1 Workspace Configuration (`pnpm-workspace.yaml`)
+```yaml
+packages:
+  - 'apps/*'
+  - 'packages/*'
+```
+
+Internal workspace dependencies are declared strictly using the `workspace:*` protocol in `package.json`:
+```json
+{
+  "dependencies": {
+    "@nestora/database": "workspace:*",
+    "@nestora/types": "workspace:*",
+    "@nestora/validators": "workspace:*",
+    "@nestora/utils": "workspace:*"
   }
-  ```
+}
+```
 
 ### 12.2 Turborepo Task Pipeline (`turbo.json`)
-Turborepo orchestrates build, test, and lint tasks in correct dependency order, caching build artifacts to ensure instant incremental builds:
+Turborepo orchestrates task execution using the modern `tasks` schema, caching build and test outputs across packages:
 
 ```json
 {
   "$schema": "https://turbo.build/schema.json",
-  "pipeline": {
+  "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": [".next/**", "dist/**"]
@@ -647,22 +823,23 @@ Turborepo orchestrates build, test, and lint tasks in correct dependency order, 
 
 | Command | Action Executed Across Workspace |
 | :--- | :--- |
-| `pnpm dev` | Starts local database services and runs frontend and backend concurrently with hot reloading. |
+| `pnpm dev` | Starts local development server for all apps in parallel with hot reloading. |
 | `pnpm build` | Compiles `@nestora/types`, `@nestora/validators`, generates Prisma client, and builds Next.js and Fastify. |
-| `pnpm test` | Runs Jest / Vitest unit and integration test suites across all packages. |
-| `pnpm lint` | Executes ESLint and Prettier across all applications and shared packages. |
-| `pnpm db:migrate` | Applies pending PostgreSQL migrations using Prisma in development. |
-| `pnpm db:seed` | Populates the database with initial institutional and demo role accounts. |
+| `pnpm test` | Runs unit, integration, and contract test suites in topological dependency order. |
+| `pnpm lint` | Runs ESLint and Prettier across all packages. |
+| `pnpm db:migrate:dev` | Generates and applies a new development SQL migration in `@nestora/database`. |
+| `pnpm db:migrate:deploy` | Applies pending migrations in production environments without schema drift generation. |
+| `pnpm db:seed` | Populates development demo institutions, hostels, and test user accounts. |
 
 ---
 
 ## 13. Institutional Decisions & Open Questions
 
-The four unresolved institutional decisions documented throughout the project specification suite remain explicitly documented as **pending institutional confirmation**. The proposed monorepo architecture is intentionally structured to support any administrative outcome without requiring workspace reorganization:
+The four unresolved institutional decisions documented throughout the project specification suite remain explicitly documented as **pending institutional confirmation**. The monorepo architecture and data models support any administrative outcome without requiring workspace restructuring:
 
 1. **Hostel Warden Assignment Cardinality ($1:1$ vs. $1:N$)**:
    - *Current Status*: Pending institutional governance policy.
-   - *Architecture Support*: The database (`@nestora/database`) models assignments using the associative table `hostel_assignments`. The backend (`apps/api`) resolves `request.user.assignedHostelIds` as an array. If the university mandates a strict 1:1 policy, the array simply contains a single ID; if 1:N is permitted, the frontend renders a hostel switcher dropdown.
+   - *Architecture Support*: The database (`@nestora/database`) models assignments using the associative table `hostel_assignments`. The Fastify backend (`apps/api`) resolves `request.user.assignedHostelIds` as an array. If the university mandates a strict 1:1 policy, the array simply contains a single ID; if 1:N is permitted, the frontend renders a hostel switcher dropdown.
 2. **Extended Leave Escalation Threshold**:
    - *Current Status*: Pending institutional policy determining the exact duration (e.g., $>7$ consecutive days) that requires University Administrator escalation.
    - *Architecture Support*: Stored as an institutional parameter in `system_configurations` and read dynamically by `apps/api/src/modules/mod08-leaves/leaves.service.ts`.
@@ -677,14 +854,14 @@ The four unresolved institutional decisions documented throughout the project sp
 
 ## 14. Architecture Consistency Verification
 
-The proposed monorepo architecture has been verified against all existing project documentation:
+The monorepo architecture has been verified against all existing project documentation:
 
 - **User Roles**: The six confirmed roles (`University Administrator`, `Hostel Warden`, `Student`, `Hostel Staff`, `Security Guard`, `Accountant`) are strictly preserved in `@nestora/types/src/roles.ts` and mapped to dedicated UI namespaces in `apps/web/src/app/(dashboard)/`.
 - **Physical Hierarchy**: The 7-tier physical hierarchy ($\text{University} \rightarrow \text{Hostel} \rightarrow \text{Building} \rightarrow \text{Block} \rightarrow \text{Floor} \rightarrow \text{Room} \rightarrow \text{Bed}$) is maintained identically across `@nestora/database` and `@nestora/types`.
 - **Room Configurations**: The six standardized room configurations (Single, Double, Triple; AC and Non-AC) are typed in `@nestora/types` and validated in `@nestora/validators`.
-- **Module Plan Alignment**: All 19 modules (`MOD-01` to `MOD-19`) and six implementation milestones (`MS-1` to `MS-6`) from [08-module-development-plan.md](docs/08-module-development-plan.md) map directly to modular packages in `apps/api/src/modules/`.
-- **Database Alignment**: All 56 relational tables and constraints from [07-database-design.md](docs/07-database-design.md) reside in `packages/database/prisma/schema.prisma`.
-- **Audit Logging**: Asynchronous emission of immutable audit records via `apps/api/src/modules/mod03-audit/` satisfies `AUTH-009` and `FR-140` through `FR-144`.
+- **Module Plan Alignment**: All 19 modules (`MOD-01` to `MOD-19`) and six implementation milestones (`MS-1` to `MS-6`) from [08-module-development-plan.md](./08-module-development-plan.md) map directly to modular packages in `apps/api/src/modules/`.
+- **Database Alignment**: All 56 relational tables and constraints from [07-database-design.md](./07-database-design.md) reside in `packages/database/prisma/schema.prisma`.
+- **Transactional Audit Logging**: Synchronous persistence of immutable audit records via `apps/api/src/modules/mod03-audit/` inside `prisma.$transaction()` satisfies `AUTH-009` and `FR-140` through `FR-144`.
 
 ---
 
