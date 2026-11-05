@@ -4,6 +4,6 @@
   "private": true,
   "description": "Shared TypeScript and Tailwind configuration presets for the Nestora monorepo",
   "devDependencies": {
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^4.3.3"
   }
 }
