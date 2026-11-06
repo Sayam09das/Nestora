@@ -29,12 +29,18 @@ importers:
       '@fastify/rate-limit':
         specifier: ^10.3.0
         version: 10.3.0
+      '@nestora/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@nestora/types':
         specifier: workspace:*
         version: link:../../packages/types
       fastify:
         specifier: ^5.4.0
         version: 5.12.8
+      fastify-plugin:
+        specifier: ^5.0.1
+        version: 5.1.0
       zod:
         specifier: ^3.25.67
         version: 3.25.76

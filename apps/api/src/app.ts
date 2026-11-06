@@ -4,12 +4,14 @@ import { fileURLToPath } from 'node:url';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import { databaseHealthCheck } from '@nestora/database';
 import type { FastifyError, FastifyServerOptions } from 'fastify';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { errorResponse, successResponse } from './common/api-response.js';
 import { ERROR_CODES } from './common/constants/index.js';
 import { isAppError } from './common/errors/index.js';
 import type { Env } from './config/env.js';
+import { prismaPlugin } from './plugins/prisma.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -97,6 +99,8 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
     timeWindow: '1 minute',
   });
 
+  await app.register(prismaPlugin);
+
   const apiVersion = readPackageVersion();
 
   app.setErrorHandler((error, request, reply) => {
@@ -146,18 +150,26 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
     return successResponse({ status: 'alive' }, 'Liveness probe succeeded.');
   });
 
-  app.get('/health/ready', async () => {
+  app.get('/health/ready', async (_request, reply) => {
+    const dbConnected = await databaseHealthCheck();
+    if (!dbConnected) {
+      return reply
+        .status(503)
+        .send(
+          errorResponse(
+            'SERVICE_UNAVAILABLE',
+            'PostgreSQL is not reachable; the API is not ready to serve traffic.',
+            {},
+          ),
+        );
+    }
     return successResponse(
       {
         status: 'ready',
         application: { status: 'ready' },
-        database: {
-          status: 'not_integrated',
-          message:
-            'PostgreSQL connectivity is not validated in this milestone; Prisma integration is planned separately.',
-        },
+        database: { status: 'connected', connected: true },
       },
-      'Readiness probe completed (application only).',
+      'Readiness probe passed.',
     );
   });
 
