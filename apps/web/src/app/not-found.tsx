@@ -1,4 +1,10 @@
 import Link from 'next/link';
+import { createPageMetadata } from '@/lib/seo/metadata';
+
+export const metadata = createPageMetadata({
+  title: 'Page not found',
+  noIndex: true,
+});
 
 export default function NotFound() {
   return (
