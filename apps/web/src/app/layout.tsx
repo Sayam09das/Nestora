@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
+import { createRootMetadata } from '@/lib/seo/metadata';
 import { cn } from '@/lib/utils';
 
 const inter = localFont({
@@ -25,10 +26,7 @@ const inter = localFont({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: 'Nestora',
-  description: 'University Hostel Management System',
-};
+export const metadata: Metadata = createRootMetadata();
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
