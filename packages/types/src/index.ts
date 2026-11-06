@@ -1,1 +1,8 @@
-export type { ApiErrorBody, ApiErrorResponse, ApiResponse, ApiSuccessResponse } from './api.js';
+export type {
+  ApiErrorBody,
+  ApiErrorResponse,
+  ApiPaginationMeta,
+  ApiResponse,
+  ApiResponseMeta,
+  ApiSuccessResponse,
+} from './api.js';
