@@ -1,0 +1,47 @@
+/* Hallmark · hero · critique: local dark subtree + single soft ambient layer (tokens only; no transition:all) */
+/* waive: reflex 26b — decorative preview chrome only; hero CTAs are links, no disabled targets in this scope */
+
+.nestora-hero {
+  position: relative;
+  isolation: isolate;
+}
+
+.nestora-hero__glow {
+  background: radial-gradient(
+    120% 80% at 18% -10%,
+    color-mix(in oklch, var(--primary) 22%, transparent) 0%,
+    transparent 58%
+  );
+}
+
+.nestora-hero__cta-primary,
+.nestora-hero__cta-secondary {
+  transition-property: transform, background-color, border-color, color;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nestora-hero__cta-primary:focus-visible,
+.nestora-hero__cta-secondary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.nestora-hero__cta-primary:active,
+.nestora-hero__cta-secondary:active {
+  opacity: 0.92;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nestora-hero__cta-primary,
+  .nestora-hero__cta-secondary {
+    transition-duration: 0.01ms;
+  }
+}
+
+.nestora-hero button:disabled,
+.nestora-hero [aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
