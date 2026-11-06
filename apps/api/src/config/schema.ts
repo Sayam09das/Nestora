@@ -12,7 +12,7 @@ export const envSchema = z
     CORS_ORIGIN: z.string().url().default('http://localhost:3000'),
     RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
 
-    DATABASE_URL: z.string().url().optional(),
+    DATABASE_URL: z.string().url(),
 
     COOKIE_SECRET: z.string().min(1).default(PLACEHOLDER_COOKIE_SECRET),
     SESSION_TTL_HOURS: z.coerce.number().int().positive().default(24),
