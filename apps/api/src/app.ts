@@ -1,37 +1,143 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import cors from '@fastify/cors';
-import { databaseHealthCheck } from '@nestora/database';
-import type { ApiSuccessResponse } from '@nestora/types';
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
+import type { FastifyError, FastifyServerOptions } from 'fastify';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { errorResponse, successResponse } from './common/api-response.js';
 import type { Env } from './config/env.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function readPackageVersion(): string {
+  try {
+    const raw = readFileSync(join(__dirname, '../package.json'), 'utf-8');
+    const pkg = JSON.parse(raw) as { version?: string };
+    return typeof pkg.version === 'string' ? pkg.version : '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
+
+function buildLoggerConfig(env: Env): boolean | FastifyServerOptions['logger'] {
+  if (env.NODE_ENV === 'production') {
+    return {
+      level: 'info',
+    };
+  }
+  return {
+    level: 'debug',
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        translateTime: 'HH:MM:ss Z',
+        ignore: 'pid,hostname',
+      },
+    },
+  };
+}
+
+function isFastifyError(error: unknown): error is FastifyError {
+  return typeof error === 'object' && error !== null && 'statusCode' in error;
+}
+
+function resolveErrorPayload(
+  env: Env,
+  error: unknown,
+): { statusCode: number; code: string; message: string } {
+  const err = isFastifyError(error) ? error : undefined;
+  const statusCode = err?.statusCode ?? 500;
+  const isProduction = env.NODE_ENV === 'production';
+
+  let code = 'REQUEST_ERROR';
+  if (err?.code === 'FST_ERR_VALIDATION') {
+    code = 'VALIDATION_ERROR';
+  } else if (statusCode === 429) {
+    code = 'RATE_LIMIT_EXCEEDED';
+  } else if (statusCode >= 500) {
+    code = 'INTERNAL_ERROR';
+  }
+
+  const rawMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
+  const message = statusCode >= 500 && isProduction ? 'An unexpected error occurred.' : rawMessage;
+
+  return { statusCode, code, message };
+}
 
 export async function buildApp(env: Env): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: {
-      level: env.NODE_ENV === 'production' ? 'info' : 'debug',
-    },
+    logger: buildLoggerConfig(env),
   });
+
+  await app.register(helmet);
 
   await app.register(cors, {
     origin: env.CORS_ORIGIN,
     credentials: true,
   });
 
-  app.get('/api/v1/health', async () => {
-    const database =
-      process.env.DATABASE_URL !== undefined
-        ? { connected: await databaseHealthCheck() }
-        : undefined;
+  await app.register(rateLimit, {
+    max: env.RATE_LIMIT_MAX,
+    timeWindow: '1 minute',
+  });
 
-    const body: ApiSuccessResponse<{
-      status: 'ok';
-      service: 'api';
-      database?: { connected: boolean };
-    }> = {
-      success: true,
-      data: { status: 'ok', service: 'api', ...(database ? { database } : {}) },
-      timestamp: new Date().toISOString(),
-    };
-    return body;
+  const apiVersion = readPackageVersion();
+
+  app.setErrorHandler((error, request, reply) => {
+    const log = request.log ?? app.log;
+    log.error({ err: error }, 'request failed');
+
+    const { statusCode, code, message } = resolveErrorPayload(env, error);
+    void reply.status(statusCode).send(errorResponse(code, message));
+  });
+
+  app.setNotFoundHandler((_request, reply) => {
+    void reply
+      .status(404)
+      .send(errorResponse('NOT_FOUND', 'The requested resource was not found.'));
+  });
+
+  app.get('/', async () => {
+    return successResponse(
+      {
+        name: 'Nestora API',
+        version: apiVersion,
+        environment: env.NODE_ENV,
+        baseUrl: env.API_URL ?? null,
+      },
+      'API information retrieved successfully.',
+    );
+  });
+
+  app.get('/health', async () => {
+    return successResponse(
+      {
+        status: 'healthy',
+        service: 'nestora-api',
+      },
+      'General health check passed.',
+    );
+  });
+
+  app.get('/health/live', async () => {
+    return successResponse({ status: 'alive' }, 'Liveness probe succeeded.');
+  });
+
+  app.get('/health/ready', async () => {
+    return successResponse(
+      {
+        status: 'ready',
+        application: { status: 'ready' },
+        database: {
+          status: 'not_integrated',
+          message:
+            'PostgreSQL connectivity is not validated in this milestone; Prisma integration is planned separately.',
+        },
+      },
+      'Readiness probe completed (application only).',
+    );
   });
 
   return app;
