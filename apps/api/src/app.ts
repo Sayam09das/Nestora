@@ -7,6 +7,8 @@ import rateLimit from '@fastify/rate-limit';
 import type { FastifyError, FastifyServerOptions } from 'fastify';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { errorResponse, successResponse } from './common/api-response.js';
+import { ERROR_CODES } from './common/constants/index.js';
+import { isAppError } from './common/errors/index.js';
 import type { Env } from './config/env.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -46,18 +48,30 @@ function isFastifyError(error: unknown): error is FastifyError {
 function resolveErrorPayload(
   env: Env,
   error: unknown,
-): { statusCode: number; code: string; message: string } {
+): { statusCode: number; code: string; message: string; details?: Record<string, unknown> } {
+  const isProduction = env.NODE_ENV === 'production';
+
+  if (isAppError(error)) {
+    const message =
+      error.statusCode >= 500 && isProduction ? 'An unexpected error occurred.' : error.message;
+    return {
+      statusCode: error.statusCode,
+      code: error.code,
+      message,
+      details: error.details,
+    };
+  }
+
   const err = isFastifyError(error) ? error : undefined;
   const statusCode = err?.statusCode ?? 500;
-  const isProduction = env.NODE_ENV === 'production';
 
   let code = 'REQUEST_ERROR';
   if (err?.code === 'FST_ERR_VALIDATION') {
-    code = 'VALIDATION_ERROR';
+    code = ERROR_CODES.VALIDATION_ERROR;
   } else if (statusCode === 429) {
-    code = 'RATE_LIMIT_EXCEEDED';
+    code = ERROR_CODES.RATE_LIMIT_EXCEEDED;
   } else if (statusCode >= 500) {
-    code = 'INTERNAL_ERROR';
+    code = ERROR_CODES.INTERNAL_ERROR;
   }
 
   const rawMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
@@ -89,14 +103,21 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
     const log = request.log ?? app.log;
     log.error({ err: error }, 'request failed');
 
-    const { statusCode, code, message } = resolveErrorPayload(env, error);
-    void reply.status(statusCode).send(errorResponse(code, message));
+    const { statusCode, code, message, details } = resolveErrorPayload(env, error);
+    const correlationId = typeof request.id === 'string' ? request.id : undefined;
+    const safeDetails = env.NODE_ENV === 'production' && statusCode >= 500 ? undefined : details;
+    void reply
+      .status(statusCode)
+      .send(errorResponse(code, message, { details: safeDetails, correlationId }));
   });
 
-  app.setNotFoundHandler((_request, reply) => {
-    void reply
-      .status(404)
-      .send(errorResponse('NOT_FOUND', 'The requested resource was not found.'));
+  app.setNotFoundHandler((request, reply) => {
+    const correlationId = typeof request.id === 'string' ? request.id : undefined;
+    void reply.status(404).send(
+      errorResponse(ERROR_CODES.NOT_FOUND, 'The requested resource was not found.', {
+        correlationId,
+      }),
+    );
   });
 
   app.get('/', async () => {
