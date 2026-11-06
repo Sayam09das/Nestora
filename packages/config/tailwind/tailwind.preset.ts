@@ -5,11 +5,36 @@ const nestoraPreset: Partial<Config> = {
   darkMode: ['class'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-inter)', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
+      fontSize: {
+        display: ['var(--text-display)', { lineHeight: 'var(--leading-display)', fontWeight: '600' }],
+        stat: ['var(--text-stat)', { lineHeight: '1.15', fontWeight: '600' }],
+        h1: ['var(--text-h1)', { lineHeight: 'var(--leading-tight)', fontWeight: '600' }],
+        h2: ['var(--text-h2)', { lineHeight: 'var(--leading-tight)', fontWeight: '600' }],
+        h3: ['var(--text-h3)', { lineHeight: 'var(--leading-tight)', fontWeight: '500' }],
+        body: ['var(--text-body)', { lineHeight: 'var(--leading-relaxed)', fontWeight: '400' }],
+        supporting: ['var(--text-supporting)', { lineHeight: 'var(--leading-relaxed)' }],
+        label: ['var(--text-label)', { lineHeight: 'var(--leading-normal)', fontWeight: '500' }],
+        caption: ['var(--text-caption)', { lineHeight: 'var(--leading-normal)' }],
+      },
+      boxShadow: {
+        nestora: 'var(--shadow-sm)',
+        'nestora-md': 'var(--shadow-md)',
+        'nestora-lg': 'var(--shadow-lg)',
+      },
       colors: {
         nestora: {
-          primary: '#1e3a5f',
-          accent: '#2563eb',
+          violet: '#8c83b8',
+          sage: '#9baf9b',
+          beige: '#c5a477',
+          'blue-gray': '#8c9eae',
+          error: '#e07a7a',
         },
+        success: 'var(--success)',
+        warning: 'var(--warning)',
+        info: 'var(--info)',
         background: 'var(--background)',
         foreground: 'var(--foreground)',
         card: {
