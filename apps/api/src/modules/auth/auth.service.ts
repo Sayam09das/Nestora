@@ -100,25 +100,6 @@ function toSessionUser(u: {
   };
 }
 
-export async function ensureBootstrapAdmin(prisma: PrismaClient, env: Env): Promise<void> {
-  const count = await prisma.user.count();
-  if (count > 0) {
-    return;
-  }
-  const passwordHash = await hashPassword('ChangeMeNow!123', argon2ParamsFromEnv(env));
-  await prisma.user.create({
-    data: {
-      email: 'admin@nestora.local',
-      passwordHash,
-      role: 'UNIVERSITY_ADMINISTRATOR',
-      firstName: 'University',
-      lastName: 'Administrator',
-      status: 'ACTIVE',
-      isVerified: true,
-    },
-  });
-}
-
 /**
  * Public self-signup is not part of MOD-01. Student hostel records are created in MOD-04 by
  * administrators/wardens (FR-010); user accounts are provisioned by admins (FR-006) and activated

@@ -17,13 +17,15 @@
     "db:migrate:neon-http": "node scripts/deploy-neon-http.mjs",
     "db:validate": "prisma validate",
     "db:seed": "tsx prisma/seed/seed.ts",
+    "admin:init": "node --env-file=.env --import tsx/esm scripts/admin-init.ts",
     "build": "prisma generate && tsc -p tsconfig.build.json",
     "typecheck": "prisma generate && tsc -p tsconfig.build.json --noEmit",
     "lint": "biome check src prisma/seed/seed.ts",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput"
   },
   "dependencies": {
-    "@prisma/client": "^6.9.0"
+    "@prisma/client": "^6.9.0",
+    "argon2": "^0.44.0"
   },
   "devDependencies": {
     "@nestora/config": "workspace:*",

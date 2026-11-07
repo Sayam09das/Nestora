@@ -12,6 +12,7 @@ import {
   deleteSessionById,
   getCsrfToken,
   getMe,
+  getRoleDashboardContract,
   getSession,
   getSessions,
   postActivateAccount,
@@ -47,6 +48,7 @@ const adminOnly = {
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   app.get('/csrf-token', getCsrfToken);
+  app.get('/role-dashboards', getRoleDashboardContract);
 
   app.get('/admin/users', adminOnly, getAdminUsers);
   app.get('/admin/users/:userId', adminOnly, getAdminUserById);

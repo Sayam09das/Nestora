@@ -1,5 +1,10 @@
 import type { Role } from '@nestora/database';
 import {
+  dashboardPathForRole,
+  ROLE_DASHBOARD_CONTRACT_VERSION,
+  ROLE_DASHBOARD_PATH,
+} from '@nestora/types';
+import {
   activateAccountBodySchema,
   changePasswordBodySchema,
   emailOnlyBodySchema,
@@ -157,7 +162,11 @@ export async function postLogin(request: FastifyRequest, reply: FastifyReply): P
       successResponse(
         {
           mfaRequired: true,
-          user: { email: result.user.email },
+          user: {
+            email: result.user.email,
+            role: result.user.role,
+            dashboardPath: dashboardPathForRole(result.user.role),
+          },
         },
         'Enter your multi-factor authentication code.',
       ),
@@ -178,9 +187,25 @@ export async function postLogin(request: FastifyRequest, reply: FastifyReply): P
           lastName: result.user.lastName,
           isVerified: result.user.isVerified,
           mfaEnabled: result.user.mfaEnabled,
+          dashboardPath: dashboardPathForRole(result.user.role),
         },
       },
       'Signed in successfully.',
+    ),
+  );
+}
+
+export async function getRoleDashboardContract(
+  _request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  reply.send(
+    successResponse(
+      {
+        version: ROLE_DASHBOARD_CONTRACT_VERSION,
+        dashboards: ROLE_DASHBOARD_PATH,
+      },
+      'Role dashboard redirect contract (FR-002).',
     ),
   );
 }
@@ -209,6 +234,7 @@ export async function getMe(request: FastifyRequest, reply: FastifyReply): Promi
           isVerified: user.isVerified,
           mfaEnabled: user.mfaEnabled,
           assignedHostelIds: user.assignedHostelIds,
+          dashboardPath: dashboardPathForRole(user.role),
         },
       },
       'Profile loaded.',
@@ -441,7 +467,14 @@ export async function postMfaVerifySession(
     ctx.sessionId,
     body.code,
   );
-  reply.send(successResponse({}, 'MFA verified for this session.'));
+  reply.send(
+    successResponse(
+      {
+        dashboardPath: dashboardPathForRole(ctx.user.role),
+      },
+      'MFA verified for this session.',
+    ),
+  );
 }
 
 export async function postMfaDisable(request: FastifyRequest, reply: FastifyReply): Promise<void> {
