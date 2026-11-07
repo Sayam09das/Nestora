@@ -3,9 +3,9 @@ import { PrismaClient } from '@nestora/database';
 import { dashboardPathForRole } from '@nestora/types';
 import * as argon2 from 'argon2';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { ForbiddenError, NotFoundError } from '../../common/errors/index.js';
 import type { Env } from '../../config/env.js';
 import { loadEnv } from '../../config/env.js';
-import { ForbiddenError, NotFoundError } from '../../common/errors/index.js';
 import * as authRepo from './auth.repository.js';
 import * as authService from './auth.service.js';
 import { listAuthActivityForAdmin } from './auth-activity.service.js';
@@ -163,13 +163,15 @@ describe.skipIf(!integrationEnabled)('auth MOD-01 integration', () => {
       '127.0.0.1',
     );
 
-    expect(lastActivationToken).toEqual(expect.any(String));
+    if (!lastActivationToken) {
+      throw new Error('Expected activation token from provision mail mock.');
+    }
 
     await authService.activateAccount(
       prisma,
       env,
       {
-        token: lastActivationToken!,
+        token: lastActivationToken,
         password: TEST_PASSWORD,
         passwordConfirm: TEST_PASSWORD,
       },

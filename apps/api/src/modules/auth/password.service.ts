@@ -1,4 +1,5 @@
 import * as argon2 from 'argon2';
+import { BadRequestError } from '../../common/errors/index.js';
 import type { Env } from '../../config/env.js';
 
 const MIN_LENGTH = 12;
@@ -33,10 +34,10 @@ export function defaultArgon2Params(): Argon2Params {
 
 export function validatePasswordPolicy(plain: string): void {
   if (plain.length < MIN_LENGTH) {
-    throw new Error(`Password must be at least ${MIN_LENGTH} characters.`);
+    throw new BadRequestError(`Password must be at least ${MIN_LENGTH} characters.`);
   }
   if (plain.length > MAX_LENGTH) {
-    throw new Error('Password is too long.');
+    throw new BadRequestError('Password is too long.');
   }
   const classes = [
     /[a-z]/.test(plain),
@@ -45,7 +46,7 @@ export function validatePasswordPolicy(plain: string): void {
     /[^A-Za-z0-9]/.test(plain),
   ].filter(Boolean).length;
   if (classes < 3) {
-    throw new Error(
+    throw new BadRequestError(
       'Password must include at least three of: lowercase, uppercase, digit, special character.',
     );
   }

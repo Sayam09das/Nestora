@@ -14,6 +14,10 @@ export const envSchema = z
     /** Comma-separated list of allowed browser origins for credentialed CORS. */
     CORS_ORIGINS: z.string().optional(),
     RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+    /** Stricter cap for login, reset, and activation endpoints (per IP, per minute). */
+    RATE_LIMIT_AUTH_MAX: z.coerce.number().int().positive().default(15),
+    /** When true, Fastify trusts X-Forwarded-For for request.ip (set behind a reverse proxy). */
+    TRUST_PROXY: z.coerce.boolean().default(false),
 
     DATABASE_URL: z.string().url(),
 
@@ -66,6 +70,15 @@ export const envSchema = z
           code: z.ZodIssueCode.custom,
           path: ['COOKIE_SECRET'],
           message: 'COOKIE_SECRET must be at least 32 characters in production.',
+        });
+      }
+
+      if (!data.MFA_ENCRYPTION_SECRET || data.MFA_ENCRYPTION_SECRET.length < 32) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['MFA_ENCRYPTION_SECRET'],
+          message:
+            'Set MFA_ENCRYPTION_SECRET to a dedicated 32+ character secret in production (do not reuse COOKIE_SECRET).',
         });
       }
 

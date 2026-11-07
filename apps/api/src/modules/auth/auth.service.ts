@@ -21,11 +21,6 @@ import {
 } from './auth.constants.js';
 import { AuthFlowError } from './auth.errors.js';
 import * as repo from './auth.repository.js';
-import {
-  consumePasswordResetAuth,
-  createPasswordResetAuth,
-  invalidatePasswordResetOtps,
-} from './auth.repository.js';
 import * as mailService from './mail.service.js';
 import {
   confirmMfaEnrollment,
@@ -55,7 +50,9 @@ import {
   recordLoginFailureForIp,
 } from './throttle.service.js';
 
-const DUMMY_HASH = '$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAA';
+/** Precomputed Argon2id hash (password never stored); used for timing-safe login when email is unknown. */
+const DUMMY_HASH =
+  '$argon2id$v=19$m=65536,t=3,p=4$ldHIlO5oWHiQL7HSpFvsBw$14KGqDgXM5e233P/XV6uoiYaZp5nmtjp+z4N5LgVaT8';
 
 async function verifyPasswordAntiEnumeration(
   password: string,
@@ -173,7 +170,7 @@ export async function provisionUser(
   const email = repo.normalizeEmail(input.email);
   const existing = await repo.findUserByEmail(prisma, email);
   if (existing) {
-    throw new BadRequestError('An account with this email already exists.');
+    throw new BadRequestError('Unable to provision an account for this email address.');
   }
 
   const placeholderHash = await argon2.hash(createOpaqueToken(), argon2ParamsFromEnv(env));
@@ -401,7 +398,8 @@ export async function login(
   }
 
   if (user.lockedUntil && user.lockedUntil > new Date()) {
-    throw new LockedError('Account is temporarily locked. Try again later.');
+    await recordFailure();
+    throw new UnauthorizedError('Invalid email or password.');
   }
 
   if (user.status !== 'ACTIVE') {
@@ -415,9 +413,8 @@ export async function login(
   }
 
   if (privilegedMfaRequired(env, user.role) && !user.mfaEnabled) {
-    throw new ForbiddenError(
-      'Multi-factor authentication must be enabled for your account before you can continue.',
-    );
+    await recordFailure();
+    throw new UnauthorizedError('Invalid email or password.');
   }
 
   const needsMfa = user.mfaEnabled || privilegedMfaRequired(env, user.role);
@@ -578,11 +575,11 @@ export async function forgotPassword(
   const user = await repo.findUserByEmail(prisma, email);
   if (user?.status !== 'ACTIVE') {
     await auditService.logAuditEvent(prisma, {
-      actorUserId: null,
-      actorRole: 'SYSTEM',
+      actorUserId: user?.id ?? null,
+      actorRole: user?.role ?? 'SYSTEM',
       actionName: 'PASSWORD_RESET_REQUESTED',
       entityType: 'User',
-      entityId: email,
+      entityId: user?.id ?? email,
       ipAddress: ip ?? null,
     });
     return;
@@ -612,39 +609,13 @@ export async function forgotPassword(
 }
 
 export async function verifyForgotPasswordOtp(
-  prisma: PrismaClient,
-  input: { email: string; code: string },
-  ip: string | undefined,
+  _prisma: PrismaClient,
+  _input: { email: string; code: string },
+  _ip: string | undefined,
 ): Promise<{ resetToken: string }> {
-  const email = repo.normalizeEmail(input.email);
-  const { ok } = await verifyOtpChallenge(prisma, {
-    emailNormalized: email,
-    purpose: 'PASSWORD_RESET',
-    code: input.code,
-  });
-  if (!ok) {
-    throw new AuthFlowError();
-  }
-
-  const user = await repo.findUserByEmail(prisma, email);
-  if (user?.status !== 'ACTIVE') {
-    throw new AuthFlowError();
-  }
-
-  const { rawToken } = await prisma.$transaction(async (tx) => {
-    return createPasswordResetAuth(tx, user.id);
-  });
-
-  await auditService.logAuditEvent(prisma, {
-    actorUserId: user.id,
-    actorRole: user.role,
-    actionName: 'PASSWORD_RESET_OTP_VERIFIED',
-    entityType: 'User',
-    entityId: user.id,
-    ipAddress: ip ?? null,
-  });
-
-  return { resetToken: rawToken };
+  throw new ForbiddenError(
+    'Password reset uses the secure link sent to your email. OTP-based reset is not available.',
+  );
 }
 
 /** FR-004: reset password using the single-use token from the email link. */
@@ -691,49 +662,16 @@ export async function resetPasswordWithEmailLink(
   }
 }
 
-/** Legacy: OTP step then short-lived reset token (prefer resetPasswordWithEmailLink). */
+/** Legacy OTP reset path disabled (FR-004 link-only). */
 export async function resetPasswordWithToken(
-  prisma: PrismaClient,
-  env: Env,
-  input: { resetToken: string; newPassword: string; newPasswordConfirm: string; email: string },
-  ip: string | undefined,
+  _prisma: PrismaClient,
+  _env: Env,
+  _input: { resetToken: string; newPassword: string; newPasswordConfirm: string; email: string },
+  _ip: string | undefined,
 ): Promise<void> {
-  if (input.newPassword !== input.newPasswordConfirm) {
-    throw new BadRequestError('Passwords do not match.');
-  }
-  validatePasswordPolicy(input.newPassword);
-  const email = repo.normalizeEmail(input.email);
-  const user = await repo.findUserByEmail(prisma, email);
-  if (!user) {
-    throw new AuthFlowError();
-  }
-
-  const consumed = await consumePasswordResetAuth(prisma, input.resetToken, user.id);
-  if (!consumed) {
-    throw new AuthFlowError();
-  }
-
-  const passwordHash = await hashPassword(input.newPassword, argon2ParamsFromEnv(env));
-
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({ where: { id: user.id }, data: { passwordHash } });
-    await invalidatePasswordResetOtps(tx, email);
-    await revokeAllUserSessions(tx, user.id);
-    await auditService.logAuditEventInTransaction(tx, {
-      actorUserId: user.id,
-      actorRole: user.role,
-      actionName: 'PASSWORD_RESET_COMPLETED',
-      entityType: 'User',
-      entityId: user.id,
-      ipAddress: ip ?? null,
-    });
-  });
-
-  try {
-    await mailService.sendPasswordChangedNotice(env, user.email);
-  } catch {
-    // non-fatal
-  }
+  throw new ForbiddenError(
+    'Password reset uses the secure link sent to your email. OTP-based reset is not available.',
+  );
 }
 
 export async function requestEmailVerification(

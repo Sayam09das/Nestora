@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { requireAuth } from '../../middleware/authenticate.js';
 import { requireRoles } from '../../middleware/authorize.js';
 import {
@@ -47,7 +47,17 @@ const adminOnly = {
   ],
 };
 
+function authSensitiveRateLimit(app: FastifyInstance) {
+  return {
+    rateLimit: {
+      max: app.config.RATE_LIMIT_AUTH_MAX,
+      timeWindow: '1 minute',
+    },
+  };
+}
+
 export const authRoutes: FastifyPluginAsync = async (app) => {
+  const sensitiveRateLimit = authSensitiveRateLimit(app);
   app.get('/csrf-token', getCsrfToken);
   app.get('/role-dashboards', getRoleDashboardContract);
 
@@ -61,7 +71,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   app.post('/register', postRegister);
   app.post('/register/verify-otp', postVerifyRegistrationOtp);
   app.post('/register/resend-otp', postResendRegistrationOtp);
-  app.post('/activate', postActivateAccount);
+  app.post('/activate', { config: sensitiveRateLimit }, postActivateAccount);
   app.post(
     '/users/provision',
     {
@@ -87,7 +97,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     postResendAccountActivation,
   );
 
-  app.post('/login', postLogin);
+  app.post('/login', { config: sensitiveRateLimit }, postLogin);
   app.post('/logout', postLogout);
 
   app.get('/me', getMe);
@@ -98,10 +108,10 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   app.post('/sessions/revoke-others', postRevokeOtherSessions);
 
   app.post('/password/change', postChangePassword);
-  app.post('/password/forgot', postForgotPassword);
-  app.post('/password/verify-otp', postVerifyForgotPasswordOtp);
-  app.post('/password/reset', postResetPassword);
-  app.post('/password/reset-with-link', postResetPasswordWithLink);
+  app.post('/password/forgot', { config: sensitiveRateLimit }, postForgotPassword);
+  app.post('/password/verify-otp', { config: sensitiveRateLimit }, postVerifyForgotPasswordOtp);
+  app.post('/password/reset', { config: sensitiveRateLimit }, postResetPassword);
+  app.post('/password/reset-with-link', { config: sensitiveRateLimit }, postResetPasswordWithLink);
 
   app.post('/email/verify-request', postRequestEmailVerification);
   app.post('/email/verify-complete', postCompleteEmailVerification);

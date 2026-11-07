@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { BadRequestError } from '../../common/errors/index.js';
 import { hashPassword, validatePasswordPolicy, verifyPassword } from './password.service.js';
 
 describe('password.service', () => {
   it('validatePasswordPolicy rejects short passwords', () => {
-    expect(() => validatePasswordPolicy('short')).toThrow();
+    expect(() => validatePasswordPolicy('short')).toThrow(BadRequestError);
   });
 
   it('hash and verify round-trip', async () => {

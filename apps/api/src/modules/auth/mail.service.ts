@@ -58,7 +58,7 @@ export async function sendPasswordResetLink(env: Env, to: string, rawToken: stri
     throw new Error('SMTP is not configured (SMTP_USER/SMTP_PASS).');
   }
   const transport = getTransport(env);
-  const url = `${env.WEB_URL}/forgot-password/reset?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(to)}`;
+  const url = `${env.WEB_URL}/forgot-password/reset?token=${encodeURIComponent(rawToken)}`;
   await transport.sendMail({
     from: env.SMTP_FROM,
     to,
