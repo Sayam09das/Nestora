@@ -166,6 +166,10 @@ export async function provisionUser(
     throw new BadRequestError('hostelId is required for Hostel Staff and Security Guard accounts.');
   }
 
+  if (input.hostelId) {
+    await repo.assertHostelExists(prisma, input.hostelId);
+  }
+
   const email = repo.normalizeEmail(input.email);
   const existing = await repo.findUserByEmail(prisma, email);
   if (existing) {

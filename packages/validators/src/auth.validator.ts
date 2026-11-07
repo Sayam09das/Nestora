@@ -126,6 +126,14 @@ export const adminListUsersQuerySchema = z.object({
   q: z.string().max(100).trim().optional(),
 });
 
+/** FR-009: filter auth-related audit events. */
+export const adminAuthActivityQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  userId: z.string().uuid().optional(),
+  action: z.string().max(64).trim().optional(),
+});
+
 export const adminUpdateUserStatusBodySchema = z
   .object({
     status: userStatusSchema,

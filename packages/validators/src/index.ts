@@ -1,5 +1,6 @@
 export {
   activateAccountBodySchema,
+  adminAuthActivityQuerySchema,
   adminListUsersQuerySchema,
   adminUpdateUserRoleBodySchema,
   adminUpdateUserStatusBodySchema,

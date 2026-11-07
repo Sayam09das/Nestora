@@ -1,5 +1,5 @@
 import type { OtpPurpose, PrismaClient, Role } from '@nestora/database';
-import { ForbiddenError } from '../../common/errors/index.js';
+import { ForbiddenError, NotFoundError } from '../../common/errors/index.js';
 import { createOpaqueToken, sha256Hex } from '../../lib/crypto-token.js';
 import {
   ACTIVATION_TOKEN_TTL_HOURS,
@@ -17,6 +17,16 @@ export async function findUserByEmail(prisma: PrismaClient, email: string) {
     where: { email },
     include: { hostelAssignments: { select: { hostelId: true } } },
   });
+}
+
+export async function assertHostelExists(prisma: PrismaClient, hostelId: string): Promise<void> {
+  const hostel = await prisma.hostel.findUnique({
+    where: { id: hostelId },
+    select: { id: true },
+  });
+  if (!hostel) {
+    throw new NotFoundError('Hostel not found.');
+  }
 }
 
 export async function findPendingByEmail(prisma: PrismaClient, email: string) {

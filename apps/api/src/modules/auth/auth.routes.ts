@@ -2,6 +2,7 @@ import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { requireAuth } from '../../middleware/authenticate.js';
 import { requireRoles } from '../../middleware/authorize.js';
 import {
+  getAdminAuthActivity,
   getAdminUserById,
   getAdminUsers,
   patchAdminUserRole,
@@ -50,6 +51,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   app.get('/csrf-token', getCsrfToken);
   app.get('/role-dashboards', getRoleDashboardContract);
 
+  app.get('/admin/auth-activity', adminOnly, getAdminAuthActivity);
   app.get('/admin/users', adminOnly, getAdminUsers);
   app.get('/admin/users/:userId', adminOnly, getAdminUserById);
   app.patch('/admin/users/:userId/status', adminOnly, patchAdminUserStatus);

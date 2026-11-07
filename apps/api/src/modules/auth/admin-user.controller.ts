@@ -1,5 +1,6 @@
 import type { Role } from '@nestora/database';
 import {
+  adminAuthActivityQuerySchema,
   adminListUsersQuerySchema,
   adminUpdateUserRoleBodySchema,
   adminUpdateUserStatusBodySchema,
@@ -9,6 +10,19 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { paginatedSuccessResponse, successResponse } from '../../common/api-response.js';
 import { requireAuth } from '../../middleware/authenticate.js';
 import * as adminUserService from './admin-user.service.js';
+import * as authActivityService from './auth-activity.service.js';
+
+export async function getAdminAuthActivity(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const query = adminAuthActivityQuerySchema.parse(request.query);
+  const { events, pagination } = await authActivityService.listAuthActivityForAdmin(
+    request.server.prisma,
+    query,
+  );
+  reply.send(paginatedSuccessResponse({ events }, 'Auth activity loaded.', pagination));
+}
 
 export async function getAdminUsers(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const query = adminListUsersQuerySchema.parse(request.query);
