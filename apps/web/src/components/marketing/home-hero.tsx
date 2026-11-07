@@ -33,7 +33,8 @@ export function HomeHero() {
 
   return (
     <section
-      className="nestora-hero border-b border-border bg-background text-foreground"
+      id="home"
+      className="nestora-hero relative border-b border-border bg-background text-foreground scroll-mt-24"
       aria-labelledby="nestora-hero-heading"
     >
       <div
