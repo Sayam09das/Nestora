@@ -1,3 +1,4 @@
+export { auditListQuerySchema, type AuditListQuery } from './audit.validator.js';
 export {
   activateAccountBodySchema,
   adminAuthActivityQuerySchema,

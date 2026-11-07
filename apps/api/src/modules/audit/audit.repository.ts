@@ -28,13 +28,17 @@ export function createAuditLog(db: AuditDb, input: CreateAuditInput) {
   });
 }
 
-export function listAuditLogs(prisma: PrismaClient, opts: { skip: number; take: number }) {
+export function listAuditLogs(
+  prisma: PrismaClient,
+  opts: { skip: number; take: number; where: Prisma.AuditLogWhereInput },
+) {
   return prisma.$transaction([
     prisma.auditLog.findMany({
+      where: opts.where,
       orderBy: { timestamp: 'desc' },
       skip: opts.skip,
       take: opts.take,
     }),
-    prisma.auditLog.count(),
+    prisma.auditLog.count({ where: opts.where }),
   ]);
 }
