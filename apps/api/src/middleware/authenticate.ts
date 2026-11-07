@@ -27,6 +27,7 @@ export async function authenticate(request: FastifyRequest, _reply: FastifyReply
     status: user.status,
     isVerified: user.isVerified,
     mfaEnabled: user.mfaEnabled,
+    mustChangePassword: user.mustChangePassword,
     assignedHostelIds: user.assignedHostelIds,
   };
 

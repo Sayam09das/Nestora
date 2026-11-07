@@ -145,3 +145,10 @@ export const adminUpdateUserRoleBodySchema = z
     role: roleEnumSchema,
   })
   .strict();
+
+/** FR-008: admin assigns a known temporary password; user must change it on next login. */
+export const adminSetTemporaryPasswordBodySchema = z
+  .object({
+    temporaryPassword: z.string().min(12).max(128),
+  })
+  .strict();

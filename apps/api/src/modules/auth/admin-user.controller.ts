@@ -2,6 +2,7 @@ import type { Role } from '@nestora/database';
 import {
   adminAuthActivityQuerySchema,
   adminListUsersQuerySchema,
+  adminSetTemporaryPasswordBodySchema,
   adminUpdateUserRoleBodySchema,
   adminUpdateUserStatusBodySchema,
   userIdParamsSchema,
@@ -89,4 +90,22 @@ export async function postAdminRevokeUserSessions(
     request.ip,
   );
   reply.send(successResponse(result, 'All active sessions for this user were revoked.'));
+}
+
+export async function postAdminSetTemporaryPassword(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const actor = requireAuth(request);
+  const { userId } = userIdParamsSchema.parse(request.params);
+  const body = adminSetTemporaryPasswordBodySchema.parse(request.body);
+  const user = await adminUserService.setTemporaryPasswordByAdmin(
+    request.server.prisma,
+    request.server.config,
+    { id: actor.id, role: actor.role as Role },
+    userId,
+    body.temporaryPassword,
+    request.ip,
+  );
+  reply.send(successResponse({ user }, 'Temporary password set; user must change it on login.'));
 }

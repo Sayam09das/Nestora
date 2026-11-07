@@ -10,6 +10,7 @@ export type SessionContext = {
     status: string;
     isVerified: boolean;
     mfaEnabled: boolean;
+    mustChangePassword: boolean;
     assignedHostelIds: string[];
   };
   sessionId: string;

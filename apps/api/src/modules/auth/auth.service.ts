@@ -82,6 +82,7 @@ function toSessionUser(u: {
   status: UserStatus;
   isVerified: boolean;
   mfaEnabled: boolean;
+  mustChangePassword: boolean;
   hostelAssignments: { hostelId: string }[];
 }): SessionUser {
   return {
@@ -93,6 +94,7 @@ function toSessionUser(u: {
     status: u.status,
     isVerified: u.isVerified,
     mfaEnabled: u.mfaEnabled,
+    mustChangePassword: u.mustChangePassword,
     assignedHostelIds: u.hostelAssignments.map((a) => a.hostelId),
   };
 }
@@ -249,6 +251,7 @@ export async function activateAccount(
         passwordHash,
         status: 'ACTIVE',
         isVerified: true,
+        mustChangePassword: false,
       },
     });
     await auditService.logAuditEventInTransaction(tx, {
@@ -528,7 +531,10 @@ export async function changePassword(
   const passwordHash = await hashPassword(input.newPassword, argon2ParamsFromEnv(env));
 
   const { rawToken } = await prisma.$transaction(async (tx) => {
-    await tx.user.update({ where: { id: userId }, data: { passwordHash } });
+    await tx.user.update({
+      where: { id: userId },
+      data: { passwordHash, mustChangePassword: false },
+    });
     await revokeAllUserSessions(tx, userId);
     const session = await createSessionRecord(tx, {
       userId,
@@ -643,7 +649,10 @@ export async function resetPasswordWithEmailLink(
   const passwordHash = await hashPassword(input.newPassword, argon2ParamsFromEnv(env));
 
   await prisma.$transaction(async (tx) => {
-    await tx.user.update({ where: { id: user.id }, data: { passwordHash } });
+    await tx.user.update({
+      where: { id: user.id },
+      data: { passwordHash, mustChangePassword: false },
+    });
     await revokeAllUserSessions(tx, user.id);
     await auditService.logAuditEventInTransaction(tx, {
       actorUserId: user.id,
