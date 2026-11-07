@@ -1,5 +1,8 @@
 export {
   activateAccountBodySchema,
+  adminListUsersQuerySchema,
+  adminUpdateUserRoleBodySchema,
+  adminUpdateUserStatusBodySchema,
   changePasswordBodySchema,
   emailOnlyBodySchema,
   forgotPasswordBodySchema,
@@ -13,6 +16,8 @@ export {
   resetPasswordBodySchema,
   roleEnumSchema,
   sessionIdParamsSchema,
+  userIdParamsSchema,
+  userStatusSchema,
   verifyEmailBodySchema,
   verifyPasswordResetOtpBodySchema,
   verifyRegistrationOtpBodySchema,

@@ -111,3 +111,29 @@ export const mfaDisableBodySchema = z.object({
 export const sessionIdParamsSchema = z.object({
   sessionId: z.string().uuid(),
 });
+
+export const userIdParamsSchema = z.object({
+  userId: z.string().uuid(),
+});
+
+export const userStatusSchema = z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']);
+
+export const adminListUsersQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  status: userStatusSchema.optional(),
+  role: roleEnumSchema.optional(),
+  q: z.string().max(100).trim().optional(),
+});
+
+export const adminUpdateUserStatusBodySchema = z
+  .object({
+    status: userStatusSchema,
+  })
+  .strict();
+
+export const adminUpdateUserRoleBodySchema = z
+  .object({
+    role: roleEnumSchema,
+  })
+  .strict();

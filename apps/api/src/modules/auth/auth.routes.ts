@@ -1,6 +1,13 @@
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { requireAuth } from '../../middleware/authenticate.js';
 import { requireRoles } from '../../middleware/authorize.js';
+import {
+  getAdminUserById,
+  getAdminUsers,
+  patchAdminUserRole,
+  patchAdminUserStatus,
+  postAdminRevokeUserSessions,
+} from './admin-user.controller.js';
 import {
   deleteSessionById,
   getCsrfToken,
@@ -29,8 +36,23 @@ import {
   postVerifyRegistrationOtp,
 } from './auth.controller.js';
 
+const adminOnly = {
+  preHandler: [
+    async (request: FastifyRequest) => {
+      requireAuth(request);
+    },
+    requireRoles('UNIVERSITY_ADMINISTRATOR'),
+  ],
+};
+
 export const authRoutes: FastifyPluginAsync = async (app) => {
   app.get('/csrf-token', getCsrfToken);
+
+  app.get('/admin/users', adminOnly, getAdminUsers);
+  app.get('/admin/users/:userId', adminOnly, getAdminUserById);
+  app.patch('/admin/users/:userId/status', adminOnly, patchAdminUserStatus);
+  app.patch('/admin/users/:userId/role', adminOnly, patchAdminUserRole);
+  app.post('/admin/users/:userId/revoke-sessions', adminOnly, postAdminRevokeUserSessions);
 
   app.post('/register', postRegister);
   app.post('/register/verify-otp', postVerifyRegistrationOtp);
