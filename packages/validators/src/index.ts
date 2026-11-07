@@ -3,6 +3,7 @@ export {
   activateAccountBodySchema,
   adminAuthActivityQuerySchema,
   adminListUsersQuerySchema,
+  adminSetTemporaryPasswordBodySchema,
   adminUpdateUserRoleBodySchema,
   adminUpdateUserStatusBodySchema,
   changePasswordBodySchema,

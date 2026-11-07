@@ -2,7 +2,9 @@ import type { Prisma, PrismaClient, Role, UserStatus } from '@nestora/database';
 import { DEFAULT_PAGE, DEFAULT_PAGE_LIMIT } from '../../common/constants/limits.js';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../common/errors/index.js';
 import { buildPaginationMeta, normalizePagination } from '../../common/helpers/index.js';
+import type { Env } from '../../config/env.js';
 import * as auditService from '../audit/audit.service.js';
+import { argon2ParamsFromEnv, hashPassword } from './password.service.js';
 import { revokeAllUserSessions } from './session.service.js';
 
 export type AdminUserListQuery = {
@@ -23,6 +25,7 @@ export type AdminUserSummary = {
   status: UserStatus;
   isVerified: boolean;
   mfaEnabled: boolean;
+  mustChangePassword: boolean;
   assignedHostelIds: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -43,6 +46,7 @@ function toAdminUserSummary(
     status: u.status,
     isVerified: u.isVerified,
     mfaEnabled: u.mfaEnabled,
+    mustChangePassword: u.mustChangePassword,
     assignedHostelIds: u.hostelAssignments.map((a) => a.hostelId),
     createdAt: u.createdAt,
     updatedAt: u.updatedAt,
@@ -249,4 +253,54 @@ export async function revokeAllUserSessionsByAdmin(
   });
 
   return { revoked: true };
+}
+
+export async function setTemporaryPasswordByAdmin(
+  prisma: PrismaClient,
+  env: Env,
+  actor: { id: string; role: Role },
+  userId: string,
+  temporaryPassword: string,
+  ip: string | undefined,
+): Promise<AdminUserSummary> {
+  if (actor.id === userId) {
+    throw new ForbiddenError('Use change password instead of setting a temporary password on yourself.');
+  }
+
+  const existing = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { hostelAssignments: { select: { hostelId: true } } },
+  });
+  if (!existing) {
+    throw new NotFoundError('User not found.');
+  }
+  if (existing.status !== 'ACTIVE') {
+    throw new BadRequestError('Temporary passwords can only be set for active accounts.');
+  }
+
+  const passwordHash = await hashPassword(temporaryPassword, argon2ParamsFromEnv(env));
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const u = await tx.user.update({
+      where: { id: userId },
+      data: {
+        passwordHash,
+        mustChangePassword: true,
+      },
+      include: { hostelAssignments: { select: { hostelId: true } } },
+    });
+    await revokeAllUserSessions(tx, userId);
+    await auditService.logAuditEventInTransaction(tx, {
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      actionName: 'USER_TEMPORARY_PASSWORD_SET',
+      entityType: 'User',
+      entityId: userId,
+      ipAddress: ip ?? null,
+      newState: { mustChangePassword: true },
+    });
+    return u;
+  });
+
+  return toAdminUserSummary(updated);
 }

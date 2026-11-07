@@ -10,3 +10,4 @@ export {
   UnauthorizedError,
   UnprocessableEntityError,
 } from './http-errors.js';
+export { MustChangePasswordError } from './must-change-password.error.js';

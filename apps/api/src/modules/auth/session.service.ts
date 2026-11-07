@@ -98,6 +98,7 @@ export async function validateAndLoadSession(
       status: session.user.status,
       isVerified: session.user.isVerified,
       mfaEnabled: session.user.mfaEnabled,
+      mustChangePassword: session.user.mustChangePassword,
       assignedHostelIds: session.user.hostelAssignments.map((h) => h.hostelId),
     },
   };
@@ -114,6 +115,7 @@ export function sessionContextToUser(ctx: SessionContext): SessionUser {
     status: u.status,
     isVerified: u.isVerified,
     mfaEnabled: u.mfaEnabled,
+    mustChangePassword: u.mustChangePassword,
     assignedHostelIds: u.assignedHostelIds,
   };
 }

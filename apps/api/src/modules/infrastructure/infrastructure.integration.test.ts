@@ -22,6 +22,7 @@ function sessionUser(
     status: string;
     isVerified: boolean;
     mfaEnabled: boolean;
+    mustChangePassword?: boolean;
   },
   assignedHostelIds: string[] = [],
 ): SessionUser {
@@ -34,6 +35,7 @@ function sessionUser(
     status: user.status,
     isVerified: user.isVerified,
     mfaEnabled: user.mfaEnabled,
+    mustChangePassword: user.mustChangePassword ?? false,
     assignedHostelIds,
   };
 }

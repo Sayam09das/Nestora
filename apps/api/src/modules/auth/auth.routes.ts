@@ -8,6 +8,7 @@ import {
   patchAdminUserRole,
   patchAdminUserStatus,
   postAdminRevokeUserSessions,
+  postAdminSetTemporaryPassword,
 } from './admin-user.controller.js';
 import {
   deleteSessionById,
@@ -67,6 +68,11 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   app.patch('/admin/users/:userId/status', adminOnly, patchAdminUserStatus);
   app.patch('/admin/users/:userId/role', adminOnly, patchAdminUserRole);
   app.post('/admin/users/:userId/revoke-sessions', adminOnly, postAdminRevokeUserSessions);
+  app.post(
+    '/admin/users/:userId/temporary-password',
+    adminOnly,
+    postAdminSetTemporaryPassword,
+  );
 
   app.post('/register', postRegister);
   app.post('/register/verify-otp', postVerifyRegistrationOtp);

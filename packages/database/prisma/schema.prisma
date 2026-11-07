@@ -123,6 +123,8 @@ model User {
 
   mfaEnabled   Boolean @default(false) @map("mfa_enabled")
   mfaSecretEnc String? @map("mfa_secret_enc") @db.Text
+  /** FR-008: block protected APIs until the user sets a new password (e.g. after admin temporary password). */
+  mustChangePassword Boolean @default(false) @map("must_change_password")
 
   @@index([email], map: "idx_users_email")
   @@map("users")
