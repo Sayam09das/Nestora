@@ -1,9 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import cors from '@fastify/cors';
-import helmet from '@fastify/helmet';
-import rateLimit from '@fastify/rate-limit';
 import { databaseHealthCheck } from '@nestora/database';
 import type { FastifyError, FastifyServerOptions } from 'fastify';
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -11,7 +8,18 @@ import { errorResponse, successResponse } from './common/api-response.js';
 import { ERROR_CODES } from './common/constants/index.js';
 import { isAppError } from './common/errors/index.js';
 import type { Env } from './config/env.js';
+import { authenticate } from './middleware/authenticate.js';
+import { authPlugin } from './modules/auth/index.js';
+import { auditPlugin } from './modules/audit/index.js';
+import { infrastructurePlugin } from './modules/infrastructure/index.js';
+import { configPluginWrapped } from './plugins/config.js';
+import { cookiePluginWrapped } from './plugins/cookie.js';
+import { corsPluginWrapped } from './plugins/cors.js';
+import { csrfPluginWrapped } from './plugins/csrf.js';
+import { helmetPlugin } from './plugins/helmet.js';
 import { prismaPlugin } from './plugins/prisma.js';
+import { rateLimitPluginWrapped } from './plugins/rate-limit.js';
+import { sessionPluginWrapped } from './plugins/session.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -85,21 +93,21 @@ function resolveErrorPayload(
 export async function buildApp(env: Env): Promise<FastifyInstance> {
   const app = Fastify({
     logger: buildLoggerConfig(env),
+    requestIdHeader: 'x-request-id',
   });
 
-  await app.register(helmet);
-
-  await app.register(cors, {
-    origin: env.CORS_ORIGIN,
-    credentials: true,
-  });
-
-  await app.register(rateLimit, {
-    max: env.RATE_LIMIT_MAX,
-    timeWindow: '1 minute',
-  });
-
+  await app.register(configPluginWrapped, { env });
+  await app.register(helmetPlugin);
+  await app.register(corsPluginWrapped, { env });
+  await app.register(rateLimitPluginWrapped, { env });
+  await app.register(cookiePluginWrapped, { env });
   await app.register(prismaPlugin);
+  await app.register(sessionPluginWrapped);
+  await app.register(csrfPluginWrapped, { env });
+
+  app.addHook('onRequest', async (request, reply) => {
+    await authenticate(request, reply);
+  });
 
   const apiVersion = readPackageVersion();
 
@@ -172,6 +180,17 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
       'Readiness probe passed.',
     );
   });
+
+  await app.register(
+    async (v1) => {
+      v1.get('/', async () => successResponse({ apiVersion: 1 }, 'Nestora API v1 root.'));
+
+      await v1.register(authPlugin);
+      await v1.register(infrastructurePlugin);
+      await v1.register(auditPlugin);
+    },
+    { prefix: '/api/v1' },
+  );
 
   return app;
 }

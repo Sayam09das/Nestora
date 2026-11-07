@@ -1,7 +1,5 @@
 'use client';
 
-import './navbar.css';
-
 import { ArrowRight, Menu } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';

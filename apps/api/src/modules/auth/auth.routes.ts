@@ -1,0 +1,99 @@
+import type { FastifyPluginAsync } from 'fastify';
+import { requireAuth } from '../../middleware/authenticate.js';
+import { requireRoles } from '../../middleware/authorize.js';
+import {
+  deleteSessionById,
+  getCsrfToken,
+  getMe,
+  getSession,
+  getSessions,
+  postActivateAccount,
+  postChangePassword,
+  postCompleteEmailVerification,
+  postForgotPassword,
+  postLogin,
+  postLogout,
+  postMfaDisable,
+  postMfaEnrollmentConfirm,
+  postMfaEnrollmentStart,
+  postMfaVerifySession,
+  postProvisionUser,
+  postRegister,
+  postRequestEmailVerification,
+  postResendAccountActivation,
+  postResendRegistrationOtp,
+  postResetPassword,
+  postResetPasswordWithLink,
+  postRevokeOtherSessions,
+  postVerifyForgotPasswordOtp,
+  postVerifyRegistrationOtp,
+} from './auth.controller.js';
+
+export const authRoutes: FastifyPluginAsync = async (app) => {
+  app.get('/csrf-token', getCsrfToken);
+
+  app.post('/register', postRegister);
+  app.post('/register/verify-otp', postVerifyRegistrationOtp);
+  app.post('/register/resend-otp', postResendRegistrationOtp);
+  app.post('/activate', postActivateAccount);
+  app.post(
+    '/users/provision',
+    {
+      preHandler: [
+        async (request) => {
+          requireAuth(request);
+        },
+        requireRoles('UNIVERSITY_ADMINISTRATOR', 'HOSTEL_WARDEN'),
+      ],
+    },
+    postProvisionUser,
+  );
+  app.post(
+    '/users/resend-activation',
+    {
+      preHandler: [
+        async (request) => {
+          requireAuth(request);
+        },
+        requireRoles('UNIVERSITY_ADMINISTRATOR'),
+      ],
+    },
+    postResendAccountActivation,
+  );
+
+  app.post('/login', postLogin);
+  app.post('/logout', postLogout);
+
+  app.get('/me', getMe);
+  app.get('/session', getSession);
+
+  app.get('/sessions', getSessions);
+  app.delete('/sessions/:sessionId', deleteSessionById);
+  app.post('/sessions/revoke-others', postRevokeOtherSessions);
+
+  app.post('/password/change', postChangePassword);
+  app.post('/password/forgot', postForgotPassword);
+  app.post('/password/verify-otp', postVerifyForgotPasswordOtp);
+  app.post('/password/reset', postResetPassword);
+  app.post('/password/reset-with-link', postResetPasswordWithLink);
+
+  app.post('/email/verify-request', postRequestEmailVerification);
+  app.post('/email/verify-complete', postCompleteEmailVerification);
+
+  app.post(
+    '/mfa/enrollment/start',
+    { preHandler: requireRoles('UNIVERSITY_ADMINISTRATOR', 'ACCOUNTANT') },
+    postMfaEnrollmentStart,
+  );
+  app.post(
+    '/mfa/enrollment/confirm',
+    { preHandler: requireRoles('UNIVERSITY_ADMINISTRATOR', 'ACCOUNTANT') },
+    postMfaEnrollmentConfirm,
+  );
+  app.post('/mfa/verify-session', postMfaVerifySession);
+  app.post(
+    '/mfa/disable',
+    { preHandler: requireRoles('UNIVERSITY_ADMINISTRATOR', 'ACCOUNTANT') },
+    postMfaDisable,
+  );
+};

@@ -1,7 +1,5 @@
 'use client';
 
-import './home-hero.css';
-
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';

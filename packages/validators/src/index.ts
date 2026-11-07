@@ -1,1 +1,25 @@
-export {};
+export {
+  activateAccountBodySchema,
+  changePasswordBodySchema,
+  emailOnlyBodySchema,
+  forgotPasswordBodySchema,
+  loginBodySchema,
+  provisionUserBodySchema,
+  resetPasswordLinkBodySchema,
+  mfaDisableBodySchema,
+  mfaVerifyBodySchema,
+  registerBodySchema,
+  resendOtpBodySchema,
+  resetPasswordBodySchema,
+  roleEnumSchema,
+  sessionIdParamsSchema,
+  verifyEmailBodySchema,
+  verifyPasswordResetOtpBodySchema,
+  verifyRegistrationOtpBodySchema,
+  type LoginBody,
+  type RegisterBody,
+} from './auth.validator.js';
+export {
+  createUniversityBodySchema,
+  type CreateUniversityBody,
+} from './infrastructure.validator.js';

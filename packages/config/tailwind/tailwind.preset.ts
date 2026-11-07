@@ -30,10 +30,10 @@ const nestoraPreset: Partial<Config> = {
       },
       colors: {
         nestora: {
-          violet: '#8c83b8',
-          sage: '#9baf9b',
-          beige: '#c5a477',
-          'blue-gray': '#8c9eae',
+          sage: '#6d9773',
+          forest: '#0c3b2e',
+          gold: '#bb8a52',
+          amber: '#ffba00',
           error: '#e07a7a',
         },
         success: 'var(--success)',
