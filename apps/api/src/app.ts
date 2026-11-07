@@ -9,8 +9,8 @@ import { ERROR_CODES } from './common/constants/index.js';
 import { isAppError } from './common/errors/index.js';
 import type { Env } from './config/env.js';
 import { authenticate } from './middleware/authenticate.js';
-import { authPlugin } from './modules/auth/index.js';
 import { auditPlugin } from './modules/audit/index.js';
+import { authPlugin } from './modules/auth/index.js';
 import { infrastructurePlugin } from './modules/infrastructure/index.js';
 import { configPluginWrapped } from './plugins/config.js';
 import { cookiePluginWrapped } from './plugins/cookie.js';
@@ -94,6 +94,7 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
   const app = Fastify({
     logger: buildLoggerConfig(env),
     requestIdHeader: 'x-request-id',
+    trustProxy: env.TRUST_PROXY,
   });
 
   await app.register(configPluginWrapped, { env });
