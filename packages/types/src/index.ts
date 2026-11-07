@@ -6,3 +6,4 @@ export type {
   ApiResponseMeta,
   ApiSuccessResponse,
 } from './api.js';
+export type { SessionUser } from './auth.js';

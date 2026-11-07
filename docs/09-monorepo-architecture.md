@@ -90,9 +90,9 @@ Nestora/
 │       │   │   ├── helpers/                 # Standard JSON envelope formatters, pagination helpers
 │       │   │   └── constants/               # System limits, default thresholds, error codes
 │       │   ├── modules/                     # 19 In-Process Domain Business Modules
-│       │   │   ├── mod01-auth/              # MOD-01: Authentication & Account Management
-│       │   │   ├── mod02-infrastructure/    # MOD-02: Hostel Infrastructure Management
-│       │   │   ├── mod03-audit/             # MOD-03: Audit Logging Service (Transactional)
+│       │   │   ├── auth/                    # MOD-01: Authentication & Account Management
+│       │   │   ├── infrastructure/          # MOD-02: Hostel Infrastructure Management
+│       │   │   ├── audit/                   # MOD-03: Audit Logging Service (Transactional)
 │       │   │   ├── mod04-admissions/        # MOD-04: Student Admission & Registration
 │       │   │   ├── mod05-allocation/        # MOD-05: Room & Bed Allocation
 │       │   │   ├── mod06-checkin-checkout/  # MOD-06: Student Check-In & Check-Out
@@ -901,7 +901,7 @@ The monorepo architecture has been verified against all existing project documen
 - **Room Configurations**: The six standardized room configurations (Single, Double, Triple; AC and Non-AC) are typed in `@nestora/types` and validated in `@nestora/validators`.
 - **Module Plan Alignment**: All 19 modules (`MOD-01` to `MOD-19`) and six implementation milestones (`MS-1` to `MS-6`) from [08-module-development-plan.md](./08-module-development-plan.md) map directly to modular packages in `apps/api/src/modules/`.
 - **Database Alignment**: All 56 relational tables and constraints from [07-database-design.md](./07-database-design.md) reside in `packages/database/prisma/schema.prisma`.
-- **Transactional Audit Logging**: Synchronous persistence of immutable audit records via `apps/api/src/modules/mod03-audit/` inside `prisma.$transaction()` satisfies `AUTH-009` and `FR-140` through `FR-144`.
+- **Transactional Audit Logging**: Synchronous persistence of immutable audit records via `apps/api/src/modules/audit/` inside `prisma.$transaction()` satisfies `AUTH-009` and `FR-140` through `FR-144`.
 
 ---
 
