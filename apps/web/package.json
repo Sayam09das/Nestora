@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start --port 3000",
     "typecheck": "tsc --noEmit",
-    "lint": "biome check src"
+    "lint": "biome check src",
+    "brand:rasterize": "node scripts/rasterize-brand.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -47,6 +48,7 @@
   },
   "devDependencies": {
     "@nestora/config": "workspace:*",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^22.15.29",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",

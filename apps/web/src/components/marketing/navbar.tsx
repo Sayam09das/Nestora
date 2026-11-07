@@ -1,11 +1,12 @@
 'use client';
 
-import { ArrowRight, Menu } from 'lucide-react';
+import { ArrowUpRight, Menu } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 
-import { Button, buttonVariants } from '@/components/ui/button';
+import { nestoraPrimaryCtaClasses } from '@/components/marketing/cta-styles';
+import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetClose,
@@ -24,7 +25,7 @@ const navItems = [
 ] as const;
 
 const navLinkClass =
-  'text-label font-medium tracking-normal text-foreground/90 transition-[color,opacity] duration-150 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--ring)]';
+  'text-label font-medium tracking-normal text-[color:var(--nestora-nav-muted)] transition-[color,opacity] duration-150 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_13%,transparent)]';
 
 export function MarketingNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -72,20 +73,17 @@ export function MarketingNavbar() {
           <Link href="/login" className={cn(navLinkClass, 'hidden sm:inline')} prefetch={false}>
             Login
           </Link>
-          <Button
-            size="default"
-            nativeButton={false}
-            render={<Link href="/register" prefetch={false} />}
-            className="marketing-nav-cta relative isolate overflow-hidden hidden h-10 min-h-10 gap-2 px-4 text-body font-medium sm:inline-flex hover:-translate-y-px hover:shadow-[0_6px_22px_-6px_color-mix(in_oklch,var(--primary)_42%,transparent)] motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-none active:translate-y-px motion-reduce:active:translate-y-0"
+          <Link
+            href="/register"
+            prefetch={false}
+            className={cn(
+              'hidden h-11 min-h-11 px-6 text-body sm:inline-flex motion-reduce:transition-none',
+              nestoraPrimaryCtaClasses,
+            )}
           >
-            <span className="relative z-[1] flex min-w-0 items-center gap-2">
-              Get started
-              <ArrowRight
-                className="size-4 shrink-0 transition-transform duration-200 ease-out group-hover/button:translate-x-1 motion-reduce:transition-none motion-reduce:group-hover/button:translate-x-0"
-                aria-hidden
-              />
-            </span>
-          </Button>
+            Get started
+            <ArrowUpRight className="size-4 shrink-0 text-current" aria-hidden strokeWidth={2.25} />
+          </Link>
 
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger
@@ -145,17 +143,16 @@ export function MarketingNavbar() {
                       prefetch={false}
                       onClick={() => setMobileOpen(false)}
                       className={cn(
-                        buttonVariants({ variant: 'default', size: 'default' }),
-                        'marketing-nav-cta relative isolate overflow-hidden mt-3 h-10 min-h-10 justify-center gap-2 px-4 text-body font-medium hover:-translate-y-px hover:shadow-[0_6px_22px_-6px_color-mix(in_oklch,var(--primary)_42%,transparent)] motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-none active:translate-y-px motion-reduce:active:translate-y-0',
+                        'mt-3 h-11 min-h-11 w-full px-6 text-body motion-reduce:transition-none',
+                        nestoraPrimaryCtaClasses,
                       )}
                     >
-                      <span className="relative z-[1] flex min-w-0 items-center gap-2">
-                        Get started
-                        <ArrowRight
-                          className="size-4 shrink-0 transition-transform duration-200 ease-out group-hover/button:translate-x-1 motion-reduce:transition-none motion-reduce:group-hover/button:translate-x-0"
-                          aria-hidden
-                        />
-                      </span>
+                      Get started
+                      <ArrowUpRight
+                        className="size-4 shrink-0 text-current"
+                        aria-hidden
+                        strokeWidth={2.25}
+                      />
                     </Link>
                   }
                 />

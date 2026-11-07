@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Nestora">
+  <title>Nestora</title>
+  <rect width="512" height="512" fill="#f5f4ec"/>
+  <path fill="#6d9773" d="M72 216 256 64l184 152v48H72z"/>
+  <g fill="#18352b">
+    <rect x="220" y="128" width="26" height="26" rx="3"/>
+    <rect x="266" y="128" width="26" height="26" rx="3"/>
+    <rect x="220" y="162" width="26" height="26" rx="3"/>
+    <rect x="266" y="162" width="26" height="26" rx="3"/>
+  </g>
+  <g fill="#0c3b2e">
+    <rect x="132" y="216" width="28" height="188" rx="4"/>
+    <rect x="168" y="216" width="28" height="188" rx="4"/>
+    <rect x="204" y="216" width="28" height="188" rx="4"/>
+    <rect x="280" y="216" width="28" height="188" rx="4"/>
+    <rect x="316" y="216" width="28" height="188" rx="4"/>
+    <rect x="352" y="216" width="28" height="188" rx="4"/>
+  </g>
+  <path
+    fill="#6d9773"
+    d="M232 244h28v48l64-48h28v120h-28V308l-64 48h-28V244z"
+  />
+  <path fill="#0c3b2e" d="M96 388h320v32H96zm80 48h160v28H176z"/>
+  <rect x="96" y="420" width="320" height="12" fill="#bb8a52"/>
+</svg>

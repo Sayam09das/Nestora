@@ -1,10 +1,16 @@
-# Social & marketing images
+# Brand images (PNG)
 
-Assets are served from the `public/images/` folder (`/images/...` in URLs).
+The app uses **raster PNGs**, not SVG in the UI. Edit the source SVGs, then re-export:
 
-| File | Size | Use |
-| ---- | ---- | --- |
-| `image.png` | 1254×1254 | Navbar mark, favicon, PWA icon, Apple touch icon |
-| `logo.png` | 2172×724 | Open Graph / Twitter preview |
+```bash
+pnpm --filter @nestora/web brand:rasterize
+```
 
-**Recommended future asset:** `og-image.png` at **1200×630** for optimal social cards (not required; `logo.png` is used today).
+| Output | Source | Size | Use |
+| ------ | ------ | ---- | --- |
+| `image.png` | `nestora-mark.svg` | 1024×1024 | Navbar, favicon metadata, manifest, JSON-LD logo |
+| `logo.png` | `logo.svg` | 1200×… | Open Graph / Twitter |
+| `src/app/icon.png` | `nestora-mark.svg` | 512×512 | Next.js favicon |
+| `src/app/apple-icon.png` | `nestora-mark.svg` | 180×180 | Apple touch icon |
+
+Palette (see `globals.css`): cream `#F5F4EC`, sage `#6D9773`, forest `#0C3B2E`, ink `#18352B`, tan `#BB8A52`.

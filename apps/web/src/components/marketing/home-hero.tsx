@@ -1,11 +1,14 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  nestoraPrimaryCtaClasses,
+  nestoraSecondaryCtaClasses,
+} from '@/components/marketing/cta-styles';
 import { cn } from '@/lib/utils';
 
 const heroEase = [0.22, 1, 0.36, 1] as const;
@@ -88,21 +91,26 @@ export function HomeHero() {
               animate={reduceMotion ? undefined : 'visible'}
               variants={reduceMotion ? undefined : fadeUp(0.18)}
             >
-              <Button
-                variant="default"
-                size="default"
-                nativeButton={false}
-                render={<Link href="/register" prefetch={false} />}
-                className="nestora-hero__cta-primary h-10 min-h-10 gap-2 px-4 text-body font-medium transition-[transform,background-color] duration-200 ease-out hover:-translate-y-px hover:shadow-[0_10px_28px_-10px_color-mix(in_oklch,var(--primary)_45%,transparent)] motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-none active:translate-y-px motion-reduce:active:translate-y-0"
+              <Link
+                href="/register"
+                prefetch={false}
+                className={cn(
+                  'h-11 min-h-11 px-7 text-body motion-reduce:transition-none',
+                  nestoraPrimaryCtaClasses,
+                )}
               >
                 Get started
-                <ArrowRight className="size-4" aria-hidden />
-              </Button>
+                <ArrowUpRight
+                  className="size-4 shrink-0 text-current"
+                  aria-hidden
+                  strokeWidth={2.25}
+                />
+              </Link>
               <Link
                 href="/#features"
                 className={cn(
-                  buttonVariants({ variant: 'outline', size: 'default' }),
-                  'nestora-hero__cta-secondary inline-flex h-10 min-h-10 items-center justify-center gap-2 border-border bg-transparent px-4 text-body font-medium text-foreground transition-[transform,background-color,border-color,color] duration-200 ease-out hover:-translate-y-px hover:bg-muted motion-reduce:hover:translate-y-0 active:translate-y-px motion-reduce:active:translate-y-0',
+                  'h-11 min-h-11 px-7 text-body motion-reduce:transition-none',
+                  nestoraSecondaryCtaClasses,
                 )}
               >
                 Explore features
