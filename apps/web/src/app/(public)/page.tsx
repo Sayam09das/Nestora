@@ -1,4 +1,5 @@
 import { HomeHero } from '@/components/marketing/home-hero';
+import { FeaturesSection } from '@/components/marketing/landing/features-section';
 import { HighlightsSection } from '@/components/marketing/landing/highlights-section';
 import { JsonLd } from '@/components/seo/json-ld';
 import { createPageMetadata } from '@/lib/seo/metadata';
@@ -17,12 +18,7 @@ export default function HomePage() {
       <main className="min-w-0" id="page-home">
         <HomeHero />
         <HighlightsSection />
-        <div
-          id="features"
-          className="mx-auto max-w-[var(--container-marketing)] scroll-mt-20 px-4 py-8 text-body text-muted-foreground sm:px-6 lg:px-8"
-        >
-          Features anchor for marketing navigation.
-        </div>
+        <FeaturesSection />
       </main>
     </>
   );
