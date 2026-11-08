@@ -8,3 +8,5 @@ Assets are served from the `public/images/` folder (`/images/...` in URLs).
 | `logo.png` | 2172×724 | Open Graph / Twitter preview |
 
 **Recommended future asset:** `og-image.png` at **1200×630** for optimal social cards (not required; `logo.png` is used today).
+
+`hero-dashboard.jpg` — marketing hero product preview (16:9, 1280×720). Replace with a **3840×2160** export for retina; update `HeroDashboardImage` if you change the filename.

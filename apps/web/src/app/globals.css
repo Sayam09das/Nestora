@@ -71,6 +71,8 @@
     --shadow-md: 0 4px 6px rgba(15, 15, 18, 0.08);
     --shadow-lg: 0 8px 12px rgba(15, 15, 18, 0.1);
 
+    --font-playfair: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, ui-serif, serif;
+
     /* Typography scale */
     --text-display: 3.5rem;
     --text-h1: 2.5rem;
