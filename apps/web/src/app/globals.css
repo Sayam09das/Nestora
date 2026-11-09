@@ -606,4 +606,70 @@
     transition-duration: var(--duration-normal);
     transition-timing-function: var(--ease-standard);
   }
+
+  /* Roles section — brand palette surfaces */
+  .section-roles-band {
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--nestora-cream) 72%, var(--nestora-tan-light)) 0%,
+      var(--nestora-cream) 48%,
+      color-mix(in oklch, var(--nestora-sage-light) 38%, var(--nestora-cream)) 100%
+    );
+    border-color: var(--nestora-sage-muted);
+  }
+
+  .surface-role-featured {
+    background: linear-gradient(
+      165deg,
+      var(--nestora-white) 0%,
+      color-mix(in oklch, var(--nestora-sage-light) 52%, var(--nestora-white)) 55%,
+      color-mix(in oklch, var(--nestora-tan-light) 22%, var(--nestora-white)) 100%
+    );
+    border-color: color-mix(in oklch, var(--nestora-forest) 32%, var(--nestora-sage-muted));
+  }
+
+  .surface-role-support {
+    background-color: var(--nestora-white);
+    border-color: var(--nestora-sage-muted);
+  }
+
+  .surface-role-support:hover {
+    background-color: color-mix(in oklch, var(--nestora-sage-light) 40%, var(--nestora-white));
+    border-color: var(--nestora-sage);
+  }
+
+  .surface-role-details {
+    background: linear-gradient(
+      180deg,
+      var(--nestora-white) 0%,
+      color-mix(in oklch, var(--nestora-cream) 65%, var(--nestora-white)) 100%
+    );
+    border-color: var(--nestora-sage-muted);
+  }
+
+  .surface-role-preview {
+    background-color: color-mix(in oklch, var(--nestora-cream) 55%, var(--nestora-sage-light));
+    border-color: var(--nestora-sage-muted);
+  }
+
+  .surface-role-icon {
+    border-color: var(--nestora-sage-muted);
+    background-color: var(--nestora-tan-light);
+    color: var(--nestora-forest);
+  }
+
+  .surface-role-icon-support {
+    background-color: var(--nestora-sage-light);
+    color: var(--nestora-forest-light);
+  }
+
+  .surface-role-table-head {
+    background-color: var(--nestora-tan-light);
+    border-color: var(--nestora-sage-muted);
+  }
+
+  [data-flip-preview].role-preview--emphasis {
+    transform: scale(1.015);
+    box-shadow: 0 16px 40px -28px color-mix(in oklch, var(--nestora-forest) 42%, transparent);
+  }
 }
