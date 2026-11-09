@@ -51,13 +51,17 @@ export function ForgotPasswordScreen() {
     setLoading(true);
     setError(null);
     try {
-      await requestPasswordReset(email.trim());
+      const result = await requestPasswordReset(email.trim());
+      if (!result.success) {
+        setError(result.message);
+        return;
+      }
       if (typeof window !== 'undefined') {
         sessionStorage.setItem(passwordResetStorage.emailKey, email.trim());
       }
       router.push(`/forgot-password/verify?email=${encodeURIComponent(email.trim())}`);
     } catch {
-      setError('Unable to reach the server. Check your connection and try again.');
+      setError('Unable to reach the server. Check NEXT_PUBLIC_API_URL and that the API is running.');
     } finally {
       setLoading(false);
     }
