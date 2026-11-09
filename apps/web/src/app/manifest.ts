@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { brandAssets, siteConfig } from '@/lib/seo/config';
 
 /** Matches Nestora light theme tokens in globals.css (--background, --primary). */
-const THEME_COLOR = '#8c83b8';
+const THEME_COLOR = '#6d9773';
 const BACKGROUND_COLOR = '#f7f7f5';
 
 export default function manifest(): MetadataRoute.Manifest {

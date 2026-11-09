@@ -75,7 +75,7 @@ Small documentation fixes can go straight to a pull request.
 
 ## Pull request guidelines
 
-1. **Branch** — use a descriptive branch name (for example `docs/fix-fr-traceability`, `feat/mod01-auth-login`).
+1. **Branch** — use a descriptive branch name (for example `docs/fix-fr-traceability`, `feat/auth-login`).
 2. **Scope** — one logical change per PR when possible (single module slice or focused doc update).
 3. **Traceability** — PR description should list `FR-xxx` / `MOD-xx` / `ODR-xxx` addressed.
 4. **Monorepo conventions** (when code exists):
