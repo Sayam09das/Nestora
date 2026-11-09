@@ -24,3 +24,16 @@ export const nestoraSecondaryCtaClasses = cn(
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_13%,transparent)]',
   'active:opacity-[0.92] motion-reduce:active:opacity-100',
 );
+
+/** Gold accent CTA (FAQ contact, secondary explore actions). */
+export const nestoraGoldCtaClasses = cn(
+  'inline-flex shrink-0 items-center justify-center gap-2',
+  'rounded-full border border-transparent',
+  'bg-[var(--nestora-gold)] text-[var(--nestora-forest)]',
+  'font-semibold shadow-none',
+  'outline-none select-none',
+  'transition-[transform,background-color,color,opacity] duration-200 ease-out',
+  'hover:bg-[color-mix(in_oklch,var(--nestora-gold),white_18%)] hover:text-[var(--nestora-forest)]',
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]',
+  'active:opacity-[0.92] motion-reduce:active:opacity-100',
+);

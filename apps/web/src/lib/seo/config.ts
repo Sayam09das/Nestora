@@ -34,7 +34,7 @@ export const siteConfig = {
     '/admin',
     '/auth',
     '/login',
-    '/register',
+    '/forgot-password',
     '/account',
     '/settings',
   ] as const,
@@ -63,8 +63,8 @@ export function absoluteUrl(path = '/'): string {
 }
 
 export const brandAssets = {
-  /** Square mark — navbar, favicon, PWA (PNG from nestora-mark.svg). */
-  icon: '/images/image.png',
-  /** Social preview — Open Graph / Twitter (PNG from logo.svg). */
+  /** Square mark — favicon, app icon, Apple touch icon (1254×1254). */
+  icon: '/images/nestora-mark.svg',
+  /** Wordmark — Open Graph / Twitter preview (2172×724; not 1200×630 ideal). */
   social: '/images/logo.png',
 } as const;

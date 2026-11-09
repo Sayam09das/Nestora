@@ -8,6 +8,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ['var(--font-inter)', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        serif: ['var(--font-playfair)', 'Georgia', 'ui-serif', 'serif'],
       },
     },
   },

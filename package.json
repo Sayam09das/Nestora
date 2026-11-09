@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "turbo dev",
+    "dev:web": "pnpm --filter @nestora/web dev",
     "build": "turbo build",
     "typecheck": "turbo typecheck",
     "lint": "biome check .",

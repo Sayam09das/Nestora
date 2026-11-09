@@ -1,16 +1,13 @@
-# Brand images (PNG)
+# Social & marketing images
 
-The app uses **raster PNGs**, not SVG in the UI. Edit the source SVGs, then re-export:
+Assets are served from the `public/images/` folder (`/images/...` in URLs).
 
-```bash
-pnpm --filter @nestora/web brand:rasterize
-```
+| File | Size | Use |
+| ---- | ---- | --- |
+| `nestora-mark.svg` | 64×64 | Navbar mark (green squircle, white N, gold dot) |
+| `image.png` | — | Legacy raster mark (do not use in navbar; old purple asset on some branches) |
+| `logo.png` | 2172×724 | Open Graph / Twitter preview |
 
-| Output | Source | Size | Use |
-| ------ | ------ | ---- | --- |
-| `image.png` | `nestora-mark.svg` | 1024×1024 | Navbar, favicon metadata, manifest, JSON-LD logo |
-| `logo.png` | `logo.svg` | 1200×… | Open Graph / Twitter |
-| `src/app/icon.png` | `nestora-mark.svg` | 512×512 | Next.js favicon |
-| `src/app/apple-icon.png` | `nestora-mark.svg` | 180×180 | Apple touch icon |
+**Recommended future asset:** `og-image.png` at **1200×630** for optimal social cards (not required; `logo.png` is used today).
 
-Palette (see `globals.css`): cream `#F5F4EC`, sage `#6D9773`, forest `#0C3B2E`, ink `#18352B`, tan `#BB8A52`.
+`hero-dashboard.jpg` — marketing hero product preview (16:9, 1280×720). Replace with a **3840×2160** export for retina; update `HeroDashboardImage` if you change the filename.
