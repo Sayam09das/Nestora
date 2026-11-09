@@ -19,6 +19,7 @@ const navItems = [
   { href: '/', label: 'Home', match: 'home' as const },
   { href: '/#features', label: 'Features', match: 'hash' as const },
   { href: '/#roles', label: 'Roles', match: 'hash' as const },
+  { href: '/#benefits', label: 'Benefits', match: 'hash' as const },
   { href: '/#how-it-works', label: 'How It Works', match: 'hash' as const },
   { href: '/about', label: 'About', match: 'path' as const },
   { href: '/contact', label: 'Contact', match: 'path' as const },

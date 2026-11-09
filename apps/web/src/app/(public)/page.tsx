@@ -1,6 +1,7 @@
 import { HomeHero } from '@/components/marketing/home-hero';
 import { FeaturesSection } from '@/components/marketing/landing/features-section';
 import { HighlightsSection } from '@/components/marketing/landing/highlights-section';
+import { BenefitsSection } from '@/components/marketing/landing/benefits-section';
 import { RolesSection } from '@/components/marketing/landing/roles-section';
 import { JsonLd } from '@/components/seo/json-ld';
 import { createPageMetadata } from '@/lib/seo/metadata';
@@ -21,6 +22,7 @@ export default function HomePage() {
         <HighlightsSection />
         <FeaturesSection />
         <RolesSection />
+        <BenefitsSection />
       </main>
     </>
   );

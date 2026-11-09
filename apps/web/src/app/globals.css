@@ -672,4 +672,15 @@
     transform: scale(1.015);
     box-shadow: 0 16px 40px -28px color-mix(in oklch, var(--nestora-forest) 42%, transparent);
   }
+
+  /* Benefits section — text editorial band */
+  .section-benefits-band {
+    background: linear-gradient(
+      180deg,
+      var(--nestora-white) 0%,
+      color-mix(in oklch, var(--nestora-cream) 68%, var(--nestora-white)) 55%,
+      color-mix(in oklch, var(--nestora-tan-light) 18%, var(--nestora-cream)) 100%
+    );
+    border-color: var(--nestora-sage-muted);
+  }
 }
