@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
+import { AppProviders } from '@/components/providers/app-providers';
 import { createRootMetadata } from '@/lib/seo/metadata';
 import { cn } from '@/lib/utils';
 
@@ -30,8 +31,10 @@ export const metadata: Metadata = createRootMetadata();
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={cn(inter.variable)}>
-      <body className="min-h-screen bg-background text-foreground antialiased">{children}</body>
+    <html lang="en" className={cn(inter.variable)} suppressHydrationWarning>
+      <body className="min-h-screen bg-background text-foreground antialiased">
+        <AppProviders>{children}</AppProviders>
+      </body>
     </html>
   );
 }
