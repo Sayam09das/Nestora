@@ -286,17 +286,17 @@ export function HeroSection() {
               className="w-full sm:w-auto"
             >
               <Link
-                href="/register"
+                href="/login"
                 prefetch={false}
                 className={cn(
                   'group relative inline-flex h-12 min-h-12 w-full sm:w-auto items-center justify-center gap-2.5 rounded-full',
                   'bg-[var(--nestora-forest)] px-8 text-supporting font-semibold text-white',
                   'shadow-[0_1px_2px_rgba(0,0,0,0.1),0_8px_24px_-6px_rgba(12,59,46,0.35)]',
-                  'transition-all duration-200 hover:bg-[var(--nestora-forest-light)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.1),0_12px_28px_-6px_rgba(12,59,46,0.45)]',
+                  'transition-[background-color,box-shadow,transform] duration-200 hover:bg-[var(--nestora-forest-light)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.1),0_12px_28px_-6px_rgba(12,59,46,0.45)]',
                   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nestora-tan)]',
                 )}
               >
-                <span>Start Free Campus Trial</span>
+                <span>Sign in to Nestora</span>
                 <ArrowRight
                   className="size-4 transition-transform duration-200 group-hover:translate-x-1"
                   aria-hidden
@@ -484,11 +484,11 @@ export function HeroSection() {
               Close Preview
             </button>
             <Link
-              href="/register"
+              href="/login"
               onClick={() => setWalkthroughOpen(false)}
               className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--nestora-forest)] px-6 text-supporting font-semibold text-white shadow-md hover:bg-[var(--nestora-forest-light)] sm:w-auto"
             >
-              <span>Start Free Campus Trial</span>
+              <span>Sign in to Nestora</span>
               <ArrowRight className="size-4" />
             </Link>
             <Link

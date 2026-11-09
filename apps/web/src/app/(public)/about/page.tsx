@@ -210,12 +210,12 @@ export default function AboutPage() {
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/register"
+              href="/contact"
               className={cn(
                 'inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-full bg-white px-8 text-supporting font-semibold text-[var(--nestora-forest)] hover:bg-neutral-100 transition-colors',
               )}
             >
-              <span>Start Free Campus Trial</span>
+              <span>Contact our team</span>
               <ArrowRight className="size-4" />
             </Link>
             <Link
