@@ -6,19 +6,17 @@ import {
   ArrowRight,
   BedDouble,
   Building2,
-  Eye,
-  EyeOff,
   GraduationCap,
   Lock,
   Mail,
   ShieldCheck,
   UserCog,
-  type LucideIcon,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useId, useRef, useState } from 'react';
 
+import { AuthFieldInput } from '@/components/auth/auth-form-fields';
 import { AuthSkiperLink } from '@/components/auth/auth-skiper-link';
 import { nestoraPrimaryCtaClasses } from '@/components/marketing/cta-styles';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
@@ -43,90 +41,6 @@ const formField = {
 };
 
 type LoginRole = 'staff' | 'student';
-
-type LoginAuthInputProps = {
-  id: string;
-  name: string;
-  value: string;
-  onChange: (value: string) => void;
-  autoComplete: string;
-  placeholder: string;
-  leadingIcon: LucideIcon;
-  textType?: 'text' | 'email';
-  revealable?: boolean;
-  visible?: boolean;
-  onToggleVisible?: () => void;
-  labelShow?: string;
-  labelHide?: string;
-};
-
-function LoginAuthInput({
-  id,
-  name,
-  value,
-  onChange,
-  autoComplete,
-  placeholder,
-  leadingIcon: LeadingIcon,
-  textType = 'text',
-  revealable = false,
-  visible = true,
-  onToggleVisible,
-  labelShow = 'Show value',
-  labelHide = 'Hide value',
-}: LoginAuthInputProps) {
-  const inputType = revealable ? (visible ? 'text' : 'password') : textType;
-
-  return (
-    <div className="relative mt-1.5">
-      <span
-        className="pointer-events-none absolute left-3.5 top-1/2 z-[1] -translate-y-1/2 text-[var(--nestora-sage)]"
-        aria-hidden
-      >
-        <LeadingIcon className="size-4" strokeWidth={2.25} />
-      </span>
-      <input
-        id={id}
-        name={name}
-        type={inputType}
-        autoComplete={autoComplete}
-        required
-        placeholder={placeholder}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={cn(
-          'h-11 w-full rounded-xl border border-border bg-background/90 pl-10 text-supporting text-foreground outline-none',
-          revealable ? 'pr-11' : 'pr-3.5',
-          'transition-[border-color,box-shadow] duration-200',
-          'focus:border-[var(--nestora-sage)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--nestora-sage)_22%,transparent)]',
-        )}
-        spellCheck={false}
-        inputMode={textType === 'email' ? 'email' : undefined}
-      />
-      {revealable && onToggleVisible ? (
-        <button
-          type="button"
-          onClick={onToggleVisible}
-          className={cn(
-            'absolute right-1.5 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-lg',
-            'text-muted-foreground transition-[color,background-color] duration-200',
-            'hover:bg-muted/80 hover:text-foreground',
-            'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_28%,transparent)]',
-          )}
-          aria-label={visible ? labelHide : labelShow}
-          aria-pressed={visible}
-          aria-controls={id}
-        >
-          {visible ? (
-            <EyeOff className="size-4" strokeWidth={2.25} aria-hidden />
-          ) : (
-            <Eye className="size-4" strokeWidth={2.25} aria-hidden />
-          )}
-        </button>
-      ) : null}
-    </div>
-  );
-}
 
 export function LoginScreen() {
   const reduceMotion = useReducedMotion();
@@ -384,7 +298,7 @@ export function LoginScreen() {
                     </motion.span>
                   </AnimatePresence>
                 </label>
-                <LoginAuthInput
+                <AuthFieldInput
                   id="login-email"
                   name="email"
                   autoComplete="username"
@@ -411,15 +325,14 @@ export function LoginScreen() {
                   >
                     Password
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => alert('Password reset link sent to institutional admin.')}
+                  <Link
+                    href="/forgot-password"
                     className="text-caption font-medium text-[var(--nestora-sage)] underline-offset-4 hover:underline"
                   >
                     Forgot password?
-                  </button>
+                  </Link>
                 </div>
-                <LoginAuthInput
+                <AuthFieldInput
                   id="login-password"
                   name="password"
                   autoComplete="current-password"
