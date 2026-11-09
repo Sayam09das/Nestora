@@ -1,14 +1,14 @@
 'use client';
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowUpRight, Building2, ChevronRight, Menu, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Building2, ChevronRight, Menu, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { nestoraPrimaryCtaClasses } from '@/components/marketing/cta-styles';
+import { nestoraAdminCtaClasses, nestoraPrimaryCtaClasses } from '@/components/marketing/cta-styles';
 import { cn } from '@/lib/utils';
 
 import './navbar.css';
@@ -405,6 +405,23 @@ export function MarketingNavbar() {
                   exit={reduceMotion ? undefined : 'exit'}
                 >
                   <MotionLink
+                    href="/admin/login"
+                    prefetch={false}
+                    onClick={closeMobile}
+                    className={cn(
+                      'relative mb-2 h-12 min-h-12 w-full px-6 text-body motion-reduce:transition-none',
+                      nestoraAdminCtaClasses,
+                    )}
+                    whileTap={reduceMotion ? undefined : { scale: 0.99 }}
+                    whileHover={reduceMotion ? undefined : { y: -1 }}
+                    transition={{ type: 'spring', stiffness: 520, damping: 28 }}
+                  >
+                    <span className="inline-flex items-center justify-center gap-2">
+                      Admin console
+                      <ArrowRight className="size-4 shrink-0" aria-hidden strokeWidth={2.5} />
+                    </span>
+                  </MotionLink>
+                  <MotionLink
                     href="/login"
                     prefetch={false}
                     onClick={closeMobile}
@@ -516,6 +533,20 @@ export function MarketingNavbar() {
               transition: { duration: 0.45, ease: navEase, delay: 0.1 },
             }}
           >
+            <MotionLink
+              href="/admin/login"
+              prefetch={false}
+              className={cn(
+                'hidden h-10 min-h-10 px-5 text-caption lg:inline-flex motion-reduce:transition-none',
+                nestoraAdminCtaClasses,
+              )}
+              whileHover={reduceMotion ? undefined : { y: -1 }}
+              whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 520, damping: 28 }}
+            >
+              Admin
+              <ArrowRight className="size-4 shrink-0" aria-hidden strokeWidth={2.5} />
+            </MotionLink>
             <MotionLink
               href="/login"
               prefetch={false}

@@ -37,3 +37,16 @@ export const nestoraGoldCtaClasses = cn(
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]',
   'active:opacity-[0.92] motion-reduce:active:opacity-100',
 );
+
+/** Amber pill + forest label — admin console entry (reference: gold on deep green). */
+export const nestoraAdminCtaClasses = cn(
+  'nestora-cta-admin inline-flex shrink-0 items-center justify-center gap-2',
+  'rounded-full border border-transparent',
+  'bg-[#ffb800] text-[var(--nestora-forest-dark)]',
+  'font-bold shadow-none',
+  'outline-none select-none',
+  'transition-[transform,background-color,color,opacity] duration-200 ease-out',
+  'hover:bg-[color-mix(in_oklch,#ffb800,white_16%)] hover:text-[var(--nestora-forest-dark)]',
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-gold)_55%,transparent)]',
+  'active:opacity-[0.92] motion-reduce:active:opacity-100',
+);

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
+import { nestoraAdminCtaClasses } from '@/components/marketing/cta-styles';
 import { HeroDashboardImage } from '@/components/marketing/hero/hero-dashboard-image';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import {
@@ -328,6 +329,29 @@ export function HeroSection() {
                 <span>Watch Interactive Demo</span>
               </button>
             </motion.div>
+          </motion.div>
+
+          <motion.div
+            className="mt-5 flex w-full flex-col items-center justify-center gap-2 sm:flex-row"
+            initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.4, ease: motionEase }}
+          >
+            <span className="text-caption text-muted-foreground">University IT?</span>
+            <MotionLink
+              href="/admin/login"
+              prefetch={false}
+              className={cn(
+                'h-11 min-h-11 w-full px-7 text-supporting sm:w-auto',
+                nestoraAdminCtaClasses,
+              )}
+              whileHover={reduceMotion ? undefined : { y: -2 }}
+              whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 520, damping: 28 }}
+            >
+              Admin console
+              <ArrowRight className="size-4 shrink-0" aria-hidden strokeWidth={2.5} />
+            </MotionLink>
           </motion.div>
 
           {/* Micro-guarantees Row */}
