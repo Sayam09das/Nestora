@@ -13,7 +13,7 @@ type AuthSkiperLinkProps = {
 } & Omit<ComponentProps<'a'>, 'href' | 'children' | 'className'>;
 
 const skiperUnderlineClasses = cn(
-  'group relative inline-flex items-center',
+  'group relative inline-flex w-fit max-w-full self-start items-center',
   "before:pointer-events-none before:absolute before:left-0 before:top-[1.35em] before:h-[0.06em] before:w-full before:bg-current before:content-['']",
   'before:origin-right before:scale-x-0 before:transition-transform before:duration-300 before:ease-[cubic-bezier(0.4,0,0.2,1)]',
   'hover:before:origin-left hover:before:scale-x-100',
