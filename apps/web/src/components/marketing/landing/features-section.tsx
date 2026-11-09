@@ -8,8 +8,8 @@ import {
   type FeatureModule,
   featuresCopy,
   primaryModules,
-  supportModules,
 } from '@/components/marketing/landing/features-content';
+import { SupportModulesSection } from '@/components/marketing/landing/support-modules-section';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { cn } from '@/lib/utils';
@@ -20,54 +20,41 @@ const revealEase = [0.22, 1, 0.36, 1] as const;
 
 type FeatureBlockProps = {
   module: FeatureModule;
-  tier: 'primary' | 'support';
   reduceMotion: boolean | null;
 };
 
-function FeatureBlock({ module, tier, reduceMotion }: FeatureBlockProps) {
+function PrimaryFeatureBlock({ module, reduceMotion }: FeatureBlockProps) {
   const Icon = module.icon;
-  const isPrimary = tier === 'primary';
 
   return (
     <motion.article
-      data-feature-block
+      data-feature-primary
       className={cn(
-        'group relative flex min-w-0 flex-col border-border transition-[border-color,background-color] duration-200',
-        isPrimary
-          ? 'rounded-xl border bg-card p-6 sm:p-7 lg:p-8'
-          : 'rounded-lg border border-transparent border-b py-5 sm:border-b-0 sm:border-l sm:py-0 sm:pl-6',
-        isPrimary &&
-          'hover:border-[color-mix(in_oklch,var(--primary)_28%,var(--border))] hover:bg-[color-mix(in_oklch,var(--card)_96%,var(--nestora-sage-light))]',
-        !isPrimary &&
-          'sm:min-h-[11rem] hover:border-l-[color-mix(in_oklch,var(--primary)_35%,var(--border))]',
+        'group relative flex h-full min-w-0 flex-col rounded-xl border border-border bg-card p-6 transition-[border-color,background-color] duration-200 sm:p-7 lg:p-8',
+        'hover:border-[color-mix(in_oklch,var(--primary)_28%,var(--border))] hover:bg-[color-mix(in_oklch,var(--card)_96%,var(--nestora-sage-light))]',
       )}
-      whileHover={reduceMotion ? undefined : { y: isPrimary ? -3 : -2 }}
+      whileHover={reduceMotion ? undefined : { y: -3 }}
       transition={{ duration: 0.22, ease: revealEase }}
     >
-      <div className="flex items-start gap-3">
-        <span
-          className={cn(
-            'flex shrink-0 items-center justify-center rounded-md border border-border bg-[color-mix(in_oklch,var(--muted)_70%,var(--card))] text-primary',
-            isPrimary ? 'size-11' : 'size-9',
-          )}
-        >
-          <Icon className={isPrimary ? 'size-5' : 'size-4'} aria-hidden strokeWidth={2} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h3 className={cn('font-semibold text-[var(--nestora-forest)]', isPrimary ? 'text-h4' : 'text-label')}>
-            {module.title}
-          </h3>
-          <ul className={cn('mt-3 space-y-1.5 text-muted-foreground', isPrimary ? 'text-supporting' : 'text-caption')}>
-            {module.points.map((point) => (
-              <li key={point} className="flex gap-2 text-pretty">
-                <span className="mt-2 size-1 shrink-0 rounded-full bg-[var(--nestora-sage)]" aria-hidden />
-                <span>{point}</span>
-              </li>
-            ))}
-          </ul>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex items-start gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-md border border-border bg-[color-mix(in_oklch,var(--muted)_70%,var(--card))] text-primary">
+            <Icon className="size-5" aria-hidden strokeWidth={2} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-h4 font-semibold text-[var(--nestora-forest)]">{module.title}</h3>
+            <ul className="mt-3 space-y-1.5 text-supporting text-muted-foreground">
+              {module.points.map((point) => (
+                <li key={point} className="flex gap-2 text-pretty">
+                  <span className="mt-2 size-1 shrink-0 rounded-full bg-[var(--nestora-sage)]" aria-hidden />
+                  <span>{point}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
-      {isPrimary ? <FeaturePreview kind={module.preview} /> : null}
+      <FeaturePreview kind={module.preview} className="mt-6 shrink-0" />
     </motion.article>
   );
 }
@@ -85,7 +72,7 @@ export function FeaturesSection() {
         return;
       }
 
-      gsap.from('[data-feature-block]', {
+      gsap.from('[data-feature-primary]', {
         opacity: 0,
         y: 22,
         duration: 0.55,
@@ -130,35 +117,13 @@ export function FeaturesSection() {
           </p>
         </motion.div>
 
-        <div className="mt-12 grid min-w-0 gap-6 lg:mt-14 lg:grid-cols-12 lg:gap-8">
-          <div className="grid min-w-0 gap-6 lg:col-span-7 lg:grid-cols-1">
-            {primaryModules.slice(0, 2).map((module) => (
-              <FeatureBlock key={module.id} module={module} tier="primary" reduceMotion={reduceMotion} />
-            ))}
-          </div>
-          <div className="min-w-0 lg:col-span-5">
-            {primaryModules[2] ? (
-              <FeatureBlock module={primaryModules[2]} tier="primary" reduceMotion={reduceMotion} />
-            ) : null}
-          </div>
+        <div className="mt-12 grid min-w-0 grid-cols-1 gap-6 auto-rows-fr lg:mt-14 lg:grid-cols-2 lg:gap-8">
+          {primaryModules.map((module) => (
+            <PrimaryFeatureBlock key={module.id} module={module} reduceMotion={reduceMotion} />
+          ))}
         </div>
 
-        <motion.div
-          className="mt-10 border-t border-border pt-10 lg:mt-14"
-          initial={reduceMotion ? false : { opacity: 0 }}
-          whileInView={reduceMotion ? undefined : { opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.4, delay: 0.05 }}
-        >
-          <p className="text-label font-medium text-muted-foreground">More modules on the same platform</p>
-          <ul className="mt-6 grid min-w-0 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {supportModules.map((module) => (
-              <li key={module.id} className="min-w-0">
-                <FeatureBlock module={module} tier="support" reduceMotion={reduceMotion} />
-              </li>
-            ))}
-          </ul>
-        </motion.div>
+        <SupportModulesSection />
       </div>
     </section>
   );
