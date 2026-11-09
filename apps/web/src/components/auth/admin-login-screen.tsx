@@ -1,8 +1,8 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
+import { AdminCommandTopBar } from '@/components/auth/admin-command-top-bar';
 import {
-  Activity,
   ArrowLeft,
   ArrowRight,
   FileKey2,
@@ -207,14 +207,9 @@ export function AdminLoginScreen() {
           />
 
           <div className="relative z-10 flex flex-1 flex-col justify-between">
-          <div data-admin-command>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/90 backdrop-blur-md">
-              <Activity className="size-3.5 text-[var(--nestora-gold)]" aria-hidden />
-              Admin console
-            </span>
-          </div>
+          <AdminCommandTopBar />
 
-          <div className="mt-8 md:mt-10">
+          <div className="md:mt-1">
             <div data-admin-command className="flex flex-col gap-4 sm:flex-row sm:items-start">
               <svg
                 viewBox="0 0 48 56"
