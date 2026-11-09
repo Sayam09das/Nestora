@@ -59,9 +59,11 @@ export function AdminSidebarPanel({ collapsed, onNavigate, className }: AdminSid
         ) : null}
       </Link>
 
-      <ScrollArea className="mt-3 min-h-0 flex-1 overflow-hidden pr-1 [&_[data-slot=scroll-area-viewport]]:max-h-full">
-        <AdminSidebarNav groups={adminNavGroups} collapsed={collapsed} onNavigate={onNavigate} />
-      </ScrollArea>
+      <div className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden">
+        <ScrollArea className="h-full min-h-0 flex-1 pr-1">
+          <AdminSidebarNav groups={adminNavGroups} collapsed={collapsed} onNavigate={onNavigate} />
+        </ScrollArea>
+      </div>
 
       <div data-admin-side-item className="shrink-0">
         <AdminSidebarAccount />

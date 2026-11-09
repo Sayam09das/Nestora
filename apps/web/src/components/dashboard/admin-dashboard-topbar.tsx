@@ -84,6 +84,7 @@ export function AdminDashboardTopbar() {
         duration: 0.55,
         ease: 'power2.inOut',
         transformOrigin: 'left center',
+        clearProps: 'transform',
       });
     },
     { scope: headerRef, dependencies: [reduceMotion] },
@@ -104,7 +105,7 @@ export function AdminDashboardTopbar() {
     <>
       <header
         ref={headerRef}
-        className="sticky top-0 z-50 border-b border-[var(--nestora-sage-muted)] bg-[color-mix(in_oklch,var(--background)_92%,transparent)] backdrop-blur-xl supports-[backdrop-filter]:bg-[color-mix(in_oklch,var(--background)_78%,transparent)]"
+        className="z-50 shrink-0 border-b border-[var(--nestora-sage-muted)] bg-[color-mix(in_oklch,var(--background)_92%,transparent)] backdrop-blur-xl supports-[backdrop-filter]:bg-[color-mix(in_oklch,var(--background)_78%,transparent)]"
       >
         <div
           data-admin-dash-accent
@@ -141,6 +142,7 @@ export function AdminDashboardTopbar() {
             <h1 className="truncate text-sm font-semibold tracking-tight text-[var(--nestora-forest)] sm:text-base">
               {title}
             </h1>
+            {breadcrumbs.length > 1 ? (
             <nav aria-label="Breadcrumb" className="flex min-w-0 flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
               {breadcrumbs.map((crumb, index) => {
                 const isLast = index === breadcrumbs.length - 1;
@@ -160,6 +162,7 @@ export function AdminDashboardTopbar() {
                 );
               })}
             </nav>
+            ) : null}
           </div>
 
           {/* 4. Global search */}

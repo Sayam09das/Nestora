@@ -39,8 +39,8 @@ export function AdminDashboardSidebar() {
     <aside
       ref={asideRef}
       className={cn(
-        'relative hidden shrink-0 flex-col overflow-hidden transition-[width] duration-300 ease-out motion-reduce:transition-none',
-        'md:flex md:h-[calc(100dvh-3.5rem)] md:max-h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)] sm:max-h-[calc(100dvh-4rem)]',
+        'relative hidden h-full min-h-0 shrink-0 flex-col overflow-hidden transition-[width] duration-300 ease-out motion-reduce:transition-none',
+        'md:flex',
         sidebarSurfaceClass,
         sidebarCollapsed ? 'w-[4.25rem]' : 'w-60 xl:w-[17rem]',
       )}
