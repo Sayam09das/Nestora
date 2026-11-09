@@ -472,6 +472,15 @@ export function LoginScreen() {
 
             <div className="mt-6 border-t border-[var(--nestora-sage-muted)] pt-5 text-center lg:text-left">
               <p className="text-pretty text-caption text-muted-foreground">
+                University administrator?{' '}
+                <AuthSkiperLink
+                  href="/admin/login"
+                  className="font-semibold text-[var(--nestora-forest)]"
+                >
+                  Admin console sign-in
+                </AuthSkiperLink>
+              </p>
+              <p className="mt-3 text-pretty text-caption text-muted-foreground">
                 Accounts are created by your institution&apos;s admin.{' '}
                 <AuthSkiperLink
                   href="/contact"
