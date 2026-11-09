@@ -32,7 +32,10 @@ const nestoraPreset: Partial<Config> = {
         nestora: {
           sage: '#6d9773',
           forest: '#0c3b2e',
-          gold: '#bb8a52',
+          tan: '#bb8a52',
+          gold: '#ffba00',
+          cream: '#f5f4ec',
+          ink: '#18352b',
           amber: '#ffba00',
           error: '#e07a7a',
         },

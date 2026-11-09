@@ -165,6 +165,7 @@ export async function postLogin(request: FastifyRequest, reply: FastifyReply): P
           user: {
             email: result.user.email,
             role: result.user.role,
+            mustChangePassword: result.user.mustChangePassword,
             dashboardPath: dashboardPathForRole(result.user.role),
           },
         },
@@ -187,6 +188,7 @@ export async function postLogin(request: FastifyRequest, reply: FastifyReply): P
           lastName: result.user.lastName,
           isVerified: result.user.isVerified,
           mfaEnabled: result.user.mfaEnabled,
+          mustChangePassword: result.user.mustChangePassword,
           dashboardPath: dashboardPathForRole(result.user.role),
         },
       },
@@ -233,6 +235,7 @@ export async function getMe(request: FastifyRequest, reply: FastifyReply): Promi
           lastName: user.lastName,
           isVerified: user.isVerified,
           mfaEnabled: user.mfaEnabled,
+          mustChangePassword: user.mustChangePassword,
           assignedHostelIds: user.assignedHostelIds,
           dashboardPath: dashboardPathForRole(user.role),
         },
