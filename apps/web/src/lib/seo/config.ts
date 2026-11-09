@@ -34,6 +34,7 @@ export const siteConfig = {
     '/admin',
     '/auth',
     '/login',
+    '/forgot-password',
     '/account',
     '/settings',
   ] as const,
