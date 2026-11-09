@@ -1,16 +1,20 @@
 import { apiFetch } from '@/lib/api/client';
+import { parseApiResponse } from '@/lib/api/parse-response';
 
 const AUTH_PREFIX = '/api/v1/auth';
 
-type ApiEnvelope<T> = {
+type LegacyEnvelope<T> = {
   success: boolean;
   message: string;
   data?: T;
 };
 
-async function readEnvelope<T>(response: Response): Promise<ApiEnvelope<T>> {
-  const json = (await response.json()) as ApiEnvelope<T>;
-  return json;
+async function readEnvelope<T>(response: Response): Promise<LegacyEnvelope<T>> {
+  const parsed = await parseApiResponse<T>(response);
+  if (parsed.ok) {
+    return { success: true, message: parsed.message, data: parsed.data };
+  }
+  return { success: false, message: parsed.message, data: undefined };
 }
 
 export async function requestPasswordReset(email: string) {

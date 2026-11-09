@@ -1,8 +1,11 @@
-import React from 'react'
+import { Suspense } from 'react';
+import { ActivateAccountScreen } from '@/components/auth/activate-screen';
 
-export default function page() {
+export default function ActivatePage() {
   return (
-    <div>page</div>
-  )
+    <Suspense fallback={<p className="p-8 text-center text-muted-foreground">Loading…</p>}>
+      <ActivateAccountScreen />
+    </Suspense>
+  );
 }
 

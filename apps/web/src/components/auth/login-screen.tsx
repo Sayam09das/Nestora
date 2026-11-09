@@ -14,10 +14,13 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useId, useRef, useState } from 'react';
 
 import { AuthFieldInput } from '@/components/auth/auth-form-fields';
 import { AuthSkiperLink } from '@/components/auth/auth-skiper-link';
+import { loginWithPassword, postLoginRedirect } from '@/lib/api/auth';
+import { getApiBaseUrl } from '@/lib/api/client';
 import { nestoraPrimaryCtaClasses } from '@/components/marketing/cta-styles';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { NESTORA_BRAND_NAME } from '@/components/marketing/navbar';
@@ -43,11 +46,16 @@ const formField = {
 type LoginRole = 'staff' | 'student';
 
 export function LoginScreen() {
+  const router = useRouter();
   const reduceMotion = useReducedMotion();
   const roleGroupId = useId();
   const [role, setRole] = useState<LoginRole>('staff');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaStep, setMfaStep] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   const sectionRef = useRef<HTMLElement>(null);
@@ -82,9 +90,43 @@ export function LoginScreen() {
     { scope: sectionRef, dependencies: [reduceMotion] },
   );
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    alert(`Authentication demo: Sign-in verified for ${email}`);
+    setError(null);
+
+    if (!getApiBaseUrl()) {
+      setError('API URL is not configured. Set NEXT_PUBLIC_API_URL in apps/web/.env.local.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await loginWithPassword(
+        email.trim(),
+        password,
+        mfaStep ? mfaCode : undefined,
+      );
+
+      if (result.kind === 'error') {
+        setError(result.message);
+        if (result.code === 'MUST_CHANGE_PASSWORD') {
+          router.push('/change-password');
+        }
+        return;
+      }
+
+      if (result.kind === 'mfa_required') {
+        setMfaStep(true);
+        setError(null);
+        return;
+      }
+
+      router.push(postLoginRedirect(result.user));
+    } catch {
+      setError('Unable to reach the API. Is the backend running on the configured URL?');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -348,8 +390,43 @@ export function LoginScreen() {
                 />
               </motion.div>
 
+              {mfaStep ? (
+                <motion.div
+                  custom={2}
+                  variants={formField}
+                  initial={reduceMotion ? false : 'hidden'}
+                  animate="show"
+                >
+                  <label
+                    htmlFor="login-mfa"
+                    className="block text-caption font-semibold text-foreground"
+                  >
+                    Authentication code
+                  </label>
+                  <AuthFieldInput
+                    id="login-mfa"
+                    name="mfaCode"
+                    autoComplete="one-time-code"
+                    textType="text"
+                    placeholder="123456"
+                    value={mfaCode}
+                    onChange={setMfaCode}
+                    leadingIcon={ShieldCheck}
+                  />
+                </motion.div>
+              ) : null}
+
+              {error ? (
+                <p
+                  role="alert"
+                  className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-caption text-destructive"
+                >
+                  {error}
+                </p>
+              ) : null}
+
               <motion.div
-                custom={2}
+                custom={mfaStep ? 3 : 2}
                 variants={formField}
                 initial={reduceMotion ? false : 'hidden'}
                 animate="show"
@@ -366,22 +443,28 @@ export function LoginScreen() {
               </motion.div>
 
               <motion.div
-                custom={3}
+                custom={mfaStep ? 4 : 3}
                 variants={formField}
                 initial={reduceMotion ? false : 'hidden'}
                 animate="show"
               >
                 <motion.button
                   type="submit"
+                  disabled={loading}
                   className={cn(
                     nestoraPrimaryCtaClasses,
                     'h-12 w-full justify-center gap-2 px-6 text-supporting shadow-md',
+                    loading && 'opacity-80',
                   )}
-                  whileHover={reduceMotion ? undefined : { y: -1 }}
-                  whileTap={reduceMotion ? undefined : { scale: 0.99 }}
+                  whileHover={reduceMotion || loading ? undefined : { y: -1 }}
+                  whileTap={reduceMotion || loading ? undefined : { scale: 0.99 }}
                   transition={{ type: 'spring', stiffness: 520, damping: 28 }}
                 >
-                  Sign in to {role === 'staff' ? 'staff portal' : 'student portal'}
+                  {loading
+                    ? 'Signing in…'
+                    : mfaStep
+                      ? 'Verify and sign in'
+                      : `Sign in to ${role === 'staff' ? 'staff portal' : 'student portal'}`}
                   <ArrowRight className="size-4 shrink-0" aria-hidden />
                 </motion.button>
               </motion.div>
