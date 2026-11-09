@@ -23,6 +23,7 @@ const motionEase = [0.22, 1, 0.36, 1] as const;
 type AdminSidebarNavProps = {
   groups: AdminNavGroup[];
   collapsed: boolean;
+  onNavigate?: () => void;
 };
 
 const NAV_OPEN_STORAGE_KEY = 'nestora-admin-nav-open';
@@ -55,10 +56,12 @@ function SidebarNavLink({
   item,
   collapsed,
   reduceMotion,
+  onNavigate,
 }: {
   item: AdminNavLink;
   collapsed: boolean;
   reduceMotion: boolean | null;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const active = item.isActive(pathname);
@@ -67,6 +70,7 @@ function SidebarNavLink({
   return (
     <Link
       href={item.href}
+      onClick={onNavigate}
       aria-current={active ? 'page' : undefined}
       title={collapsed ? item.label : undefined}
       className={cn(
@@ -115,12 +119,14 @@ function SidebarNavCollapsible({
   open,
   onToggle,
   reduceMotion,
+  onNavigate,
 }: {
   item: AdminNavCollapsible;
   collapsed: boolean;
   open: boolean;
   onToggle: () => void;
   reduceMotion: boolean | null;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -158,7 +164,10 @@ function SidebarNavCollapsible({
             <DropdownMenuItem
               key={child.href}
               className={child.isActive(pathname) ? 'font-semibold' : undefined}
-              onClick={() => router.push(child.href)}
+              onClick={() => {
+                onNavigate?.();
+                router.push(child.href);
+              }}
             >
               {child.label}
             </DropdownMenuItem>
@@ -239,6 +248,7 @@ function SidebarNavCollapsible({
                   >
                     <Link
                       href={child.href}
+                      onClick={onNavigate}
                       aria-current={childActive ? 'page' : undefined}
                       className={cn(
                         'block rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors',
@@ -261,7 +271,7 @@ function SidebarNavCollapsible({
   );
 }
 
-export function AdminSidebarNav({ groups, collapsed }: AdminSidebarNavProps) {
+export function AdminSidebarNav({ groups, collapsed, onNavigate }: AdminSidebarNavProps) {
   const reduceMotion = useReducedMotion();
   const pathname = usePathname();
   const [openIds, setOpenIds] = useState<Record<string, boolean>>({});
@@ -325,7 +335,12 @@ export function AdminSidebarNav({ groups, collapsed }: AdminSidebarNavProps) {
             {group.items.map((entry: AdminNavEntry) => (
               <li key={entry.id} data-admin-side-item>
                 {entry.kind === 'link' ? (
-                  <SidebarNavLink item={entry} collapsed={collapsed} reduceMotion={reduceMotion} />
+                  <SidebarNavLink
+                    item={entry}
+                    collapsed={collapsed}
+                    reduceMotion={reduceMotion}
+                    onNavigate={onNavigate}
+                  />
                 ) : (
                   <SidebarNavCollapsible
                     item={entry}
@@ -333,6 +348,7 @@ export function AdminSidebarNav({ groups, collapsed }: AdminSidebarNavProps) {
                     open={isOpen(entry)}
                     onToggle={() => toggle(entry.id)}
                     reduceMotion={reduceMotion}
+                    onNavigate={onNavigate}
                   />
                 )}
               </li>

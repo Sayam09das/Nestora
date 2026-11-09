@@ -68,7 +68,7 @@ export function AdminDashboardTopbar() {
   const pathname = usePathname();
   const router = useRouter();
   const reduceMotion = useReducedMotion();
-  const { sidebarCollapsed, toggleSidebar } = useAdminShell();
+  const { sidebarCollapsed, toggleSidebar, toggleMobileNav, mobileNavOpen } = useAdminShell();
   const headerRef = useRef<HTMLElement>(null);
   const { title, breadcrumbs } = getAdminRouteMeta(pathname);
 
@@ -116,15 +116,22 @@ export function AdminDashboardTopbar() {
           {/* 1. Sidebar toggle */}
           <motion.button
             type="button"
-            onClick={toggleSidebar}
+            onClick={() => {
+              const isMobile = window.matchMedia('(max-width: 767px)').matches;
+              if (isMobile) {
+                toggleMobileNav();
+              } else {
+                toggleSidebar();
+              }
+            }}
             className={cn(
-              'hidden size-9 shrink-0 items-center justify-center rounded-full border border-[var(--nestora-sage-muted)] bg-card text-[var(--nestora-forest)] md:inline-flex',
+              'inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-[var(--nestora-sage-muted)] bg-card text-[var(--nestora-forest)]',
               'hover:bg-muted/80',
               focusRing,
             )}
             whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-pressed={sidebarCollapsed}
+            aria-label="Open navigation menu"
+            aria-expanded={mobileNavOpen || !sidebarCollapsed}
           >
             <PanelLeft className="size-4" aria-hidden />
           </motion.button>

@@ -16,12 +16,16 @@ type AdminShellContextValue = {
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
   setSidebarCollapsed: (value: boolean) => void;
+  mobileNavOpen: boolean;
+  setMobileNavOpen: (value: boolean) => void;
+  toggleMobileNav: () => void;
 };
 
 const AdminShellContext = createContext<AdminShellContextValue | null>(null);
 
 export function AdminShellProvider({ children }: { children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsedState] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -54,13 +58,32 @@ export function AdminShellProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const setMobileNavOpenStable = useCallback((value: boolean) => {
+    setMobileNavOpen(value);
+  }, []);
+
+  const toggleMobileNav = useCallback(() => {
+    setMobileNavOpen((open) => !open);
+  }, []);
+
   const value = useMemo(
     () => ({
       sidebarCollapsed: hydrated ? sidebarCollapsed : false,
       toggleSidebar,
       setSidebarCollapsed,
+      mobileNavOpen,
+      setMobileNavOpen: setMobileNavOpenStable,
+      toggleMobileNav,
     }),
-    [hydrated, sidebarCollapsed, toggleSidebar, setSidebarCollapsed],
+    [
+      hydrated,
+      sidebarCollapsed,
+      toggleSidebar,
+      setSidebarCollapsed,
+      mobileNavOpen,
+      setMobileNavOpenStable,
+      toggleMobileNav,
+    ],
   );
 
   return <AdminShellContext.Provider value={value}>{children}</AdminShellContext.Provider>;
