@@ -64,7 +64,7 @@ export function absoluteUrl(path = '/'): string {
 
 export const brandAssets = {
   /** Square mark — favicon, app icon, Apple touch icon (1254×1254). */
-  icon: '/images/image.png',
+  icon: '/images/nestora-mark.svg',
   /** Wordmark — Open Graph / Twitter preview (2172×724; not 1200×630 ideal). */
   social: '/images/logo.png',
 } as const;

@@ -24,11 +24,31 @@ export function createOrganizationJsonLd(): JsonLd {
   };
 }
 
-/** Landing page graph: Organization + WebSite (no invented contact or ratings). */
-export function createLandingPageJsonLd(): JsonLd {
+export function createFaqPageJsonLd(items: Array<{ question: string; answer: string }>): JsonLd {
+  return {
+    '@type': 'FAQPage',
+    mainEntity: items.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
+  };
+}
+
+/** Landing page graph: Organization + WebSite + optional FAQPage (no invented contact or ratings). */
+export function createLandingPageJsonLd(
+  faqItems?: Array<{ question: string; answer: string }>,
+): JsonLd {
+  const graph: JsonLd[] = [createOrganizationJsonLd(), createWebSiteJsonLd()];
+  if (faqItems && faqItems.length > 0) {
+    graph.push(createFaqPageJsonLd(faqItems));
+  }
   return {
     '@context': 'https://schema.org',
-    '@graph': [createOrganizationJsonLd(), createWebSiteJsonLd()],
+    '@graph': graph,
   };
 }
 
