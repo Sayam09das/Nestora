@@ -1,22 +1,13 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import {
-  BedDouble,
-  ChevronRight,
-  FileText,
-  Moon,
-  PanelLeft,
-  Search,
-  Sun,
-  UserCog,
-  Users,
-} from 'lucide-react';
+import { ChevronRight, Moon, PanelLeft, Search, Sun } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
 
+import { flattenAdminNavLinks } from '@/components/dashboard/admin-nav-items';
 import { AdminNotificationsPanel } from '@/components/dashboard/admin-notifications-panel';
 import { AdminProfileMenu } from '@/components/dashboard/admin-profile-menu';
 import { getAdminRouteMeta } from '@/components/dashboard/admin-route-meta';
@@ -36,32 +27,7 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-const globalSearchItems = [
-  {
-    label: 'Students',
-    hint: 'Directory & enrollment',
-    href: '/admin',
-    icon: Users,
-  },
-  {
-    label: 'Staff',
-    hint: 'Wardens & housing teams',
-    href: '/admin',
-    icon: UserCog,
-  },
-  {
-    label: 'Rooms',
-    hint: 'Bed matrix & allocation',
-    href: '/admin',
-    icon: BedDouble,
-  },
-  {
-    label: 'Audit logs',
-    hint: 'Security & admin actions',
-    href: '/admin/audit-logs',
-    icon: FileText,
-  },
-] as const;
+const globalSearchItems = flattenAdminNavLinks();
 
 function AdminThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
@@ -242,7 +208,7 @@ export function AdminDashboardTopbar() {
               const Icon = item.icon;
               return (
                 <CommandItem
-                  key={item.label}
+                  key={item.href}
                   onSelect={() => {
                     setSearchOpen(false);
                     router.push(item.href);
