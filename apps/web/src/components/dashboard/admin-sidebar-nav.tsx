@@ -99,7 +99,7 @@ function SidebarNavLink({
         <span className="min-w-0 pt-0.5">
           <span className="block text-sm font-semibold leading-none">{item.label}</span>
           {item.description ? (
-            <span className="mt-1 block text-[11px] leading-snug text-white/55 group-hover:text-white/65">
+            <span className="mt-1 hidden text-[11px] leading-snug text-white/55 group-hover:text-white/65 xl:block">
               {item.description}
             </span>
           ) : null}
@@ -212,7 +212,7 @@ function SidebarNavCollapsible({
             </motion.span>
           </span>
           {item.description ? (
-            <span className="mt-1 block text-[11px] leading-snug text-white/55">{item.description}</span>
+            <span className="mt-1 hidden text-[11px] leading-snug text-white/55 xl:block">{item.description}</span>
           ) : null}
         </span>
       </button>
@@ -306,7 +306,7 @@ export function AdminSidebarNav({ groups, collapsed }: AdminSidebarNavProps) {
   const isOpen = (item: AdminNavCollapsible) => openIds[item.id] ?? item.isActive(pathname);
 
   return (
-    <nav className="flex-1 space-y-6">
+    <nav className="flex-1 space-y-4 pb-2 xl:space-y-5">
       {groups.map((group, groupIndex) => (
         <motion.div
           key={group.id}

@@ -45,10 +45,10 @@ export function AdminDashboardSidebar() {
     <aside
       ref={asideRef}
       className={cn(
-        'relative hidden shrink-0 flex-col text-white transition-[width] duration-300 ease-out motion-reduce:transition-none',
-        'md:sticky md:top-14 md:flex md:min-h-[calc(100dvh-3.5rem)] md:self-start sm:top-16 sm:min-h-[calc(100dvh-4rem)]',
+        'relative hidden shrink-0 flex-col overflow-hidden text-white transition-[width] duration-300 ease-out motion-reduce:transition-none',
+        'md:flex md:h-[calc(100dvh-3.5rem)] md:max-h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)] sm:max-h-[calc(100dvh-4rem)]',
         'bg-[linear-gradient(180deg,var(--nestora-forest)_0%,#0a3428_55%,#051f18_100%)]',
-        sidebarCollapsed ? 'w-[4.25rem] md:w-[4.25rem]' : 'w-[min(100%,17.75rem)]',
+        sidebarCollapsed ? 'w-[4.25rem]' : 'w-60 xl:w-[17rem]',
       )}
       aria-label="Admin navigation"
     >
@@ -63,8 +63,8 @@ export function AdminDashboardSidebar() {
 
       <div
         className={cn(
-          'relative z-10 flex min-h-0 flex-1 flex-col py-5',
-          sidebarCollapsed ? 'items-center px-2' : 'px-3 xl:px-4',
+          'relative z-10 flex h-full min-h-0 flex-col overflow-hidden py-4',
+          sidebarCollapsed ? 'items-center px-2' : 'px-3',
         )}
       >
         <Link
@@ -97,7 +97,7 @@ export function AdminDashboardSidebar() {
           ) : null}
         </Link>
 
-        <ScrollArea className="mt-4 min-h-0 flex-1 pr-1">
+        <ScrollArea className="mt-3 min-h-0 flex-1 overflow-hidden pr-1 [&_[data-slot=scroll-area-viewport]]:max-h-full">
           <AdminSidebarNav groups={adminNavGroups} collapsed={sidebarCollapsed} />
         </ScrollArea>
 

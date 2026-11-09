@@ -112,7 +112,7 @@ export function AdminDashboardTopbar() {
           aria-hidden
         />
 
-        <div className="mx-auto flex h-auto min-h-14 max-w-7xl flex-wrap items-center gap-2 px-4 py-2 sm:min-h-16 sm:gap-3 sm:px-6">
+        <div className="flex h-14 min-h-14 w-full items-center gap-2 px-4 sm:h-16 sm:min-h-16 sm:gap-3 sm:px-5 lg:px-6">
           {/* 1. Sidebar toggle */}
           <motion.button
             type="button"
@@ -130,7 +130,7 @@ export function AdminDashboardTopbar() {
           </motion.button>
 
           {/* 2 & 3. Page title + breadcrumb */}
-          <div className="flex min-w-[8rem] flex-1 flex-col gap-0.5 sm:min-w-[12rem]">
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:max-w-[40%] lg:max-w-none">
             <h1 className="truncate text-sm font-semibold tracking-tight text-[var(--nestora-forest)] sm:text-base">
               {title}
             </h1>
@@ -160,7 +160,7 @@ export function AdminDashboardTopbar() {
             type="button"
             onClick={() => setSearchOpen(true)}
             className={cn(
-              'hidden h-9 min-w-0 flex-1 items-center gap-2 rounded-full border border-[var(--nestora-sage-muted)] bg-card px-3 text-left text-caption text-muted-foreground sm:flex sm:max-w-xs lg:max-w-sm',
+              'hidden h-9 min-w-0 items-center gap-2 rounded-full border border-[var(--nestora-sage-muted)] bg-card px-3 text-left text-caption text-muted-foreground md:flex md:flex-1 md:max-w-md lg:max-w-lg',
               'hover:border-[color-mix(in_oklch,var(--nestora-sage)_35%,var(--border))]',
               focusRing,
             )}
