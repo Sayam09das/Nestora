@@ -475,13 +475,13 @@ export function LoginScreen() {
             </form>
 
             <div className="mt-6 border-t border-[var(--nestora-sage-muted)] pt-5 text-center lg:text-left">
-              <p className="text-caption text-muted-foreground">
-                New university?{' '}
+              <p className="text-pretty text-caption text-muted-foreground">
+                Accounts are created by your institution&apos;s admin.{' '}
                 <AuthSkiperLink
-                  href="/register"
+                  href="/contact"
                   className="font-semibold text-[var(--nestora-forest)]"
                 >
-                  Start a 30-day campus trial
+                  Contact your housing office
                 </AuthSkiperLink>
               </p>
             </div>

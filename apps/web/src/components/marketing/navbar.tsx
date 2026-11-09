@@ -398,28 +398,14 @@ export function MarketingNavbar() {
                   ))}
                 </motion.ul>
                 <motion.div
-                  className="mt-2 space-y-2 border-t border-border/70 px-1.5 pt-3"
+                  className="mt-2 border-t border-border/70 px-1.5 pt-3"
                   variants={mobileNavFooter}
                   initial={reduceMotion ? false : 'hidden'}
                   animate="show"
                   exit={reduceMotion ? undefined : 'exit'}
                 >
-                  <Link
-                    href="/login"
-                    prefetch={false}
-                    onClick={closeMobile}
-                    className={cn(
-                      'flex h-11 items-center justify-center rounded-xl px-4 text-label font-semibold',
-                      'text-[color:var(--nestora-forest)]',
-                      'bg-[color-mix(in_srgb,var(--nestora-sage)_10%,var(--card))]',
-                      'transition-[background-color,opacity] duration-200 hover:bg-[color-mix(in_srgb,var(--nestora-sage)_18%,var(--card))]',
-                      navLinkFocus,
-                    )}
-                  >
-                    Login
-                  </Link>
                   <MotionLink
-                    href="/register"
+                    href="/login"
                     prefetch={false}
                     onClick={closeMobile}
                     className={cn(
@@ -431,7 +417,7 @@ export function MarketingNavbar() {
                     transition={{ type: 'spring', stiffness: 520, damping: 28 }}
                   >
                     <span className="relative z-[1] inline-flex items-center justify-center gap-2">
-                      Get started
+                      Sign in
                       <ArrowUpRight
                         className="size-4 shrink-0 text-current"
                         aria-hidden
@@ -534,20 +520,6 @@ export function MarketingNavbar() {
               href="/login"
               prefetch={false}
               className={cn(
-                'hidden rounded-md px-2 py-1.5 text-label font-medium text-[color:var(--nestora-nav-muted)] sm:inline-flex',
-                'transition-colors duration-200 hover:text-foreground',
-                navLinkFocus,
-              )}
-              whileHover={reduceMotion ? undefined : { opacity: 1 }}
-              whileTap={reduceMotion ? undefined : { scale: 0.98 }}
-            >
-              Login
-            </MotionLink>
-
-            <MotionLink
-              href="/register"
-              prefetch={false}
-              className={cn(
                 'hidden h-10 min-h-10 px-5 text-body sm:inline-flex motion-reduce:transition-none',
                 nestoraPrimaryCtaClasses,
               )}
@@ -555,7 +527,7 @@ export function MarketingNavbar() {
               whileTap={reduceMotion ? undefined : { scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 520, damping: 28 }}
             >
-              Get started
+              Sign in
               <ArrowUpRight
                 className="size-4 shrink-0 text-current"
                 aria-hidden
