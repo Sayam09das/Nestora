@@ -12,7 +12,7 @@ type RoleInterfacePreviewProps = {
 function PreviewShell({
   title,
   children,
-  featured,
+  featured: _featured,
 }: {
   title: string;
   children: ReactNode;
@@ -20,9 +20,7 @@ function PreviewShell({
 }) {
   return (
     <div
-      className={cn(
-        'surface-role-preview min-h-[8.75rem] overflow-hidden rounded-lg border p-3.5',
-      )}
+      className={cn('surface-role-preview min-h-[8.75rem] overflow-hidden rounded-lg border p-3.5')}
       aria-hidden
     >
       <div className="flex items-center justify-between gap-2 border-b border-[var(--nestora-sage-muted)] pb-2">
@@ -116,7 +114,11 @@ function PreviewAccountant() {
   );
 }
 
-export function RoleInterfacePreview({ roleId, className, featured }: RoleInterfacePreviewProps) {
+export function RoleInterfacePreview({
+  roleId,
+  className,
+  featured: _featured,
+}: RoleInterfacePreviewProps) {
   return (
     <div className={className}>
       {roleId === 'administrator' && <PreviewAdministrator />}

@@ -1,3 +1,13 @@
+.marketing-nav-mobile-sheet {
+  background: color-mix(in srgb, var(--popover) 93%, var(--nestora-sage) 7%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing-nav-mobile-sheet {
+    animation: none;
+  }
+}
+
 /* Hallmark gate 10a: no transition:all on marketing chrome */
 .marketing-nav [data-slot="button"] {
   transition-property:

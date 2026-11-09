@@ -1,24 +1,23 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { useRef } from 'react';
-
-import { highlightMetrics, highlightsCopy } from '@/components/marketing/landing/highlights-content';
-import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useRef } from 'react';
+import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import {
+  highlightMetrics,
+  highlightsCopy,
+} from '@/components/marketing/landing/highlights-content';
 import { cn } from '@/lib/utils';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const revealEase = [0.22, 1, 0.36, 1] as const;
 
-function formatStatValue(
-  n: number,
-  metric: (typeof highlightMetrics)[number],
-): string {
+function formatStatValue(n: number, metric: (typeof highlightMetrics)[number]): string {
   const core = metric.formatThousands
     ? Math.round(n).toLocaleString('en-IN')
-  : String(Math.round(n));
+    : String(Math.round(n));
   return `${metric.prefix ?? ''}${core}${metric.suffix ?? ''}`;
 }
 
@@ -52,23 +51,27 @@ export function HighlightsSection() {
         }
 
         const counter = { val: 0 };
-        gsap.to(counter, {
-          val: metric.value,
-          duration: 1.35,
-          delay: index * 0.08,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: 'top 78%',
-            once: true,
+        gsap.fromTo(
+          counter,
+          { val: 0 },
+          {
+            val: metric.value,
+            duration: 1.35,
+            delay: index * 0.08,
+            ease: 'power2.out',
+            scrollTrigger: {
+              trigger: sectionRef.current,
+              start: 'top 78%',
+              once: true,
+            },
+            onUpdate: () => {
+              node.textContent = formatStatValue(counter.val, metric);
+            },
+            onComplete: () => {
+              node.textContent = formatStatValue(metric.value, metric);
+            },
           },
-          onUpdate: () => {
-            node.textContent = formatStatValue(counter.val, metric);
-          },
-          onComplete: () => {
-            node.textContent = formatStatValue(metric.value, metric);
-          },
-        });
+        );
       });
 
       gsap.from('[data-highlight-item]', {
@@ -136,9 +139,8 @@ export function HighlightsSection() {
                   data-stat-value
                   data-stat-id={metric.id}
                   className="mt-4 text-stat font-semibold tabular-nums tracking-tight text-[var(--nestora-forest)]"
-                  aria-label={`${formatStatValue(metric.value, metric)} ${metric.label}`}
                 >
-                  {formatStatValue(0, metric)}
+                  {formatStatValue(metric.value, metric)}
                 </p>
                 <p className="mt-2 text-label font-semibold text-foreground">{metric.label}</p>
                 <p className="mt-1 max-w-[14rem] text-caption leading-relaxed text-muted-foreground">
@@ -149,7 +151,9 @@ export function HighlightsSection() {
           })}
         </ul>
 
-        <p className="mt-10 text-center text-caption text-muted-foreground">{highlightsCopy.disclaimer}</p>
+        <p className="mt-10 text-center text-caption text-muted-foreground">
+          {highlightsCopy.disclaimer}
+        </p>
       </div>
     </section>
   );

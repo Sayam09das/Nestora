@@ -73,13 +73,20 @@ function PreviewStudents() {
   );
 }
 
+const roomBarWidths = [
+  { id: 'room-bar-1', w: 72 },
+  { id: 'room-bar-2', w: 88 },
+  { id: 'room-bar-3', w: 45 },
+  { id: 'room-bar-4', w: 100 },
+];
+
 function PreviewRooms() {
   return (
     <div className="space-y-2">
       <div className="flex gap-1">
-        {[72, 88, 45, 100].map((w, i) => (
-          <div key={i} className="h-1.5 flex-1 overflow-hidden rounded-full bg-border">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${w}%` }} />
+        {roomBarWidths.map((bar) => (
+          <div key={bar.id} className="h-1.5 flex-1 overflow-hidden rounded-full bg-border">
+            <div className="h-full rounded-full bg-primary" style={{ width: `${bar.w}%` }} />
           </div>
         ))}
       </div>
@@ -109,23 +116,31 @@ function PreviewGate() {
   );
 }
 
+const attendanceDays = [
+  { id: 'att-mon', day: 'M', active: true },
+  { id: 'att-tue', day: 'T', active: true },
+  { id: 'att-wed', day: 'W', active: true },
+  { id: 'att-thu', day: 'T', active: true },
+  { id: 'att-fri', day: 'F', active: false },
+];
+
 function PreviewAttendance() {
   return (
     <PreviewFrame title="Roll call · Floor 2">
       <div className="flex gap-1">
-      {['M', 'T', 'W', 'T', 'F'].map((day, i) => (
-        <span
-          key={`${day}-${i}`}
-          className={cn(
-            'flex size-6 items-center justify-center rounded-md text-[10px] font-semibold',
-            i < 4
-              ? 'bg-[color-mix(in_oklch,var(--primary)_22%,var(--card))] text-[var(--nestora-forest)]'
-              : 'bg-muted text-muted-foreground',
-          )}
-        >
-          {day}
-        </span>
-      ))}
+        {attendanceDays.map((d) => (
+          <span
+            key={d.id}
+            className={cn(
+              'flex size-6 items-center justify-center rounded-md text-[10px] font-semibold',
+              d.active
+                ? 'bg-[color-mix(in_oklch,var(--primary)_22%,var(--card))] text-[var(--nestora-forest)]'
+                : 'bg-muted text-muted-foreground',
+            )}
+          >
+            {d.day}
+          </span>
+        ))}
       </div>
       <Row label="Present today" value="118 / 124" />
       <Row label="Absent follow-up" value="2 flagged" muted />
@@ -166,12 +181,20 @@ function PreviewStaff() {
   );
 }
 
+const reportBars = [
+  { id: 'bar-40', height: 40 },
+  { id: 'bar-64', height: 64 },
+  { id: 'bar-52', height: 52 },
+  { id: 'bar-78', height: 78 },
+  { id: 'bar-60', height: 60 },
+];
+
 function PreviewReports() {
   return (
     <PreviewFrame title="Operations snapshot">
       <div className="flex h-8 items-end gap-1">
-        {[40, 64, 52, 78, 60].map((h, i) => (
-          <PreviewBar key={i} height={h} />
+        {reportBars.map((b) => (
+          <PreviewBar key={b.id} height={b.height} />
         ))}
       </div>
       <Row label="Occupancy" value="94% beds filled" />

@@ -1,8 +1,9 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useRef } from 'react';
-
+import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { FeaturePreview } from '@/components/marketing/landing/feature-preview';
 import {
   type FeatureModule,
@@ -10,8 +11,6 @@ import {
   primaryModules,
 } from '@/components/marketing/landing/features-content';
 import { SupportModulesSection } from '@/components/marketing/landing/support-modules-section';
-import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { cn } from '@/lib/utils';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -46,7 +45,10 @@ function PrimaryFeatureBlock({ module, reduceMotion }: FeatureBlockProps) {
             <ul className="mt-3 space-y-1.5 text-supporting text-muted-foreground">
               {module.points.map((point) => (
                 <li key={point} className="flex gap-2 text-pretty">
-                  <span className="mt-2 size-1 shrink-0 rounded-full bg-[var(--nestora-sage)]" aria-hidden />
+                  <span
+                    className="mt-2 size-1 shrink-0 rounded-full bg-[var(--nestora-sage)]"
+                    aria-hidden
+                  />
                   <span>{point}</span>
                 </li>
               ))}

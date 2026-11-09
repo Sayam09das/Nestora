@@ -58,5 +58,6 @@ export const highlightsCopy = {
   title: 'Everything under control. One connected system.',
   description:
     'Nestora connects rooms, residents, fees, and daily warden work—so teams spend less time reconciling spreadsheets and more time running hostels.',
-  disclaimer: 'Sample metrics for demonstration. Swap in your institution’s live totals when ready.',
+  disclaimer:
+    'Sample metrics for demonstration. Swap in your institution’s live totals when ready.',
 } as const;

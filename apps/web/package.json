@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "clean": "rm -rf .next",
-    "dev": "next dev --port 3000",
+    "dev": "node scripts/ensure-next-dev.mjs",
+    "dev:next": "next dev --port 3000",
     "build": "next build",
     "start": "next start --port 3000",
     "typecheck": "tsc --noEmit",

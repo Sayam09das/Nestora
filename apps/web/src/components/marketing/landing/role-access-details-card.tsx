@@ -4,9 +4,9 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { KeyRound } from 'lucide-react';
 
 import {
+  type AccessLevel,
   accessLevelLabels,
   roleAccessDetails,
-  type AccessLevel,
 } from '@/components/marketing/landing/roles-content';
 import { cn } from '@/lib/utils';
 
@@ -103,10 +103,7 @@ export function RoleAccessDetailsCard({ className }: RoleAccessDetailsCardProps)
                 key={row.area}
                 className="border-b border-[var(--nestora-sage-muted)] last:border-b-0"
               >
-                <th
-                  scope="row"
-                  className="px-3 py-3 font-medium text-[var(--nestora-ink)] sm:px-4"
-                >
+                <th scope="row" className="px-3 py-3 font-medium text-[var(--nestora-ink)] sm:px-4">
                   {row.area}
                 </th>
                 {columnLabels.map((col) => {
@@ -143,7 +140,10 @@ export function RoleAccessDetailsCard({ className }: RoleAccessDetailsCardProps)
         <ul className="space-y-2 border-t border-[var(--nestora-sage-muted)] pt-5 text-caption text-[var(--nestora-nav-muted)]">
           {roleAccessDetails.highlights.map((line) => (
             <li key={line} className="flex gap-2 text-pretty">
-              <span className="mt-2 size-1 shrink-0 rounded-full bg-[var(--nestora-sage)]" aria-hidden />
+              <span
+                className="mt-2 size-1 shrink-0 rounded-full bg-[var(--nestora-sage)]"
+                aria-hidden
+              />
               <span>{line}</span>
             </li>
           ))}

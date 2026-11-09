@@ -1,18 +1,17 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useRef } from 'react';
-
+import { Flip, gsap, SplitText, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { RoleAccessDetailsCard } from '@/components/marketing/landing/role-access-details-card';
 import { RoleInterfacePreview } from '@/components/marketing/landing/role-interface-preview';
 import {
   featuredRole,
+  type RoleShowcase,
   rolesCopy,
   supportingRoles,
-  type RoleShowcase,
 } from '@/components/marketing/landing/roles-content';
-import { Flip, gsap, SplitText, useGSAP } from '@/components/marketing/hero/hero-gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { cn } from '@/lib/utils';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -65,7 +64,9 @@ function RolePanel({ role, featured, className, reduceMotion }: RolePanelProps) 
             <p className="text-[11px] font-bold tabular-nums tracking-[0.14em] text-[var(--nestora-tan)]">
               {role.order}
             </p>
-            <h3 className="mt-1 text-h4 font-semibold text-[var(--nestora-forest)]">{role.title}</h3>
+            <h3 className="mt-1 text-h4 font-semibold text-[var(--nestora-forest)]">
+              {role.title}
+            </h3>
             <p className="mt-1.5 text-caption font-medium text-[var(--nestora-sage)]">
               {role.accessLabel}
             </p>
@@ -75,17 +76,17 @@ function RolePanel({ role, featured, className, reduceMotion }: RolePanelProps) 
         <ul className="mt-4 space-y-1.5 text-supporting text-[var(--nestora-nav-muted)]">
           {role.points.map((point) => (
             <li key={point} className="flex gap-2 text-pretty">
-              <span className="mt-2 size-1 shrink-0 rounded-full bg-[var(--nestora-sage)]" aria-hidden />
+              <span
+                className="mt-2 size-1 shrink-0 rounded-full bg-[var(--nestora-sage)]"
+                aria-hidden
+              />
               <span>{point}</span>
             </li>
           ))}
         </ul>
       </div>
 
-      <div
-        {...(featured ? { 'data-flip-preview': '' } : {})}
-        className="mt-6 shrink-0 rounded-lg"
-      >
+      <div {...(featured ? { 'data-flip-preview': '' } : {})} className="mt-6 shrink-0 rounded-lg">
         <RoleInterfacePreview roleId={role.id} featured={featured} />
       </div>
     </motion.article>
@@ -180,7 +181,9 @@ export function RolesSection() {
         },
       });
 
-      const featured = sectionRef.current.querySelector<HTMLElement>('[data-role-id="administrator"]');
+      const featured = sectionRef.current.querySelector<HTMLElement>(
+        '[data-role-id="administrator"]',
+      );
       const onFeaturedEnter = () => {
         const preview = featured?.querySelector('[data-flip-preview]');
         if (!preview) {

@@ -1,14 +1,13 @@
 'use client';
 
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useRef } from 'react';
-
+import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import {
+  type BenefitTextItem,
   benefitItems,
   benefitsCopy,
-  type BenefitTextItem,
 } from '@/components/marketing/landing/benefits-content';
-import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { cn } from '@/lib/utils';
 
 gsap.registerPlugin(ScrollTrigger);

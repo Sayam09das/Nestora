@@ -1,16 +1,15 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-import { SafariModulePreview } from '@/components/marketing/landing/safari-module-preview';
+import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import {
+  type FeatureModule,
   supportModuleDetails,
   supportModules,
-  type FeatureModule,
 } from '@/components/marketing/landing/features-content';
-import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { SafariModulePreview } from '@/components/marketing/landing/safari-module-preview';
 import { cn } from '@/lib/utils';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -119,7 +118,10 @@ function ModuleDetailPanel({ module }: { module: FeatureModule }) {
           <ul className="mt-3 space-y-2">
             {module.points.map((point) => (
               <li key={point} className="flex gap-2.5 text-supporting text-[var(--nestora-ink)]">
-                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-[var(--nestora-sage)]" aria-hidden />
+                <span
+                  className="mt-2 size-1.5 shrink-0 rounded-full bg-[var(--nestora-sage)]"
+                  aria-hidden
+                />
                 <span className="text-pretty">{point}</span>
               </li>
             ))}
@@ -138,7 +140,9 @@ function ModuleDetailPanel({ module }: { module: FeatureModule }) {
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--nestora-forest)]">
             Product preview
           </p>
-          <p className="mt-1 text-caption text-[var(--nestora-nav-muted)]">Illustrative screen — not live data.</p>
+          <p className="mt-1 text-caption text-[var(--nestora-nav-muted)]">
+            Illustrative screen — not live data.
+          </p>
         </div>
 
         <div className="relative mt-5 flex flex-1 flex-col justify-center">
@@ -158,7 +162,11 @@ export function SupportModulesSection() {
   const [inView, setInView] = useState(false);
   const activeModule = supportModules.find((m) => m.id === activeId) ?? supportModules[0];
   const activeIndex = useMemo(
-    () => Math.max(0, supportModules.findIndex((m) => m.id === activeId)),
+    () =>
+      Math.max(
+        0,
+        supportModules.findIndex((m) => m.id === activeId),
+      ),
     [activeId],
   );
 
@@ -195,7 +203,7 @@ export function SupportModulesSection() {
     }, AUTO_INTERVAL_MS);
 
     return () => window.clearInterval(timer);
-  }, [autoPlay, activeId]);
+  }, [autoPlay]);
 
   useGSAP(
     () => {
@@ -253,9 +261,10 @@ export function SupportModulesSection() {
         <p className="sr-only">{supportModules.length} additional modules included with Nestora</p>
       </motion.div>
 
-      <div
+      <section
         ref={shellRef}
         data-support-shell
+        aria-label="Support modules tour"
         className="mt-10 min-w-0 rounded-2xl border border-[var(--nestora-sage-muted)] bg-[var(--nestora-white)] p-6 shadow-[0_20px_50px_-36px_color-mix(in_oklch,var(--nestora-forest)_55%,transparent)] sm:p-8 lg:mt-12"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
@@ -288,7 +297,6 @@ export function SupportModulesSection() {
 
             <ul
               className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:flex-col lg:gap-1 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden"
-              role="tablist"
               aria-labelledby="support-module-nav-label"
             >
               {supportModules.map((module, index) => {
@@ -324,7 +332,9 @@ export function SupportModulesSection() {
                         <span
                           className={cn(
                             'block text-[10px] font-semibold uppercase tracking-wider',
-                            isActive ? 'text-[var(--nestora-sage)]' : 'text-[var(--nestora-nav-muted)]',
+                            isActive
+                              ? 'text-[var(--nestora-sage)]'
+                              : 'text-[var(--nestora-nav-muted)]',
                           )}
                         >
                           {String(index + 1).padStart(2, '0')}
@@ -352,7 +362,9 @@ export function SupportModulesSection() {
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--nestora-sage)]">
                     Now viewing
                   </p>
-                  <p className="mt-1 text-h4 font-semibold text-[var(--nestora-forest)]">{activeModule.title}</p>
+                  <p className="mt-1 text-h4 font-semibold text-[var(--nestora-forest)]">
+                    {activeModule.title}
+                  </p>
                 </motion.div>
                 <p className="shrink-0 font-mono text-label font-semibold tabular-nums text-[var(--nestora-forest)]">
                   {String(activeIndex + 1).padStart(2, '0')}
@@ -379,18 +391,18 @@ export function SupportModulesSection() {
               aria-live="polite"
               className="relative min-w-0 flex-1 overflow-hidden rounded-xl border border-[var(--nestora-sage-muted)] bg-[var(--nestora-white)]"
             >
-            <motion.div
-              key={activeModule.id}
-              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.28, ease: revealEase }}
-            >
-              <ModuleDetailPanel module={activeModule} />
-            </motion.div>
+              <motion.div
+                key={activeModule.id}
+                initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28, ease: revealEase }}
+              >
+                <ModuleDetailPanel module={activeModule} />
+              </motion.div>
             </article>
           </div>
         </div>
-      </div>
+      </section>
     </motion.div>
   );
 }
