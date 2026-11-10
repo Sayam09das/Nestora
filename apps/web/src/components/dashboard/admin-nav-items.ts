@@ -256,12 +256,19 @@ export const adminNavGroups: AdminNavGroup[] = [
     label: 'Insights',
     items: [
       {
-        kind: 'link',
+        kind: 'collapsible',
         id: 'reports',
-        href: '/admin/reports',
         label: 'Reports & Analytics',
+        description: 'KPIs & exports',
         icon: BarChart3,
         isActive: pathStarts('/admin/reports'),
+        children: [
+          {
+            href: '/admin/reports',
+            label: 'Report catalog',
+            isActive: (p) => p === '/admin/reports' || p.startsWith('/admin/reports/'),
+          },
+        ],
       },
     ],
   },
