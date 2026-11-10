@@ -167,12 +167,19 @@ export const adminNavGroups: AdminNavGroup[] = [
     label: 'Operations',
     items: [
       {
-        kind: 'link',
+        kind: 'collapsible',
         id: 'allocation',
-        href: '/admin/allocation',
         label: 'Room Allocation',
+        description: 'Beds & assignments',
         icon: LayoutGrid,
         isActive: pathStarts('/admin/allocation'),
+        children: [
+          {
+            href: '/admin/allocation',
+            label: 'Allocation Center',
+            isActive: (p) => p === '/admin/allocation',
+          },
+        ],
       },
       {
         kind: 'link',
