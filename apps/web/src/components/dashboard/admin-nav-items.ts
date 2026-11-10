@@ -197,12 +197,19 @@ export const adminNavGroups: AdminNavGroup[] = [
         ],
       },
       {
-        kind: 'link',
+        kind: 'collapsible',
         id: 'fees',
-        href: '/admin/fees',
         label: 'Fees & Payments',
+        description: 'Ledgers & receipts',
         icon: CreditCard,
         isActive: pathStarts('/admin/fees'),
+        children: [
+          {
+            href: '/admin/fees',
+            label: 'Finance desk',
+            isActive: (p) => p === '/admin/fees' || p.startsWith('/admin/fees/'),
+          },
+        ],
       },
       {
         kind: 'collapsible',
