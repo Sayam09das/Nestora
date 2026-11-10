@@ -277,12 +277,19 @@ export const adminNavGroups: AdminNavGroup[] = [
     label: 'System',
     items: [
       {
-        kind: 'link',
+        kind: 'collapsible',
         id: 'settings',
-        href: '/admin/settings',
         label: 'Settings',
+        description: 'System config',
         icon: Settings,
         isActive: pathStarts('/admin/settings'),
+        children: [
+          {
+            href: '/admin/settings',
+            label: 'Control center',
+            isActive: (p) => p === '/admin/settings' || p.startsWith('/admin/settings/'),
+          },
+        ],
       },
       {
         kind: 'link',
