@@ -146,13 +146,19 @@ export const adminNavGroups: AdminNavGroup[] = [
         ],
       },
       {
-        kind: 'link',
+        kind: 'collapsible',
         id: 'hostels',
-        href: '/admin/hostels',
         label: 'Hostel Management',
         description: 'Buildings & blocks',
         icon: Building2,
         isActive: pathStarts('/admin/hostels'),
+        children: [
+          {
+            href: '/admin/hostels',
+            label: 'All Hostels',
+            isActive: (p) => p === '/admin/hostels',
+          },
+        ],
       },
     ],
   },
@@ -161,12 +167,19 @@ export const adminNavGroups: AdminNavGroup[] = [
     label: 'Operations',
     items: [
       {
-        kind: 'link',
+        kind: 'collapsible',
         id: 'allocation',
-        href: '/admin/allocation',
         label: 'Room Allocation',
+        description: 'Beds & assignments',
         icon: LayoutGrid,
         isActive: pathStarts('/admin/allocation'),
+        children: [
+          {
+            href: '/admin/allocation',
+            label: 'Allocation Center',
+            isActive: (p) => p === '/admin/allocation',
+          },
+        ],
       },
       {
         kind: 'link',
