@@ -307,12 +307,19 @@ export const adminNavGroups: AdminNavGroup[] = [
         ],
       },
       {
-        kind: 'link',
+        kind: 'collapsible',
         id: 'activity-logs',
-        href: '/admin/audit-logs',
         label: 'Activity Logs',
+        description: 'Audit trail',
         icon: FileText,
-        isActive: (pathname) => pathname.startsWith('/admin/audit-logs'),
+        isActive: pathStarts('/admin/audit-logs'),
+        children: [
+          {
+            href: '/admin/audit-logs',
+            label: 'Audit console',
+            isActive: (p) => p === '/admin/audit-logs' || p.startsWith('/admin/audit-logs/'),
+          },
+        ],
       },
     ],
   },
