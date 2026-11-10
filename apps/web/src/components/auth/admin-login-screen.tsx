@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import { AuthFieldInput } from '@/components/auth/auth-form-fields';
@@ -62,6 +62,7 @@ const formField = {
 
 export function AdminLoginScreen() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const reduceMotion = useReducedMotion();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -157,7 +158,12 @@ export function AdminLoginScreen() {
         return;
       }
 
-      router.push(postLoginRedirect(result.user));
+      const returnTo = searchParams.get('returnTo');
+      const safeReturn =
+        returnTo && returnTo.startsWith('/admin') && !returnTo.startsWith('/admin/login')
+          ? returnTo
+          : null;
+      router.push(safeReturn ?? postLoginRedirect(result.user));
     } catch {
       setError('Unable to reach the API. Is the backend running on the configured URL?');
     } finally {

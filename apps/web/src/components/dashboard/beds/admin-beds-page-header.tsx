@@ -4,8 +4,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { BedDouble, Download, FileSpreadsheet, Plus } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
-import { BED_INVENTORY_STATS, bedInventoryOccupancyPercent } from '@/components/dashboard/beds/admin-beds-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { BedDirectorySummary } from '@/lib/api/beds';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -24,22 +24,29 @@ const BAR_TRACK = '#e7e7dc';
 
 type AdminBedsPageHeaderProps = {
   onAddBed: () => void;
+  summary: BedDirectorySummary | null;
+  loading?: boolean;
 };
 
-export function AdminBedsPageHeader({ onAddBed }: AdminBedsPageHeaderProps) {
+export function AdminBedsPageHeader({ onAddBed, summary, loading = false }: AdminBedsPageHeaderProps) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
-  const occupancyPct = bedInventoryOccupancyPercent();
 
-  const { occupiedW, reservedW, maintenanceW, availableW } = useMemo(() => {
-    const t = BED_INVENTORY_STATS.totalBeds;
+  const { totalBeds, occupancyPct, occupiedW, reservedW, maintenanceW, availableW } = useMemo(() => {
+    const t = summary?.totalBeds ?? 0;
+    const occupied = summary?.occupied ?? 0;
+    const available = summary?.available ?? 0;
+    const reserved = summary?.reserved ?? 0;
+    const maintenance = summary?.maintenance ?? 0;
     return {
-      occupiedW: (BED_INVENTORY_STATS.occupied / t) * 100,
-      reservedW: (BED_INVENTORY_STATS.reserved / t) * 100,
-      maintenanceW: (BED_INVENTORY_STATS.maintenance / t) * 100,
-      availableW: (BED_INVENTORY_STATS.available / t) * 100,
+      totalBeds: t,
+      occupancyPct: summary?.occupiedRatePercent ?? (t > 0 ? Math.round((occupied / t) * 1000) / 10 : 0),
+      occupiedW: t > 0 ? (occupied / t) * 100 : 0,
+      reservedW: t > 0 ? (reserved / t) * 100 : 0,
+      maintenanceW: t > 0 ? (maintenance / t) * 100 : 0,
+      availableW: t > 0 ? (available / t) * 100 : 0,
     };
-  }, []);
+  }, [summary]);
 
   useGSAP(
     () => {
@@ -97,9 +104,11 @@ export function AdminBedsPageHeader({ onAddBed }: AdminBedsPageHeaderProps) {
             <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
               Track bed availability, occupancy, reservations, and maintenance across hostels ·{' '}
               <span className="font-semibold tabular-nums text-foreground">
-                {BED_INVENTORY_STATS.totalBeds.toLocaleString('en-IN')}
+                {loading ? '—' : totalBeds.toLocaleString('en-IN')}
               </span>{' '}
-              beds · <span className="font-medium text-[var(--nestora-forest)]">{occupancyPct}%</span> occupied
+              beds ·{' '}
+              <span className="font-medium text-[var(--nestora-forest)]">{loading ? '—' : `${occupancyPct}%`}</span>{' '}
+              occupied
             </p>
           </div>
         </div>

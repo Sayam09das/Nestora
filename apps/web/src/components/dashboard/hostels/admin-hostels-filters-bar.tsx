@@ -29,6 +29,8 @@ type Props = {
   occupancyFilter: string;
   onOccupancyFilterChange: (v: string) => void;
   onReset: () => void;
+  campusOptions?: readonly string[];
+  genderOptions?: readonly string[];
 };
 
 function SelectField({
@@ -73,6 +75,9 @@ function SelectField({
 export function AdminHostelsFiltersBar(props: Props) {
   const reduceMotion = useReducedMotion();
   const [expanded, setExpanded] = useState(true);
+
+  const genderOpts = props.genderOptions ?? HOSTEL_GENDER_FILTERS;
+  const campusOpts = props.campusOptions ?? HOSTEL_CAMPUS_FILTERS;
 
   const activeFilterCount = useMemo(() => {
     let n = 0;
@@ -135,14 +140,14 @@ export function AdminHostelsFiltersBar(props: Props) {
             label="Gender category"
             icon={<Users className="size-3" aria-hidden />}
             value={props.genderFilter}
-            options={HOSTEL_GENDER_FILTERS}
+            options={genderOpts}
             onChange={props.onGenderFilterChange}
           />
           <SelectField
             label="Campus zone"
             icon={<MapPin className="size-3" aria-hidden />}
             value={props.campusFilter}
-            options={HOSTEL_CAMPUS_FILTERS}
+            options={campusOpts}
             onChange={props.onCampusFilterChange}
           />
           <SelectField

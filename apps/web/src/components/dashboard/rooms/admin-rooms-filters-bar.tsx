@@ -51,6 +51,10 @@ type AdminRoomsFiltersBarProps = {
   onOccupancyFilterChange: (value: string) => void;
   onReset: () => void;
   filteredCount: number;
+  hostelOptions?: readonly string[];
+  blockOptions?: readonly string[];
+  floorOptions?: readonly string[];
+  roomTypeOptions?: readonly string[];
 };
 
 function FilterField({
@@ -122,9 +126,18 @@ export function AdminRoomsFiltersBar({
   onOccupancyFilterChange,
   onReset,
   filteredCount,
+  hostelOptions,
+  blockOptions,
+  floorOptions,
+  roomTypeOptions,
 }: AdminRoomsFiltersBarProps) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
+
+  const hostelOpts = hostelOptions ?? HOSTEL_FILTER_OPTIONS;
+  const blockOpts = blockOptions ?? BLOCK_FILTER_OPTIONS;
+  const floorOpts = floorOptions ?? FLOOR_FILTER_OPTIONS;
+  const typeOpts = roomTypeOptions ?? ROOM_TYPE_FILTER_OPTIONS;
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -244,7 +257,7 @@ export function AdminRoomsFiltersBar({
             label="Hostel"
             icon={<Building2 className="size-3" aria-hidden />}
             value={hostelFilter}
-            options={HOSTEL_FILTER_OPTIONS}
+            options={hostelOpts}
             onChange={onHostelFilterChange}
             active={hostelFilter !== 'All Hostels'}
           />
@@ -252,7 +265,7 @@ export function AdminRoomsFiltersBar({
             label="Block"
             icon={<Layers className="size-3" aria-hidden />}
             value={blockFilter}
-            options={BLOCK_FILTER_OPTIONS}
+            options={blockOpts}
             onChange={onBlockFilterChange}
             active={blockFilter !== 'All Blocks'}
           />
@@ -260,7 +273,7 @@ export function AdminRoomsFiltersBar({
             label="Floor"
             icon={<LayoutTemplate className="size-3" aria-hidden />}
             value={floorFilter}
-            options={FLOOR_FILTER_OPTIONS}
+            options={floorOpts}
             onChange={onFloorFilterChange}
             active={floorFilter !== 'All Floors'}
           />
@@ -268,7 +281,7 @@ export function AdminRoomsFiltersBar({
             label="Room type"
             icon={<BedDouble className="size-3" aria-hidden />}
             value={roomTypeFilter}
-            options={ROOM_TYPE_FILTER_OPTIONS}
+            options={typeOpts}
             onChange={onRoomTypeFilterChange}
             active={roomTypeFilter !== 'All Types'}
           />

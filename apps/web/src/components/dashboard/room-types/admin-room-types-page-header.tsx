@@ -4,17 +4,21 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Download, LayoutTemplate, Plus } from 'lucide-react';
 import { useRef } from 'react';
 
-import { ROOM_TYPE_STATS } from '@/components/dashboard/room-types/admin-room-types-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { RoomTypeDirectorySummary } from '@/lib/api/room-types';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-type Props = { onAdd: () => void };
+type Props = {
+  onAdd: () => void;
+  summary: RoomTypeDirectorySummary | null;
+  loading?: boolean;
+};
 
-export function AdminRoomTypesPageHeader({ onAdd }: Props) {
+export function AdminRoomTypesPageHeader({ onAdd, summary, loading = false }: Props) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
 
@@ -51,7 +55,10 @@ export function AdminRoomTypesPageHeader({ onAdd }: Props) {
             <h1 className="text-2xl font-semibold text-[var(--nestora-forest)]">Room Types</h1>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
               Manage categories, capacity, facilities, pricing, and configurations ·{' '}
-              <span className="font-semibold tabular-nums text-foreground">{ROOM_TYPE_STATS.activeTypes}</span> active types
+              <span className="font-semibold tabular-nums text-foreground">
+                {loading ? '—' : (summary?.activeTypes ?? 0)}
+              </span>{' '}
+              active types
             </p>
           </div>
         </div>

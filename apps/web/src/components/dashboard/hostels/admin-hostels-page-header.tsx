@@ -4,8 +4,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Download, FileSpreadsheet, MapPinned, Plus } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
-import { HOSTEL_STATS } from '@/components/dashboard/hostels/admin-hostels-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { HostelDirectorySummary } from '@/lib/api/hostels';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -18,18 +18,29 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-export function AdminHostelsPageHeader({ onAdd }: { onAdd: () => void }) {
+type AdminHostelsPageHeaderProps = {
+  onAdd: () => void;
+  summary: HostelDirectorySummary | null;
+  loading?: boolean;
+};
+
+export function AdminHostelsPageHeader({ onAdd, summary, loading = false }: AdminHostelsPageHeaderProps) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
 
-  const { boysShare, girlsShare, activeShare } = useMemo(() => {
-    const total = HOSTEL_STATS.totalHostels;
+  const { boysShare, girlsShare, activeShare, totalBeds, avgOcc, activeCount, totalHostels } = useMemo(() => {
+    const total = summary?.totalHostels ?? 0;
+    const active = summary?.activeHostels ?? 0;
     return {
-      activeShare: (HOSTEL_STATS.activeHostels / total) * 100,
-      boysShare: 40,
-      girlsShare: 60,
+      totalHostels: total,
+      activeCount: active,
+      activeShare: total > 0 ? (active / total) * 100 : 0,
+      boysShare: summary?.boysBedsSharePct ?? 0,
+      girlsShare: summary?.girlsBedsSharePct ?? 0,
+      totalBeds: summary?.totalBedCapacity ?? 0,
+      avgOcc: summary?.averageOccupancyPct ?? 0,
     };
-  }, []);
+  }, [summary]);
 
   useGSAP(
     () => {
@@ -131,36 +142,47 @@ export function AdminHostelsPageHeader({ onAdd }: { onAdd: () => void }) {
                 style={{ opacity: 1 }}
               >
                 <span>Active share</span>
-                <span className="font-semibold tabular-nums text-foreground">{HOSTEL_STATS.activeHostels} hostels</span>
+                <span className="font-semibold tabular-nums text-foreground">
+                  {loading ? '—' : activeCount} hostels
+                </span>
               </motion.div>
               <div className="h-2 overflow-hidden rounded-full bg-[#e7e7dc]">
                 <motion.div
                   data-hostel-hero-bar
                   className="h-full rounded-full bg-[#6d9773]"
-                  style={{ width: `${activeShare}%` }}
+                  style={{ width: loading ? '0%' : `${activeShare}%` }}
                 />
               </div>
             </div>
             <div>
               <div className="mb-1 flex justify-between text-muted-foreground">
                 <span>Boys capacity</span>
-                <span className="tabular-nums">~{boysShare}%</span>
+                <span className="tabular-nums">{loading ? '—' : `${boysShare}%`}</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-[#e7e7dc]">
-                <div data-hostel-hero-bar className="h-full w-[40%] rounded-full bg-[var(--nestora-forest)]" />
+                <div
+                  data-hostel-hero-bar
+                  className="h-full rounded-full bg-[var(--nestora-forest)]"
+                  style={{ width: loading ? '0%' : `${boysShare}%` }}
+                />
               </div>
             </div>
             <div>
               <div className="mb-1 flex justify-between text-muted-foreground">
                 <span>Girls capacity</span>
-                <span className="tabular-nums">~{girlsShare}%</span>
+                <span className="tabular-nums">{loading ? '—' : `${girlsShare}%`}</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-[#e7e7dc]">
-                <div data-hostel-hero-bar className="h-full w-[60%] rounded-full bg-[#ffba00]" />
+                <div
+                  data-hostel-hero-bar
+                  className="h-full rounded-full bg-[#ffba00]"
+                  style={{ width: loading ? '0%' : `${girlsShare}%` }}
+                />
               </div>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              {HOSTEL_STATS.totalBedCapacity} total beds · {HOSTEL_STATS.averageOccupancyPct}% avg occupancy (illustrative)
+              {loading ? '—' : totalBeds.toLocaleString('en-IN')} total beds ·{' '}
+              {loading ? '—' : `${avgOcc}%`} avg occupancy · {loading ? '—' : totalHostels} hostels
             </p>
           </div>
         </motion.aside>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useReducedMotion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 
 import { AdminAllocationAllocateDrawer } from '@/components/dashboard/allocation/admin-allocation-allocate-drawer';
@@ -9,12 +10,10 @@ import { AdminAllocationFiltersBar } from '@/components/dashboard/allocation/adm
 import { AdminAllocationPageHeader } from '@/components/dashboard/allocation/admin-allocation-page-header';
 import { AdminAllocationQueuePanel } from '@/components/dashboard/allocation/admin-allocation-queue-panel';
 import { AdminAllocationStatsStrip } from '@/components/dashboard/allocation/admin-allocation-stats-strip';
-import {
-  SAMPLE_ALLOCATIONS,
-  queueAllocations,
-  type AllocationRecord,
-} from '@/components/dashboard/allocation/admin-allocation-data';
+import type { AllocationRecord } from '@/components/dashboard/allocation/admin-allocation-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import { Button } from '@/components/ui/button';
+import { useAllocationsDirectory } from '@/hooks/use-allocations-directory';
 
 export function AdminAllocationPage() {
   const reduceMotion = useReducedMotion();
@@ -28,33 +27,45 @@ export function AdminAllocationPage() {
   const [page, setPage] = useState(1);
   const [selectedQueueId, setSelectedQueueId] = useState('');
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return SAMPLE_ALLOCATIONS.filter((row) => {
-      if (statusFilter !== 'All Status' && row.status !== statusFilter) return false;
-      if (typeFilter !== 'All Types' && row.type !== typeFilter) return false;
-      if (hostelFilter !== 'All Hostels') {
-        const hostel = row.hostel ?? row.preferenceHostel;
-        if (hostel !== hostelFilter) return false;
-      }
-      if (!q) return true;
-      return (
-        row.studentName.toLowerCase().includes(q) ||
-        row.studentId.toLowerCase().includes(q) ||
-        row.allocationRef.toLowerCase().includes(q) ||
-        (row.bedId?.toLowerCase().includes(q) ?? false)
-      );
+  const filters = useMemo(
+    () => ({
+      q: search,
+      status: statusFilter,
+      type: typeFilter,
+      hostel: hostelFilter,
+      page,
+      pageSize,
+    }),
+    [search, statusFilter, typeFilter, hostelFilter, page, pageSize],
+  );
+
+  const { summary, allocations, queue, total, loadingSummary, loadingList, loadingQueue, error, refresh } =
+    useAllocationsDirectory(filters);
+
+  const filteredQueue = useMemo(() => {
+    if (hostelFilter === 'All Hostels') return queue;
+    return queue.filter((row) => {
+      const hostel = row.hostel ?? row.preferenceHostel;
+      return hostel === hostelFilter;
     });
-  }, [search, statusFilter, typeFilter, hostelFilter]);
+  }, [queue, hostelFilter]);
 
-  const queue = useMemo(() => queueAllocations(filtered), [filtered]);
+  const effectiveSelectedId =
+    selectedQueueId && filteredQueue.some((q) => q.id === selectedQueueId)
+      ? selectedQueueId
+      : (filteredQueue[0]?.id ?? '');
 
-  const effectiveSelectedId = selectedQueueId && queue.some((q) => q.id === selectedQueueId) ? selectedQueueId : (queue[0]?.id ?? '');
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pageRows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
-  const listKey = `${search}|${statusFilter}|${typeFilter}|${hostelFilter}|${safePage}`;
+  const pageRows = allocations;
+  const listKey = `${search}|${statusFilter}|${typeFilter}|${hostelFilter}|${safePage}|${total}`;
+
+  const facetOptions = useMemo(() => {
+    const hostels = summary?.facets?.hostels ?? [];
+    return {
+      hostels: ['All Hostels', ...hostels] as const,
+    };
+  }, [summary?.facets]);
 
   useGSAP(
     () => {
@@ -84,8 +95,18 @@ export function AdminAllocationPage() {
 
   return (
     <div ref={rootRef} className="space-y-6 pb-6">
-      <AdminAllocationPageHeader onAllocate={() => openAssign()} />
-      <AdminAllocationStatsStrip />
+      {error ? (
+        <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}{' '}
+          <Button type="button" variant="link" className="h-auto p-0 text-destructive" onClick={() => refresh()}>
+            Retry
+          </Button>
+        </p>
+      ) : null}
+
+      <AdminAllocationPageHeader onAllocate={() => openAssign()} summary={summary} loading={loadingSummary} />
+      <AdminAllocationStatsStrip summary={summary} loading={loadingSummary} />
+
       <AdminAllocationFiltersBar
         search={search}
         onSearchChange={(v) => {
@@ -108,28 +129,46 @@ export function AdminAllocationPage() {
           setPage(1);
         }}
         onReset={reset}
+        hostelOptions={facetOptions.hostels}
       />
-      <AdminAllocationQueuePanel
-        queue={queue}
-        selectedId={effectiveSelectedId}
-        onSelect={setSelectedQueueId}
-        onAssignBed={openAssign}
-        listKey={listKey}
-      />
-      <AdminAllocationDirectory
-        pageRows={pageRows}
-        filteredCount={filtered.length}
-        pageSize={pageSize}
-        onPageSizeChange={(n) => {
-          setPageSize(n);
-          setPage(1);
-        }}
-        safePage={safePage}
-        totalPages={totalPages}
-        onPagePrev={() => setPage((p) => Math.max(1, p - 1))}
-        onPageNext={() => setPage((p) => Math.min(totalPages, p + 1))}
-        listKey={listKey}
-      />
+
+      {loadingQueue ? (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--nestora-sage-muted)] bg-card py-10 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin text-[var(--nestora-sage)]" aria-hidden />
+          Loading queue…
+        </div>
+      ) : (
+        <AdminAllocationQueuePanel
+          queue={filteredQueue}
+          selectedId={effectiveSelectedId}
+          onSelect={setSelectedQueueId}
+          onAssignBed={openAssign}
+          listKey={listKey}
+        />
+      )}
+
+      {loadingList ? (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--nestora-sage-muted)] bg-card py-16 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin text-[var(--nestora-sage)]" aria-hidden />
+          Loading allocations…
+        </div>
+      ) : (
+        <AdminAllocationDirectory
+          pageRows={pageRows}
+          filteredCount={total}
+          pageSize={pageSize}
+          onPageSizeChange={(n) => {
+            setPageSize(n);
+            setPage(1);
+          }}
+          safePage={safePage}
+          totalPages={totalPages}
+          onPagePrev={() => setPage((p) => Math.max(1, p - 1))}
+          onPageNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+          listKey={listKey}
+        />
+      )}
+
       <AdminAllocationAllocateDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
     </div>
   );

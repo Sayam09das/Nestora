@@ -4,12 +4,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Bed, BedDouble, Bookmark, Hammer, TrendingUp, UserCheck } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
-import {
-  BED_INVENTORY_STATS,
-  HOSTEL_BED_AVAILABILITY,
-  bedInventoryOccupancyPercent,
-} from '@/components/dashboard/beds/admin-beds-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { BedDirectorySummary } from '@/lib/api/beds';
 import { cn } from '@/lib/utils';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
@@ -17,77 +13,97 @@ const BAR_GREEN = '#6d9773';
 const BAR_GOLD = '#ffba00';
 const BAR_MUTED = 'color-mix(in oklch, var(--muted-foreground) 55%, var(--border))';
 
-export function AdminBedsStatsStrip() {
+type AdminBedsStatsStripProps = {
+  summary: BedDirectorySummary | null;
+  loading?: boolean;
+};
+
+export function AdminBedsStatsStrip({ summary, loading = false }: AdminBedsStatsStripProps) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
-  const occupancyPct = bedInventoryOccupancyPercent();
 
-  const stats = useMemo(() => {
-    const total = BED_INVENTORY_STATS.totalBeds;
-    const pct = (n: number) => Math.round((n / total) * 1000) / 10;
-    return [
-      {
-        key: 'total',
-        label: 'Total Beds',
-        value: BED_INVENTORY_STATS.totalBeds,
-        hint: 'Registered inventory',
-        delta: 'All hostels',
-        icon: BedDouble,
-        accent: 'var(--nestora-forest)',
-        surface: 'color-mix(in oklch, var(--nestora-forest) 7%, var(--card))',
-        barPct: 100,
-        barColor: 'var(--nestora-sage)',
+  const { stats, occupancyPct, stackWidth, byHostel } = useMemo(() => {
+    const total = summary?.totalBeds ?? 0;
+    const pct = (n: number) => (total > 0 ? Math.round((n / total) * 1000) / 10 : 0);
+    const occupied = summary?.occupied ?? 0;
+    const available = summary?.available ?? 0;
+    const reserved = summary?.reserved ?? 0;
+    const maintenance = summary?.maintenance ?? 0;
+    const occRate = summary?.occupiedRatePercent ?? (total > 0 ? pct(occupied) : 0);
+
+    return {
+      occupancyPct: occRate,
+      byHostel: summary?.byHostel ?? [],
+      stats: [
+        {
+          key: 'total',
+          label: 'Total Beds',
+          value: total,
+          hint: 'Registered inventory',
+          delta: 'All hostels',
+          icon: BedDouble,
+          accent: 'var(--nestora-forest)',
+          surface: 'color-mix(in oklch, var(--nestora-forest) 7%, var(--card))',
+          barPct: 100,
+          barColor: 'var(--nestora-sage)',
+        },
+        {
+          key: 'occupied',
+          label: 'Occupied',
+          value: occupied,
+          hint: 'Assigned to students',
+          delta: `${pct(occupied)}%`,
+          icon: UserCheck,
+          accent: BAR_GREEN,
+          surface: 'color-mix(in oklch, var(--nestora-sage) 14%, var(--card))',
+          barPct: pct(occupied),
+          barColor: BAR_GREEN,
+        },
+        {
+          key: 'available',
+          label: 'Available',
+          value: available,
+          hint: 'Ready for allocation',
+          delta: `${pct(available)}%`,
+          icon: Bed,
+          accent: 'var(--nestora-sage)',
+          surface: 'color-mix(in oklch, var(--nestora-sage-light) 22%, var(--card))',
+          barPct: pct(available),
+          barColor: BAR_GREEN,
+        },
+        {
+          key: 'reserved',
+          label: 'Reserved',
+          value: reserved,
+          hint: 'Held for upcoming move',
+          delta: `${pct(reserved)}%`,
+          icon: Bookmark,
+          accent: BAR_GOLD,
+          surface: 'color-mix(in oklch, var(--nestora-gold) 14%, var(--card))',
+          barPct: pct(reserved),
+          barColor: BAR_GOLD,
+        },
+        {
+          key: 'maintenance',
+          label: 'Maintenance',
+          value: maintenance,
+          hint: 'Repair in progress',
+          delta: `${pct(maintenance)}%`,
+          icon: Hammer,
+          accent: 'var(--muted-foreground)',
+          surface: 'color-mix(in oklch, var(--nestora-cream) 22%, var(--card))',
+          barPct: pct(maintenance),
+          barColor: BAR_MUTED,
+        },
+      ] as const,
+      stackWidth: {
+        occupied: total > 0 ? (occupied / total) * 100 : 0,
+        reserved: total > 0 ? (reserved / total) * 100 : 0,
+        maintenance: total > 0 ? (maintenance / total) * 100 : 0,
+        available: total > 0 ? (available / total) * 100 : 0,
       },
-      {
-        key: 'occupied',
-        label: 'Occupied',
-        value: BED_INVENTORY_STATS.occupied,
-        hint: 'Assigned to students',
-        delta: `${pct(BED_INVENTORY_STATS.occupied)}%`,
-        icon: UserCheck,
-        accent: BAR_GREEN,
-        surface: 'color-mix(in oklch, var(--nestora-sage) 14%, var(--card))',
-        barPct: pct(BED_INVENTORY_STATS.occupied),
-        barColor: BAR_GREEN,
-      },
-      {
-        key: 'available',
-        label: 'Available',
-        value: BED_INVENTORY_STATS.available,
-        hint: 'Ready for allocation',
-        delta: `${pct(BED_INVENTORY_STATS.available)}%`,
-        icon: Bed,
-        accent: 'var(--nestora-sage)',
-        surface: 'color-mix(in oklch, var(--nestora-sage-light) 22%, var(--card))',
-        barPct: pct(BED_INVENTORY_STATS.available),
-        barColor: BAR_GREEN,
-      },
-      {
-        key: 'reserved',
-        label: 'Reserved',
-        value: BED_INVENTORY_STATS.reserved,
-        hint: 'Held for upcoming move',
-        delta: `${pct(BED_INVENTORY_STATS.reserved)}%`,
-        icon: Bookmark,
-        accent: BAR_GOLD,
-        surface: 'color-mix(in oklch, var(--nestora-gold) 14%, var(--card))',
-        barPct: pct(BED_INVENTORY_STATS.reserved),
-        barColor: BAR_GOLD,
-      },
-      {
-        key: 'maintenance',
-        label: 'Maintenance',
-        value: BED_INVENTORY_STATS.maintenance,
-        hint: 'Repair in progress',
-        delta: `${pct(BED_INVENTORY_STATS.maintenance)}%`,
-        icon: Hammer,
-        accent: 'var(--muted-foreground)',
-        surface: 'color-mix(in oklch, var(--nestora-cream) 22%, var(--card))',
-        barPct: pct(BED_INVENTORY_STATS.maintenance),
-        barColor: BAR_MUTED,
-      },
-    ] as const;
-  }, []);
+    };
+  }, [summary]);
 
   useGSAP(
     () => {
@@ -115,13 +131,6 @@ export function AdminBedsStatsStrip() {
     { scope: sectionRef, dependencies: [reduceMotion] },
   );
 
-  const stackWidth = {
-    occupied: (BED_INVENTORY_STATS.occupied / BED_INVENTORY_STATS.totalBeds) * 100,
-    reserved: (BED_INVENTORY_STATS.reserved / BED_INVENTORY_STATS.totalBeds) * 100,
-    maintenance: (BED_INVENTORY_STATS.maintenance / BED_INVENTORY_STATS.totalBeds) * 100,
-    available: (BED_INVENTORY_STATS.available / BED_INVENTORY_STATS.totalBeds) * 100,
-  };
-
   return (
     <section ref={sectionRef} aria-labelledby="beds-summary-heading" className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
@@ -133,7 +142,9 @@ export function AdminBedsStatsStrip() {
         </div>
         <p className="text-xs text-muted-foreground">
           Overall occupancy{' '}
-          <span className="font-semibold tabular-nums text-[var(--nestora-forest)]">{occupancyPct}%</span>
+          <span className="font-semibold tabular-nums text-[var(--nestora-forest)]">
+            {loading ? '—' : `${occupancyPct}%`}
+          </span>
         </p>
       </div>
 
@@ -160,14 +171,16 @@ export function AdminBedsStatsStrip() {
                   {stat.key === 'occupied' ? (
                     <span className="inline-flex items-center gap-0.5 rounded-full border border-border/80 bg-card/85 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                       <TrendingUp className="size-3 text-[#6d9773]" aria-hidden />
-                      {stat.delta}
+                      {loading ? '—' : stat.delta}
                     </span>
                   ) : (
-                    <span className="text-[10px] font-semibold text-muted-foreground">{stat.delta}</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground">
+                      {loading ? '—' : stat.delta}
+                    </span>
                   )}
                 </div>
                 <p className="text-xl font-semibold tabular-nums tracking-tight text-foreground">
-                  {stat.value.toLocaleString('en-IN')}
+                  {loading ? '—' : stat.value.toLocaleString('en-IN')}
                 </p>
                 <p className="mt-0.5 text-sm font-medium text-foreground">{stat.label}</p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">{stat.hint}</p>
@@ -175,7 +188,7 @@ export function AdminBedsStatsStrip() {
                   <div
                     data-beds-stat-bar
                     className="h-full origin-left rounded-full"
-                    style={{ width: `${stat.barPct}%`, backgroundColor: stat.barColor }}
+                    style={{ width: loading ? '0%' : `${stat.barPct}%`, backgroundColor: stat.barColor }}
                   />
                 </div>
               </motion.article>
@@ -190,12 +203,14 @@ export function AdminBedsStatsStrip() {
           aria-label="Overall bed occupancy"
         >
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--nestora-sage)]">Overall bed occupancy</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums text-[var(--nestora-forest)]">{occupancyPct}%</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums text-[var(--nestora-forest)]">
+            {loading ? '—' : `${occupancyPct}%`}
+          </p>
           <p className="text-sm text-muted-foreground">
             <span className="font-semibold tabular-nums text-foreground">
-              {BED_INVENTORY_STATS.occupied.toLocaleString('en-IN')}
+              {loading ? '—' : (summary?.occupied ?? 0).toLocaleString('en-IN')}
             </span>{' '}
-            / {BED_INVENTORY_STATS.totalBeds.toLocaleString('en-IN')} occupied
+            / {loading ? '—' : (summary?.totalBeds ?? 0).toLocaleString('en-IN')} occupied
           </p>
           <div
             className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-[#e7e7dc]"
@@ -205,16 +220,22 @@ export function AdminBedsStatsStrip() {
             <motion.div
               data-beds-stat-bar
               className="h-full origin-left bg-[#6d9773]"
-              style={{ width: `${stackWidth.occupied}%` }}
+              style={{ width: loading ? '0%' : `${stackWidth.occupied}%` }}
               layout={!reduceMotion}
             />
             <motion.div
               data-beds-stat-bar
               className="h-full origin-left bg-[#ffba00]"
-              style={{ width: `${stackWidth.reserved}%` }}
+              style={{ width: loading ? '0%' : `${stackWidth.reserved}%` }}
             />
-            <div className="h-full shrink-0 bg-[color-mix(in_oklch,var(--muted-foreground)_45%,var(--border))]" style={{ width: `${stackWidth.maintenance}%` }} />
-            <div className="h-full shrink-0 bg-[color-mix(in_oklch,var(--nestora-sage-light)_70%,var(--card))]" style={{ width: `${stackWidth.available}%` }} />
+            <div
+              className="h-full shrink-0 bg-[color-mix(in_oklch,var(--muted-foreground)_45%,var(--border))]"
+              style={{ width: loading ? '0%' : `${stackWidth.maintenance}%` }}
+            />
+            <div
+              className="h-full shrink-0 bg-[color-mix(in_oklch,var(--nestora-sage-light)_70%,var(--card))]"
+              style={{ width: loading ? '0%' : `${stackWidth.available}%` }}
+            />
           </div>
           <ul className="mt-2 flex flex-wrap gap-3 text-[10px] font-medium text-muted-foreground">
             <li className="inline-flex items-center gap-1">
@@ -224,10 +245,12 @@ export function AdminBedsStatsStrip() {
               <span className="size-2 rounded-full bg-[#ffba00]" /> Reserved
             </li>
             <li className="inline-flex items-center gap-1">
-              <span className="size-2 rounded-full bg-[color-mix(in_oklch,var(--muted-foreground)_50%,var(--border))]" /> Maintenance
+              <span className="size-2 rounded-full bg-[color-mix(in_oklch,var(--muted-foreground)_50%,var(--border))]" />{' '}
+              Maintenance
             </li>
             <li className="inline-flex items-center gap-1">
-              <span className="size-2 rounded-full bg-[color-mix(in_oklch,var(--nestora-sage)_55%,var(--card))]" /> Available
+              <span className="size-2 rounded-full bg-[color-mix(in_oklch,var(--nestora-sage)_55%,var(--card))]" />{' '}
+              Available
             </li>
           </ul>
         </div>
@@ -237,29 +260,33 @@ export function AdminBedsStatsStrip() {
           aria-label="Hostel-wise availability"
         >
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--nestora-sage)]">Hostel availability</p>
-          <ul className="mt-3 space-y-3">
-            {HOSTEL_BED_AVAILABILITY.map((row) => {
-              const openPct = Math.round((row.available / row.total) * 1000) / 10;
-              return (
-                <li key={row.hostel} data-beds-stat-card className="space-y-1.5">
-                  <div className="flex items-baseline justify-between gap-2 text-sm">
-                    <span className="font-medium text-foreground">{row.hostel}</span>
-                    <span className="text-xs text-muted-foreground">
-                      <span className="font-semibold tabular-nums text-[var(--nestora-forest)]">{row.available}</span> open ·{' '}
-                      {row.total} beds
-                    </span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-[#e7e7dc]">
-                    <div
-                      data-beds-stat-bar
-                      className="h-full origin-left rounded-full bg-[#6d9773]"
-                      style={{ width: `${openPct}%` }}
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          {byHostel.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">{loading ? 'Loading…' : 'No hostel bed data yet.'}</p>
+          ) : (
+            <ul className="mt-3 space-y-3">
+              {byHostel.map((row) => {
+                const openPct = row.total > 0 ? Math.round((row.available / row.total) * 1000) / 10 : 0;
+                return (
+                  <li key={row.hostel} data-beds-stat-card className="space-y-1.5">
+                    <div className="flex items-baseline justify-between gap-2 text-sm">
+                      <span className="font-medium text-foreground">{row.hostel}</span>
+                      <span className="text-xs text-muted-foreground">
+                        <span className="font-semibold tabular-nums text-[var(--nestora-forest)]">{row.available}</span>{' '}
+                        open · {row.total} beds
+                      </span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-[#e7e7dc]">
+                      <div
+                        data-beds-stat-bar
+                        className="h-full origin-left rounded-full bg-[#6d9773]"
+                        style={{ width: `${openPct}%` }}
+                      />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       </div>
     </section>

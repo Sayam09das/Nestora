@@ -1,5 +1,3 @@
-import { SAMPLE_STAFF } from '@/components/dashboard/staff/admin-staff-data';
-
 export const STAFF_REGISTRATION_STEPS = [
   { id: 1, title: 'Personal Information', short: 'Personal' },
   { id: 2, title: 'Professional Information', short: 'Professional' },
@@ -73,7 +71,15 @@ export const PHOTO_ACCEPT = ['image/jpeg', 'image/png'];
 export const DOCUMENT_MAX_BYTES = 5 * 1024 * 1024;
 export const DOCUMENT_ACCEPT = ['image/jpeg', 'image/png', 'application/pdf'];
 
-export const REPORTING_MANAGER_OPTIONS = ['None', ...SAMPLE_STAFF.map((s) => s.name)];
+export const REPORTING_MANAGER_OPTIONS = ['None'] as const;
+
+export type StaffDocumentUpload = {
+  kind: 'IDENTITY_PROOF' | 'EMPLOYEE_PHOTO' | 'QUALIFICATION' | 'APPOINTMENT';
+  objectKey: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+};
 
 export type StaffRegistrationForm = {
   firstName: string;
@@ -84,6 +90,9 @@ export type StaffRegistrationForm = {
   email: string;
   emergencyPhone: string;
   profilePhotoName: string;
+  profilePhotoObjectKey: string;
+  profilePhotoUrl: string;
+  documentUploads: StaffDocumentUpload[];
   employeeId: string;
   jobTitle: string;
   department: string;
@@ -131,6 +140,9 @@ export function createEmptyStaffForm(): StaffRegistrationForm {
     email: '',
     emergencyPhone: '',
     profilePhotoName: '',
+    profilePhotoObjectKey: '',
+    profilePhotoUrl: '',
+    documentUploads: [],
     employeeId: generateEmployeeId(),
     jobTitle: '',
     department: '',

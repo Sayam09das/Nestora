@@ -26,9 +26,11 @@ type Props = {
   hostelFilter: string;
   onHostelFilterChange: (v: string) => void;
   onReset: () => void;
+  hostelOptions?: readonly string[];
 };
 
 export function AdminAllocationFiltersBar(props: Props) {
+  const hostelOpts = props.hostelOptions ?? ALLOCATION_HOSTEL_FILTERS;
   const reduceMotion = useReducedMotion();
 
   const active = useMemo(() => {
@@ -72,7 +74,7 @@ export function AdminAllocationFiltersBar(props: Props) {
         </label>
         <FilterSelect label="Status" value={props.statusFilter} options={ALLOCATION_STATUS_FILTERS} onChange={props.onStatusFilterChange} />
         <FilterSelect label="Type" value={props.typeFilter} options={ALLOCATION_TYPE_FILTERS} onChange={props.onTypeFilterChange} />
-        <FilterSelect label="Hostel" value={props.hostelFilter} options={ALLOCATION_HOSTEL_FILTERS} onChange={props.onHostelFilterChange} />
+        <FilterSelect label="Hostel" value={props.hostelFilter} options={hostelOpts} onChange={props.onHostelFilterChange} />
       </div>
     </motion.section>
   );

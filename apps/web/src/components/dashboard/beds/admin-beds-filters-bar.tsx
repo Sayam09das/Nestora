@@ -47,6 +47,10 @@ type AdminBedsFiltersBarProps = {
   onStatusFilterChange: (value: string) => void;
   onReset: () => void;
   filteredCount: number;
+  hostelOptions?: readonly string[];
+  blockOptions?: readonly string[];
+  floorOptions?: readonly string[];
+  roomOptions?: readonly string[];
 };
 
 function FilterField({
@@ -112,10 +116,19 @@ export function AdminBedsFiltersBar(props: AdminBedsFiltersBarProps) {
     onStatusFilterChange,
     onReset,
     filteredCount,
+    hostelOptions,
+    blockOptions,
+    floorOptions,
+    roomOptions,
   } = props;
 
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
+
+  const hostelOpts = hostelOptions ?? BED_HOSTEL_FILTER_OPTIONS;
+  const blockOpts = blockOptions ?? BED_BLOCK_FILTER_OPTIONS;
+  const floorOpts = floorOptions ?? BED_FLOOR_FILTER_OPTIONS;
+  const roomOpts = roomOptions ?? BED_ROOM_FILTER_OPTIONS;
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -218,10 +231,10 @@ export function AdminBedsFiltersBar(props: AdminBedsFiltersBarProps) {
           </div>
         </label>
         <div className="grid gap-3 sm:grid-cols-2 lg:col-span-8 lg:grid-cols-3">
-          <FilterField label="Hostel" icon={<Building2 className="size-3" aria-hidden />} value={hostelFilter} options={BED_HOSTEL_FILTER_OPTIONS} onChange={onHostelFilterChange} active={hostelFilter !== 'All Hostels'} />
-          <FilterField label="Block" icon={<Layers className="size-3" aria-hidden />} value={blockFilter} options={BED_BLOCK_FILTER_OPTIONS} onChange={onBlockFilterChange} active={blockFilter !== 'All Blocks'} />
-          <FilterField label="Floor" icon={<LayoutTemplate className="size-3" aria-hidden />} value={floorFilter} options={BED_FLOOR_FILTER_OPTIONS} onChange={onFloorFilterChange} active={floorFilter !== 'All Floors'} />
-          <FilterField label="Room" icon={<DoorOpen className="size-3" aria-hidden />} value={roomFilter} options={BED_ROOM_FILTER_OPTIONS} onChange={onRoomFilterChange} active={roomFilter !== 'All Rooms'} />
+          <FilterField label="Hostel" icon={<Building2 className="size-3" aria-hidden />} value={hostelFilter} options={hostelOpts} onChange={onHostelFilterChange} active={hostelFilter !== 'All Hostels'} />
+          <FilterField label="Block" icon={<Layers className="size-3" aria-hidden />} value={blockFilter} options={blockOpts} onChange={onBlockFilterChange} active={blockFilter !== 'All Blocks'} />
+          <FilterField label="Floor" icon={<LayoutTemplate className="size-3" aria-hidden />} value={floorFilter} options={floorOpts} onChange={onFloorFilterChange} active={floorFilter !== 'All Floors'} />
+          <FilterField label="Room" icon={<DoorOpen className="size-3" aria-hidden />} value={roomFilter} options={roomOpts} onChange={onRoomFilterChange} active={roomFilter !== 'All Rooms'} />
           <FilterField label="Bed status" icon={<CircleDot className="size-3" aria-hidden />} value={statusFilter} options={BED_STATUS_FILTER_OPTIONS} onChange={onStatusFilterChange} active={statusFilter !== 'All Status'} />
         </div>
       </motion.div>

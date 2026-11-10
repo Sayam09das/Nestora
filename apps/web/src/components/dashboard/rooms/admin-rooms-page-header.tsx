@@ -4,8 +4,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Download, FileSpreadsheet, LayoutGrid, Plus } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
-import { ROOM_DIRECTORY_STATS } from '@/components/dashboard/rooms/admin-rooms-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { RoomDirectorySummary } from '@/lib/api/rooms';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -22,19 +22,40 @@ const BAR_GREEN = '#6d9773';
 const BAR_GOLD = '#ffba00';
 const BAR_TRACK = '#e7e7dc';
 
-export function AdminRoomsPageHeader() {
+type AdminRoomsPageHeaderProps = {
+  summary: RoomDirectorySummary | null;
+  loading?: boolean;
+};
+
+export function AdminRoomsPageHeader({ summary, loading = false }: AdminRoomsPageHeaderProps) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
 
-  const { occupiedRoomPct, availableRoomPct, maintenanceRoomPct, bedFillPct } = useMemo(() => {
-    const total = ROOM_DIRECTORY_STATS.totalRooms;
+  const {
+    totalRooms,
+    availableRooms,
+    maintenanceRooms,
+    occupiedRoomPct,
+    availableRoomPct,
+    maintenanceRoomPct,
+    bedFillPct,
+  } = useMemo(() => {
+    const total = summary?.totalRooms ?? 0;
+    const occupied = summary?.occupiedRooms ?? 0;
+    const available = summary?.availableRooms ?? 0;
+    const maintenance = summary?.maintenanceRooms ?? 0;
+    const bedTotal = summary?.totalBeds ?? 0;
+    const bedOcc = summary?.occupiedBeds ?? 0;
     return {
-      occupiedRoomPct: (ROOM_DIRECTORY_STATS.occupiedRooms / total) * 100,
-      availableRoomPct: (ROOM_DIRECTORY_STATS.availableRooms / total) * 100,
-      maintenanceRoomPct: (ROOM_DIRECTORY_STATS.maintenanceRooms / total) * 100,
-      bedFillPct: Math.round((ROOM_DIRECTORY_STATS.occupiedBeds / ROOM_DIRECTORY_STATS.totalBeds) * 1000) / 10,
+      totalRooms: total,
+      availableRooms: available,
+      maintenanceRooms: maintenance,
+      occupiedRoomPct: total > 0 ? (occupied / total) * 100 : 0,
+      availableRoomPct: total > 0 ? (available / total) * 100 : 0,
+      maintenanceRoomPct: total > 0 ? (maintenance / total) * 100 : 0,
+      bedFillPct: bedTotal > 0 ? Math.round((bedOcc / bedTotal) * 1000) / 10 : 0,
     };
-  }, []);
+  }, [summary]);
 
   useGSAP(
     () => {
@@ -104,10 +125,11 @@ export function AdminRoomsPageHeader() {
             <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
               Manage hostel rooms, occupancy, availability, and room assignments across{' '}
               <span className="font-semibold tabular-nums text-foreground">
-                {ROOM_DIRECTORY_STATS.totalRooms.toLocaleString('en-IN')}
+                {loading ? '—' : totalRooms.toLocaleString('en-IN')}
               </span>{' '}
               rooms ·{' '}
-              <span className="font-medium text-[var(--nestora-forest)]">{bedFillPct}%</span> bed utilization
+              <span className="font-medium text-[var(--nestora-forest)]">{loading ? '—' : `${bedFillPct}%`}</span> bed
+              utilization
             </p>
             <ul className="mt-3 flex flex-wrap gap-2" aria-label="Quick counts">
               <li
@@ -115,14 +137,14 @@ export function AdminRoomsPageHeader() {
                 className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nestora-sage-muted)] bg-[color-mix(in_oklch,var(--nestora-sage-light)_35%,var(--card))] px-2.5 py-1 text-[11px] font-semibold text-[var(--nestora-forest)]"
               >
                 <span className="size-1.5 rounded-full bg-[var(--nestora-sage)]" aria-hidden />
-                {ROOM_DIRECTORY_STATS.availableRooms} with open beds
+                {loading ? '—' : availableRooms} with open beds
               </li>
               <li
                 data-rooms-hero
                 className="inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_oklch,var(--nestora-gold)_35%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-gold)_12%,var(--card))] px-2.5 py-1 text-[11px] font-semibold text-[var(--nestora-forest)]"
               >
                 <span className="size-1.5 rounded-full bg-[var(--nestora-gold)]" aria-hidden />
-                {ROOM_DIRECTORY_STATS.maintenanceRooms} in maintenance
+                {loading ? '—' : maintenanceRooms} in maintenance
               </li>
             </ul>
           </div>

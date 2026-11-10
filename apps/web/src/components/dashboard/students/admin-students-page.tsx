@@ -1,16 +1,14 @@
 'use client';
 
 import { useReducedMotion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+
 import { AdminStudentsDirectory } from '@/components/dashboard/students/admin-students-directory';
 import { AdminStudentsPageHeader } from '@/components/dashboard/students/admin-students-page-header';
 import { AdminStudentsFiltersBar } from '@/components/dashboard/students/admin-students-filters-bar';
 import { AdminStudentsStatsStrip } from '@/components/dashboard/students/admin-students-stats-strip';
-import { useMemo, useRef, useState } from 'react';
-
-import {
-  SAMPLE_STUDENTS,
-  type StudentRecord,
-} from '@/components/dashboard/students/admin-students-data';
+import type { StudentRecord } from '@/components/dashboard/students/admin-students-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import {
   AlertDialog,
@@ -22,6 +20,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { useStudentDirectory } from '@/hooks/use-student-directory';
+
 export function AdminStudentsPage() {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -31,42 +32,40 @@ export function AdminStudentsPage() {
   const [hostelFilter, setHostelFilter] = useState('All Hostels');
   const [courseFilter, setCourseFilter] = useState('All Courses');
   const [yearFilter, setYearFilter] = useState('All Years');
-  const [pageSize, setPageSize] = useState<number>(5);
+  const [pageSize, setPageSize] = useState<number>(10);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<StudentRecord | null>(null);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return SAMPLE_STUDENTS.filter((row) => {
-      if (statusFilter !== 'All Status' && row.status !== statusFilter) {
-        return false;
-      }
-      if (hostelFilter !== 'All Hostels' && row.hostel !== hostelFilter) {
-        return false;
-      }
-      if (courseFilter !== 'All Courses' && row.course !== courseFilter) {
-        return false;
-      }
-      if (yearFilter !== 'All Years' && row.academicYear !== yearFilter) {
-        return false;
-      }
-      if (!q) {
-        return true;
-      }
-      return (
-        row.name.toLowerCase().includes(q) ||
-        row.studentId.toLowerCase().includes(q) ||
-        row.email.toLowerCase().includes(q) ||
-        row.phone.toLowerCase().includes(q)
-      );
-    });
-  }, [search, statusFilter, hostelFilter, courseFilter, yearFilter]);
+  const filters = useMemo(
+    () => ({
+      q: search,
+      status: statusFilter,
+      hostel: hostelFilter,
+      course: courseFilter,
+      academicYear: yearFilter,
+      page,
+      pageSize,
+    }),
+    [search, statusFilter, hostelFilter, courseFilter, yearFilter, page, pageSize],
+  );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const { summary, students, total, loadingSummary, loadingList, error, refresh } =
+    useStudentDirectory(filters);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pageRows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageRows = students;
   const allPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id));
+
+  const facetOptions = useMemo(() => {
+    const facets = summary?.facets;
+    return {
+      hostels: ['All Hostels', ...(facets?.hostels ?? []), 'Not allocated'] as const,
+      courses: ['All Courses', ...(facets?.courses ?? [])] as const,
+      years: ['All Years', ...(facets?.academicYears ?? [])] as const,
+    };
+  }, [summary?.facets]);
 
   const resetFilters = () => {
     setSearch('');
@@ -122,9 +121,18 @@ export function AdminStudentsPage() {
 
   return (
     <div ref={rootRef} className="space-y-6 pb-6">
-      <AdminStudentsPageHeader />
+      {error ? (
+        <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}{' '}
+          <Button type="button" variant="link" className="h-auto p-0 text-destructive" onClick={() => refresh()}>
+            Retry
+          </Button>
+        </p>
+      ) : null}
 
-      <AdminStudentsStatsStrip />
+      <AdminStudentsPageHeader summary={summary} loading={loadingSummary} />
+
+      <AdminStudentsStatsStrip summary={summary} loading={loadingSummary} />
 
       <AdminStudentsFiltersBar
         search={search}
@@ -153,12 +161,24 @@ export function AdminStudentsPage() {
           setPage(1);
         }}
         onReset={resetFilters}
-        filteredCount={filtered.length}
+        filteredCount={total}
+        hostelOptions={facetOptions.hostels}
+        courseOptions={facetOptions.courses}
+        yearOptions={facetOptions.years}
       />
+
+      {loadingList ? (
+        <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" aria-hidden />
+          Loading student directory…
+        </p>
+      ) : null}
 
       <AdminStudentsDirectory
         pageRows={pageRows}
-        filteredCount={filtered.length}
+        filteredCount={total}
+        totalDirectoryCount={summary?.total ?? 0}
+        loading={loadingList}
         selected={selected}
         allPageSelected={allPageSelected}
         onToggleAllOnPage={toggleAllOnPage}
@@ -173,11 +193,11 @@ export function AdminStudentsPage() {
         totalPages={totalPages}
         onPagePrev={() => setPage((p) => Math.max(1, p - 1))}
         onPageNext={() => setPage((p) => Math.min(totalPages, p + 1))}
-        listKey={`${safePage}-${pageSize}-${filtered.length}-${search}`}
+        listKey={`${safePage}-${pageSize}-${total}-${search}-${statusFilter}`}
       />
 
       <p className="text-center text-xs text-muted-foreground" role="note">
-        UI concept with illustrative student data. Connect Nestora APIs to replace placeholders.
+        Directory syncs with the API; summary stats refresh about every minute.
       </p>
 
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>

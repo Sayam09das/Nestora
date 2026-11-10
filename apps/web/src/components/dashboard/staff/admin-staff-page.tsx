@@ -1,13 +1,14 @@
 'use client';
 
 import { useReducedMotion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 
 import { AdminStaffDirectory } from '@/components/dashboard/staff/admin-staff-directory';
 import { AdminStaffFiltersBar } from '@/components/dashboard/staff/admin-staff-filters-bar';
 import { AdminStaffPageHeader } from '@/components/dashboard/staff/admin-staff-page-header';
 import { AdminStaffStatsStrip } from '@/components/dashboard/staff/admin-staff-stats-strip';
-import { SAMPLE_STAFF, type StaffRecord } from '@/components/dashboard/staff/admin-staff-data';
+import type { StaffRecord } from '@/components/dashboard/staff/admin-staff-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import {
   AlertDialog,
@@ -19,6 +20,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { useStaffDirectory } from '@/hooks/use-staff-directory';
 
 type AdminStaffPageProps = {
   pageVariant?: 'all' | 'wardens';
@@ -35,45 +38,40 @@ export function AdminStaffPage({ pageVariant = 'all' }: AdminStaffPageProps) {
   const [roleFilter, setRoleFilter] = useState(defaultRoleFilter);
   const [departmentFilter, setDepartmentFilter] = useState('All Departments');
   const [locationFilter, setLocationFilter] = useState('All Locations');
-  const [pageSize, setPageSize] = useState<number>(5);
+  const [pageSize, setPageSize] = useState<number>(10);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<StaffRecord | null>(null);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return SAMPLE_STAFF.filter((row) => {
-      if (pageVariant === 'wardens' && !row.role.toLowerCase().includes('warden')) {
-        return false;
-      }
-      if (statusFilter !== 'All Status' && row.status !== statusFilter) {
-        return false;
-      }
-      if (roleFilter !== 'All Roles' && row.role !== roleFilter) {
-        return false;
-      }
-      if (departmentFilter !== 'All Departments' && row.department !== departmentFilter) {
-        return false;
-      }
-      if (locationFilter !== 'All Locations' && row.hostel !== locationFilter) {
-        return false;
-      }
-      if (!q) {
-        return true;
-      }
-      return (
-        row.name.toLowerCase().includes(q) ||
-        row.staffId.toLowerCase().includes(q) ||
-        row.email.toLowerCase().includes(q) ||
-        row.phone.toLowerCase().includes(q)
-      );
-    });
-  }, [search, statusFilter, roleFilter, departmentFilter, locationFilter, pageVariant]);
+  const filters = useMemo(
+    () => ({
+      q: search,
+      status: statusFilter,
+      role: roleFilter,
+      department: departmentFilter,
+      hostel: locationFilter,
+      page,
+      pageSize,
+      variant: pageVariant,
+    }),
+    [search, statusFilter, roleFilter, departmentFilter, locationFilter, page, pageSize, pageVariant],
+  );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const { summary, staff, total, loadingSummary, loadingList, error, refresh } = useStaffDirectory(filters);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pageRows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageRows = staff;
   const allPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id));
+
+  const facetOptions = useMemo(() => {
+    const facets = summary?.facets;
+    return {
+      roles: ['All Roles', ...(facets?.roles ?? [])] as const,
+      departments: ['All Departments', ...(facets?.departments ?? [])] as const,
+      locations: ['All Locations', ...(facets?.hostels ?? [])] as const,
+    };
+  }, [summary?.facets]);
 
   const resetFilters = () => {
     setSearch('');
@@ -138,9 +136,18 @@ export function AdminStaffPage({ pageVariant = 'all' }: AdminStaffPageProps) {
 
   return (
     <div ref={rootRef} className="space-y-6 pb-6">
-      <AdminStaffPageHeader {...headerProps} />
+      {error ? (
+        <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}{' '}
+          <Button type="button" variant="link" className="h-auto p-0 text-destructive" onClick={() => refresh()}>
+            Retry
+          </Button>
+        </p>
+      ) : null}
 
-      <AdminStaffStatsStrip />
+      <AdminStaffPageHeader {...headerProps} summary={summary} loading={loadingSummary} />
+
+      <AdminStaffStatsStrip summary={summary} loading={loadingSummary} />
 
       <AdminStaffFiltersBar
         search={search}
@@ -169,12 +176,22 @@ export function AdminStaffPage({ pageVariant = 'all' }: AdminStaffPageProps) {
           setPage(1);
         }}
         onReset={resetFilters}
-        filteredCount={filtered.length}
+        filteredCount={total}
+        roleOptions={facetOptions.roles}
+        departmentOptions={facetOptions.departments}
+        locationOptions={facetOptions.locations}
       />
+
+      {loadingList ? (
+        <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" aria-hidden />
+          Loading staff directory…
+        </p>
+      ) : null}
 
       <AdminStaffDirectory
         pageRows={pageRows}
-        filteredCount={filtered.length}
+        filteredCount={total}
         selected={selected}
         allPageSelected={allPageSelected}
         onToggleAllOnPage={toggleAllOnPage}
@@ -189,11 +206,11 @@ export function AdminStaffPage({ pageVariant = 'all' }: AdminStaffPageProps) {
         totalPages={totalPages}
         onPagePrev={() => setPage((p) => Math.max(1, p - 1))}
         onPageNext={() => setPage((p) => Math.min(totalPages, p + 1))}
-        listKey={`${safePage}-${pageSize}-${filtered.length}-${search}`}
+        listKey={`${safePage}-${pageSize}-${total}-${search}-${statusFilter}-${pageVariant}`}
       />
 
       <p className="text-center text-xs text-muted-foreground" role="note">
-        UI concept with illustrative staff data. Connect Nestora APIs to replace placeholders.
+        Directory syncs with the API; summary stats refresh about every minute.
       </p>
 
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>

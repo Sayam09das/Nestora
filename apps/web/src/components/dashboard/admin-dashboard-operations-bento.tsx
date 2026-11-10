@@ -14,12 +14,13 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { AdminDashboardOverview } from '@/lib/api/dashboard';
 import { cn } from '@/lib/utils';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
 
-const OCCUPIED = 145;
-const TOTAL_ROOMS = 180;
+/** Campus policy target shown alongside live occupancy (not yet configurable via API). */
+const OCCUPANCY_TARGET_PERCENT = 85;
 
 const quickActions = [
   {
@@ -72,15 +73,16 @@ const RING_TRACK = '#e7e7dc';
 const RING_CENTER = '#ffffff';
 
 type OccupancyGaugeProps = {
-  percent: number;
+  percent: number | null;
   reduceMotion: boolean | null;
 };
 
 function OccupancyGauge({ percent, reduceMotion }: OccupancyGaugeProps) {
+  const gaugePercent = percent ?? 0;
   const greenRef = useRef<SVGCircleElement>(null);
   const goldRef = useRef<SVGCircleElement>(null);
 
-  const filledLen = (RING_C * percent) / 100;
+  const filledLen = (RING_C * gaugePercent) / 100;
   const greenLen = filledLen * GREEN_FILL_RATIO;
   const goldLen = filledLen - greenLen;
   const hasYellow = goldLen > 0.5;
@@ -120,15 +122,19 @@ function OccupancyGauge({ percent, reduceMotion }: OccupancyGaugeProps) {
         );
       }
     },
-    { dependencies: [percent, reduceMotion, greenArcLen, goldLen, hasYellow, yellowEndOffset] },
+    { dependencies: [gaugePercent, reduceMotion, greenArcLen, goldLen, hasYellow, yellowEndOffset] },
   );
+
+  const percentLabel = percent == null ? '—' : `${percent}%`;
 
   return (
     <div className="flex shrink-0 flex-col items-center gap-2">
       <div
         className="relative flex size-[7.75rem] items-center justify-center sm:size-[8.5rem]"
         role="img"
-        aria-label={`Hostel occupancy ${percent} percent`}
+        aria-label={
+          percent == null ? 'Hostel occupancy unavailable' : `Hostel occupancy ${percent} percent`
+        }
       >
         <svg className="-rotate-90 size-full" viewBox="0 0 112 112" aria-hidden>
           <circle cx="56" cy="56" r={RING_R + 5} fill={RING_CENTER} />
@@ -166,7 +172,7 @@ function OccupancyGauge({ percent, reduceMotion }: OccupancyGaugeProps) {
         </svg>
         <span className="absolute inset-0 flex flex-col items-center justify-center text-center">
           <span className="text-[1.65rem] font-semibold leading-none tabular-nums tracking-tight text-[var(--nestora-forest)] sm:text-3xl">
-            {percent}%
+            {percentLabel}
           </span>
           <span className="mt-1.5 flex items-center gap-2">
             <span className="size-2.5 rounded-full" style={{ backgroundColor: RING_GREEN }} aria-hidden />
@@ -189,20 +195,35 @@ function OccupancyGauge({ percent, reduceMotion }: OccupancyGaugeProps) {
 }
 
 type AdminDashboardOperationsBentoProps = {
-  occupancyPercent?: number;
+  overview: AdminDashboardOverview | null;
+  loading?: boolean;
 };
 
-export function AdminDashboardOperationsBento({ occupancyPercent = 80.6 }: AdminDashboardOperationsBentoProps) {
+export function AdminDashboardOperationsBento({
+  overview,
+  loading = false,
+}: AdminDashboardOperationsBentoProps) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
   const percentRef = useRef({ value: 0 });
-  const [displayPercent, setDisplayPercent] = useState(reduceMotion ? occupancyPercent : 0);
+  const occupancyPercent = overview?.occupancy?.percent ?? null;
+  const occupiedBeds = overview?.occupancy?.occupiedBeds;
+  const availableBeds = overview?.occupancy?.availableBeds;
+  const totalRooms = overview?.infrastructure.rooms;
+  const [displayPercent, setDisplayPercent] = useState<number | null>(occupancyPercent);
 
   useEffect(() => {
+    if (occupancyPercent == null) {
+      setDisplayPercent(null);
+      percentRef.current.value = 0;
+      return;
+    }
     if (reduceMotion) {
       setDisplayPercent(occupancyPercent);
       return;
     }
+    percentRef.current.value = 0;
+    setDisplayPercent(0);
     const tween = gsap.to(percentRef.current, {
       value: occupancyPercent,
       duration: 1.05,
@@ -233,7 +254,9 @@ export function AdminDashboardOperationsBento({ occupancyPercent = 80.6 }: Admin
     { scope: sectionRef, dependencies: [reduceMotion] },
   );
 
-  const available = TOTAL_ROOMS - OCCUPIED;
+  const occupiedLabel = occupiedBeds == null ? '—' : String(occupiedBeds);
+  const availableLabel = availableBeds == null ? '—' : String(availableBeds);
+  const roomsLabel = totalRooms == null ? '—' : String(totalRooms);
 
   return (
     <section ref={sectionRef} aria-labelledby="admin-operations-heading" className="grid gap-4 lg:grid-cols-12">
@@ -288,16 +311,19 @@ export function AdminDashboardOperationsBento({ occupancyPercent = 80.6 }: Admin
             <div className="flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nestora-sage-muted)] bg-[color-mix(in_oklch,var(--nestora-sage-light)_55%,var(--card))] px-2.5 py-1 text-xs font-medium text-[var(--nestora-forest)]">
                 <BedDouble className="size-3.5 text-[var(--nestora-sage)]" aria-hidden />
-                <span className="font-semibold tabular-nums">{OCCUPIED}</span> occupied
+                <span className="font-semibold tabular-nums">{occupiedLabel}</span> occupied
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground">
                 <Sparkles className="size-3.5 text-[var(--nestora-tan)]" aria-hidden />
-                <span className="font-semibold tabular-nums text-foreground">{available}</span> available
+                <span className="font-semibold tabular-nums text-foreground">{availableLabel}</span> available
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground">{TOTAL_ROOMS}</span> total rooms · target{' '}
-              <span className="font-semibold text-foreground">85%</span>
+              <span className="font-semibold text-foreground">{roomsLabel}</span> total rooms · target{' '}
+              <span className="font-semibold text-foreground">{OCCUPANCY_TARGET_PERCENT}%</span>
+              {loading && !overview ? (
+                <span className="ml-1 text-muted-foreground/80">· syncing…</span>
+              ) : null}
             </p>
           </div>
           <OccupancyGauge percent={displayPercent} reduceMotion={reduceMotion} />

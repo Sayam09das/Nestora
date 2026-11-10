@@ -4,34 +4,41 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { BedDouble, Building2, Hammer, LayoutGrid, TrendingUp } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
-import { ROOM_DIRECTORY_STATS } from '@/components/dashboard/rooms/admin-rooms-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { RoomDirectorySummary } from '@/lib/api/rooms';
 import { cn } from '@/lib/utils';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
 const BAR_GREEN = '#6d9773';
 const BAR_GOLD = '#ffba00';
 
-export function AdminRoomsStatsStrip() {
+type AdminRoomsStatsStripProps = {
+  summary: RoomDirectorySummary | null;
+  loading?: boolean;
+};
+
+export function AdminRoomsStatsStrip({ summary, loading = false }: AdminRoomsStatsStripProps) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
 
-  const { roomStats, bedStats } = useMemo(() => {
-    const total = ROOM_DIRECTORY_STATS.totalRooms;
-    const occupiedPct = Math.round((ROOM_DIRECTORY_STATS.occupiedRooms / total) * 1000) / 10;
-    const availablePct = Math.round((ROOM_DIRECTORY_STATS.availableRooms / total) * 1000) / 10;
-    const maintenancePct = Math.round((ROOM_DIRECTORY_STATS.maintenanceRooms / total) * 1000) / 10;
+  const { roomStats, bedStats, headlineRooms, headlineBeds } = useMemo(() => {
+    const total = summary?.totalRooms ?? 0;
+    const occupiedPct = total > 0 ? Math.round(((summary?.occupiedRooms ?? 0) / total) * 1000) / 10 : 0;
+    const availablePct = total > 0 ? Math.round(((summary?.availableRooms ?? 0) / total) * 1000) / 10 : 0;
+    const maintenancePct = total > 0 ? Math.round(((summary?.maintenanceRooms ?? 0) / total) * 1000) / 10 : 0;
 
-    const bedTotal = ROOM_DIRECTORY_STATS.totalBeds;
-    const bedOccPct = Math.round((ROOM_DIRECTORY_STATS.occupiedBeds / bedTotal) * 1000) / 10;
-    const bedAvailPct = Math.round((ROOM_DIRECTORY_STATS.availableBeds / bedTotal) * 1000) / 10;
+    const bedTotal = summary?.totalBeds ?? 0;
+    const bedOccPct = bedTotal > 0 ? Math.round(((summary?.occupiedBeds ?? 0) / bedTotal) * 1000) / 10 : 0;
+    const bedAvailPct = bedTotal > 0 ? Math.round(((summary?.availableBeds ?? 0) / bedTotal) * 1000) / 10 : 0;
 
     return {
+      headlineRooms: summary?.totalRooms ?? 0,
+      headlineBeds: summary?.totalBeds ?? 0,
       roomStats: [
         {
           key: 'total',
           label: 'Total Rooms',
-          value: ROOM_DIRECTORY_STATS.totalRooms,
+          value: summary?.totalRooms ?? 0,
           hint: 'All registered rooms',
           delta: 'All blocks',
           icon: LayoutGrid,
@@ -43,7 +50,7 @@ export function AdminRoomsStatsStrip() {
         {
           key: 'occupied',
           label: 'Occupied',
-          value: ROOM_DIRECTORY_STATS.occupiedRooms,
+          value: summary?.occupiedRooms ?? 0,
           hint: 'Every bed allocated',
           delta: `${occupiedPct}%`,
           icon: Building2,
@@ -55,7 +62,7 @@ export function AdminRoomsStatsStrip() {
         {
           key: 'available',
           label: 'Available',
-          value: ROOM_DIRECTORY_STATS.availableRooms,
+          value: summary?.availableRooms ?? 0,
           hint: 'At least one open bed',
           delta: `${availablePct}%`,
           icon: BedDouble,
@@ -67,7 +74,7 @@ export function AdminRoomsStatsStrip() {
         {
           key: 'maintenance',
           label: 'Maintenance',
-          value: ROOM_DIRECTORY_STATS.maintenanceRooms,
+          value: summary?.maintenanceRooms ?? 0,
           hint: 'Temporarily unavailable',
           delta: `${maintenancePct}%`,
           icon: Hammer,
@@ -78,12 +85,12 @@ export function AdminRoomsStatsStrip() {
         },
       ] as const,
       bedStats: [
-        { label: 'Total beds', value: ROOM_DIRECTORY_STATS.totalBeds, pct: 100 },
-        { label: 'Occupied beds', value: ROOM_DIRECTORY_STATS.occupiedBeds, pct: bedOccPct },
-        { label: 'Available beds', value: ROOM_DIRECTORY_STATS.availableBeds, pct: bedAvailPct },
+        { label: 'Total beds', value: summary?.totalBeds ?? 0, pct: 100 },
+        { label: 'Occupied beds', value: summary?.occupiedBeds ?? 0, pct: bedOccPct },
+        { label: 'Available beds', value: summary?.availableBeds ?? 0, pct: bedAvailPct },
       ] as const,
     };
-  }, []);
+  }, [summary]);
 
   useGSAP(
     () => {
@@ -130,8 +137,8 @@ export function AdminRoomsStatsStrip() {
           </h2>
         </div>
         <p className="text-xs text-muted-foreground">
-          {ROOM_DIRECTORY_STATS.totalRooms.toLocaleString('en-IN')} rooms ·{' '}
-          {ROOM_DIRECTORY_STATS.totalBeds.toLocaleString('en-IN')} beds
+          {loading ? '—' : headlineRooms.toLocaleString('en-IN')} rooms ·{' '}
+          {loading ? '—' : headlineBeds.toLocaleString('en-IN')} beds
         </p>
       </div>
 
@@ -162,11 +169,11 @@ export function AdminRoomsStatsStrip() {
                   </span>
                   <span className="inline-flex items-center gap-0.5 rounded-full border border-border/80 bg-card/85 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                     {stat.key === 'occupied' ? <TrendingUp className="size-3 text-[#6d9773]" aria-hidden /> : null}
-                    {stat.delta}
+                    {loading ? '—' : stat.delta}
                   </span>
                 </div>
                 <p className="relative text-2xl font-semibold tabular-nums tracking-tight text-foreground">
-                  {stat.value.toLocaleString('en-IN')}
+                  {loading ? '—' : stat.value.toLocaleString('en-IN')}
                 </p>
                 <p className="relative mt-0.5 text-sm font-medium text-foreground">{stat.label}</p>
                 <p className="relative mt-1 text-xs text-muted-foreground">{stat.hint}</p>
@@ -174,7 +181,7 @@ export function AdminRoomsStatsStrip() {
                   <div
                     data-rooms-stat-bar
                     className="h-full origin-left rounded-full"
-                    style={{ width: `${stat.barPct}%`, backgroundColor: stat.barColor }}
+                    style={{ width: loading ? '0%' : `${stat.barPct}%`, backgroundColor: stat.barColor }}
                     role="presentation"
                   />
                 </div>
@@ -195,14 +202,14 @@ export function AdminRoomsStatsStrip() {
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-xs font-medium text-muted-foreground">{bed.label}</span>
                 <span className="text-lg font-semibold tabular-nums text-[var(--nestora-forest)]">
-                  {bed.value.toLocaleString('en-IN')}
+                  {loading ? '—' : bed.value.toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-[#e7e7dc]">
                 <div
                   data-rooms-stat-bar
                   className="h-full origin-left rounded-full bg-[#6d9773]"
-                  style={{ width: `${bed.pct}%` }}
+                  style={{ width: loading ? '0%' : `${bed.pct}%` }}
                 />
               </div>
             </li>

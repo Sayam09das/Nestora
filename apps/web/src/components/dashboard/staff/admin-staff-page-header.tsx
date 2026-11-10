@@ -5,8 +5,8 @@ import { Download, FileSpreadsheet, Plus, UserCog } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useRef } from 'react';
 
-import { STAFF_DIRECTORY_STATS } from '@/components/dashboard/staff/admin-staff-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { StaffDirectorySummary } from '@/lib/api/staff';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -26,25 +26,34 @@ const BAR_TRACK = '#e7e7dc';
 type AdminStaffPageHeaderProps = {
   title?: string;
   subtitle?: string;
+  summary: StaffDirectorySummary | null;
+  loading?: boolean;
 };
 
 export function AdminStaffPageHeader({
   title = 'All Staff',
   subtitle,
+  summary,
+  loading = false,
 }: AdminStaffPageHeaderProps) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
 
-  const { activeRate, activeWidthPct, onLeaveWidthPct } = useMemo(() => {
-    const total = STAFF_DIRECTORY_STATS.total;
-    const activePct = (STAFF_DIRECTORY_STATS.active / total) * 100;
-    const onLeavePct = (STAFF_DIRECTORY_STATS.onLeave / total) * 100;
+  const { activeRate, activeWidthPct, onLeaveWidthPct, total, active, onLeave } = useMemo(() => {
+    const totalCount = summary?.total ?? 0;
+    const activeCount = summary?.active ?? 0;
+    const onLeaveCount = summary?.onLeave ?? 0;
+    const activePct = totalCount > 0 ? (activeCount / totalCount) * 100 : 0;
+    const onLeavePct = totalCount > 0 ? (onLeaveCount / totalCount) * 100 : 0;
     return {
-      activeRate: Math.round(activePct * 10) / 10,
+      activeRate: summary?.activeRatePercent ?? (totalCount > 0 ? Math.round(activePct * 10) / 10 : 0),
       activeWidthPct: activePct,
       onLeaveWidthPct: onLeavePct,
+      total: totalCount,
+      active: activeCount,
+      onLeave: onLeaveCount,
     };
-  }, []);
+  }, [summary]);
 
   useGSAP(
     () => {
@@ -116,7 +125,7 @@ export function AdminStaffPageHeader({
               {subtitle ?? (
                 <>
                   <span className="font-semibold tabular-nums text-foreground">
-                    {STAFF_DIRECTORY_STATS.total.toLocaleString('en-IN')}
+                    {loading && summary == null ? '—' : total.toLocaleString('en-IN')}
                   </span>{' '}
                   records ·{' '}
                   <span className="font-medium text-[var(--nestora-forest)]">{activeRate}%</span> active on roster
@@ -130,14 +139,14 @@ export function AdminStaffPageHeader({
                   className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nestora-sage-muted)] bg-[color-mix(in_oklch,var(--nestora-sage-light)_35%,var(--card))] px-2.5 py-1 text-[11px] font-semibold text-[var(--nestora-forest)]"
                 >
                   <span className="size-1.5 rounded-full bg-[var(--nestora-sage)]" aria-hidden />
-                  {STAFF_DIRECTORY_STATS.active} active
+                  {active} active
                 </li>
                 <li
                   data-staff-hero
                   className="inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_oklch,var(--nestora-gold)_35%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-gold)_12%,var(--card))] px-2.5 py-1 text-[11px] font-semibold text-[var(--nestora-forest)]"
                 >
                   <span className="size-1.5 rounded-full bg-[var(--nestora-gold)]" aria-hidden />
-                  {STAFF_DIRECTORY_STATS.onLeave} on leave
+                  {onLeave} on leave
                 </li>
               </ul>
             ) : null}
@@ -213,8 +222,11 @@ export function AdminStaffPageHeader({
           />
         </div>
         <p className="mt-2 text-[11px] text-muted-foreground">
-          <span className="font-semibold tabular-nums text-[var(--nestora-forest)]">{activeRate}%</span> active ·
-          sample directory data for UI preview
+          <span className="font-semibold tabular-nums text-[var(--nestora-forest)]">{activeRate}%</span> active · live
+          Nestora directory
+          {summary?.generatedAt ? (
+            <span className="text-muted-foreground"> · refreshes each minute</span>
+          ) : null}
         </p>
       </div>
     </header>

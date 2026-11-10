@@ -4,8 +4,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Clock3, TrendingUp, UserCheck, Users, UserX } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
-import { STUDENT_DIRECTORY_STATS } from '@/components/dashboard/students/admin-students-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { StudentDirectorySummary } from '@/lib/api/students';
 import { cn } from '@/lib/utils';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
@@ -13,23 +13,39 @@ const motionEase = [0.22, 1, 0.36, 1] as const;
 const BAR_GREEN = '#6d9773';
 const BAR_GOLD = '#ffba00';
 
-export function AdminStudentsStatsStrip() {
+type AdminStudentsStatsStripProps = {
+  summary: StudentDirectorySummary | null;
+  loading?: boolean;
+};
+
+export function AdminStudentsStatsStrip({ summary, loading = false }: AdminStudentsStatsStripProps) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
 
   const stats = useMemo(() => {
-    const total = STUDENT_DIRECTORY_STATS.total;
-    const activePct = Math.round((STUDENT_DIRECTORY_STATS.active / total) * 1000) / 10;
-    const pendingPct = Math.round((STUDENT_DIRECTORY_STATS.pending / total) * 1000) / 10;
-    const inactivePct = Math.round((STUDENT_DIRECTORY_STATS.inactive / total) * 1000) / 10;
+    const total = summary?.total ?? 0;
+    const active = summary?.active ?? 0;
+    const pending = summary?.pending ?? 0;
+    const inactive = summary?.inactive ?? 0;
+    const activePct = total > 0 ? Math.round((active / total) * 1000) / 10 : 0;
+    const pendingPct = total > 0 ? Math.round((pending / total) * 1000) / 10 : 0;
+    const inactivePct = total > 0 ? Math.round((inactive / total) * 1000) / 10 : 0;
+    const monthDelta =
+      summary == null
+        ? '—'
+        : summary.createdThisMonth === 0
+          ? 'No new this month'
+          : summary.createdThisMonth === 1
+            ? '+1 this mo.'
+            : `+${summary.createdThisMonth} this mo.`;
 
     return [
       {
         key: 'total',
         label: 'Total Students',
-        value: total,
+        value: summary == null && loading ? null : total,
         hint: 'Entire hostel directory',
-        delta: '+12 this mo.',
+        delta: monthDelta,
         icon: Users,
         accent: 'var(--nestora-forest)',
         surface: 'color-mix(in oklch, var(--nestora-forest) 7%, var(--card))',
@@ -39,7 +55,7 @@ export function AdminStudentsStatsStrip() {
       {
         key: 'active',
         label: 'Active',
-        value: STUDENT_DIRECTORY_STATS.active,
+        value: summary == null && loading ? null : active,
         hint: 'Checked in & enrolled',
         delta: `${activePct}%`,
         icon: UserCheck,
@@ -51,7 +67,7 @@ export function AdminStudentsStatsStrip() {
       {
         key: 'pending',
         label: 'Pending',
-        value: STUDENT_DIRECTORY_STATS.pending,
+        value: summary == null && loading ? null : pending,
         hint: 'Awaiting approval',
         delta: `${pendingPct}%`,
         icon: Clock3,
@@ -63,7 +79,7 @@ export function AdminStudentsStatsStrip() {
       {
         key: 'inactive',
         label: 'Inactive',
-        value: STUDENT_DIRECTORY_STATS.inactive,
+        value: summary == null && loading ? null : inactive,
         hint: 'Archived or exited',
         delta: `${inactivePct}%`,
         icon: UserX,
@@ -73,7 +89,7 @@ export function AdminStudentsStatsStrip() {
         barColor: 'color-mix(in oklch, var(--muted-foreground) 55%, var(--border))',
       },
     ] as const;
-  }, []);
+  }, [summary, loading]);
 
   useGSAP(
     () => {
@@ -110,7 +126,9 @@ export function AdminStudentsStatsStrip() {
             Live snapshot
           </h2>
         </div>
-        <p className="text-xs text-muted-foreground">Shares of {STUDENT_DIRECTORY_STATS.total.toLocaleString('en-IN')} records</p>
+        <p className="text-xs text-muted-foreground">
+          Shares of {(summary?.total ?? 0).toLocaleString('en-IN')} records
+        </p>
       </div>
 
       <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -157,7 +175,7 @@ export function AdminStudentsStatsStrip() {
                 </div>
 
                 <p className="relative text-2xl font-semibold tabular-nums tracking-tight text-foreground">
-                  {stat.value.toLocaleString('en-IN')}
+                  {stat.value == null ? '—' : stat.value.toLocaleString('en-IN')}
                 </p>
                 <p className="relative mt-0.5 text-sm font-medium text-foreground">{stat.label}</p>
                 <p className="relative mt-1 text-xs text-muted-foreground">{stat.hint}</p>

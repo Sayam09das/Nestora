@@ -1,8 +1,20 @@
 import { parseApiResponse } from '@/lib/api/parse-response';
 
-const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? '';
+function normalizeApiBaseUrl(raw: string): string {
+  const trimmed = raw.replace(/\/$/, '');
+  if (trimmed.endsWith('/api/v1')) {
+    return trimmed.slice(0, -'/api/v1'.length);
+  }
+  return trimmed;
+}
+
+const baseUrl = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL ?? '');
 
 let csrfTokenPromise: Promise<string | null> | null = null;
+
+export function invalidateCsrfToken(): void {
+  csrfTokenPromise = null;
+}
 
 async function fetchCsrfToken(): Promise<string | null> {
   if (!baseUrl) {
@@ -54,7 +66,7 @@ function pathNeedsCsrf(path: string, method: string): boolean {
   return !CSRF_EXEMPT_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }
 
-export async function apiFetch(path: string, options: ApiFetchOptions = {}): Promise<Response> {
+async function apiFetchOnce(path: string, options: ApiFetchOptions = {}): Promise<Response> {
   const { withCredentials = true, headers: headerInit, ...rest } = options;
   const headers = new Headers(headerInit);
   if (rest.body !== undefined && !headers.has('Content-Type')) {
@@ -78,6 +90,24 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}): Pro
     headers,
     credentials: withCredentials ? 'include' : 'same-origin',
   });
+}
+
+export async function apiFetch(path: string, options: ApiFetchOptions = {}): Promise<Response> {
+  const response = await apiFetchOnce(path, options);
+  if (response.status !== 403 || !pathNeedsCsrf(path, options.method ?? 'GET')) {
+    return response;
+  }
+  try {
+    const clone = response.clone();
+    const body = (await clone.json()) as { error?: { code?: string } };
+    if (body.error?.code === 'CSRF_VALIDATION_FAILED') {
+      invalidateCsrfToken();
+      return apiFetchOnce(path, options);
+    }
+  } catch {
+    /* not JSON */
+  }
+  return response;
 }
 
 /** Explicit mutating fetch (always attempts CSRF when required). */

@@ -5,10 +5,12 @@ import type { ReactNode } from 'react';
 import { AdminDashboardMobileNav } from '@/components/dashboard/admin-dashboard-mobile-nav';
 import { AdminDashboardSidebar } from '@/components/dashboard/admin-dashboard-sidebar';
 import { AdminDashboardTopbar } from '@/components/dashboard/admin-dashboard-topbar';
+import { AdminAuthSessionProvider } from '@/components/dashboard/admin-auth-session-provider';
 import { AdminShellProvider } from '@/components/dashboard/admin-shell-provider';
 
 export function AdminDashboardShell({ children }: { children: ReactNode }) {
   return (
+    <AdminAuthSessionProvider>
     <AdminShellProvider>
       <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-[color-mix(in_oklch,var(--nestora-cream)_12%,var(--muted))]">
         <AdminDashboardTopbar />
@@ -23,5 +25,6 @@ export function AdminDashboardShell({ children }: { children: ReactNode }) {
         </div>
       </div>
     </AdminShellProvider>
+    </AdminAuthSessionProvider>
   );
 }
