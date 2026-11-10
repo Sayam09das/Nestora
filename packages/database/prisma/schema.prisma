@@ -125,6 +125,8 @@ model User {
   mfaSecretEnc String? @map("mfa_secret_enc") @db.Text
   /** FR-008: block protected APIs until the user sets a new password (e.g. after admin temporary password). */
   mustChangePassword Boolean @default(false) @map("must_change_password")
+  /** Public object-storage key (e.g. profile photo in nestora-student-profiles). */
+  profilePhotoKey String? @map("profile_photo_key") @db.VarChar(500)
 
   @@index([email], map: "idx_users_email")
   @@map("users")
@@ -421,9 +423,25 @@ model Student {
   disciplinaryAppeals     DisciplinaryAppeal[]
   noticeAcknowledgements  NoticeAcknowledgement[]
   incidentContactViewLogs IncidentContactViewLog[]
+  documents               StudentDocument[]
 
   @@index([userId], map: "idx_students_user_id")
   @@map("students")
+}
+
+model StudentDocument {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId  String   @map("student_id") @db.Uuid
+  objectKey  String   @unique @map("object_key") @db.VarChar(500)
+  fileName   String   @map("file_name") @db.VarChar(255)
+  mimeType   String   @map("mime_type") @db.VarChar(100)
+  fileSize   Int      @map("file_size")
+  uploadedAt DateTime @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId], map: "idx_student_documents_student")
+  @@map("student_documents")
 }
 
 model AdmissionApplication {
@@ -784,14 +802,40 @@ model TicketStatusHistory {
 model StaffProfile {
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId          String   @unique @map("user_id") @db.Uuid
+  employeeNumber  String?  @unique @map("employee_number") @db.VarChar(50)
   department      String   @db.VarChar(100)
   designation     String   @db.VarChar(100)
   shiftPreference String?  @map("shift_preference") @db.VarChar(50)
+  employmentType  String?  @map("employment_type") @db.VarChar(50)
+  joiningDate     DateTime? @map("joining_date") @db.Date
+  identityProofType    String? @map("identity_proof_type") @db.VarChar(50)
+  identityProofNumber  String? @map("identity_proof_number") @db.VarChar(80)
+  emergencyContactName String? @map("emergency_contact_name") @db.VarChar(150)
+  emergencyRelationship String? @map("emergency_relationship") @db.VarChar(50)
+  emergencyContactPhone String? @map("emergency_contact_phone") @db.VarChar(20)
+  permanentAddress     String? @map("permanent_address")
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents StaffDocument[]
 
   @@map("staff_profiles")
+}
+
+model StaffDocument {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  staffProfileId String   @map("staff_profile_id") @db.Uuid
+  documentKind   String   @map("document_kind") @db.VarChar(50)
+  objectKey      String   @unique @map("object_key") @db.VarChar(500)
+  fileName       String   @map("file_name") @db.VarChar(255)
+  mimeType       String   @map("mime_type") @db.VarChar(100)
+  fileSize       Int      @map("file_size")
+  uploadedAt     DateTime @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+
+  staffProfile StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
+
+  @@index([staffProfileId], map: "idx_staff_documents_staff_profile")
+  @@map("staff_documents")
 }
 
 model DutyAssignment {

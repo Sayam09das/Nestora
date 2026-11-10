@@ -1,5 +1,47 @@
 export { auditListQuerySchema, type AuditListQuery } from './audit.validator.js';
 export {
+  registerStaffBodySchema,
+  staffDirectoryListQuerySchema,
+  staffDirectoryStatusSchema,
+  staffDocumentKindSchema,
+  type RegisterStaffBody,
+  type StaffDirectoryListQuery,
+} from './staff.validator.js';
+export {
+  registerStudentBodySchema,
+  studentDirectoryListQuerySchema,
+  studentDirectoryStatusSchema,
+  type RegisterStudentBody,
+  type StudentDirectoryListQuery,
+} from './students.validator.js';
+export {
+  roomDirectoryListQuerySchema,
+  roomDirectoryOccupancyFilterSchema,
+  roomDirectoryOperationalStatusSchema,
+  type RoomDirectoryListQuery,
+} from './rooms.validator.js';
+export {
+  bedDirectoryListQuerySchema,
+  bedDirectoryUiStatusSchema,
+  type BedDirectoryListQuery,
+} from './beds.validator.js';
+export {
+  roomTypeDirectoryListQuerySchema,
+  roomTypeStatusSchema,
+  type RoomTypeDirectoryListQuery,
+} from './room-types.validator.js';
+export {
+  hostelDirectoryListQuerySchema,
+  hostelDirectoryStatusSchema,
+  type HostelDirectoryListQuery,
+} from './hostels.validator.js';
+export {
+  allocationDirectoryListQuerySchema,
+  allocationDirectoryStatusSchema,
+  allocationDirectoryTypeSchema,
+  type AllocationDirectoryListQuery,
+} from './allocations.validator.js';
+export {
   activateAccountBodySchema,
   adminAuthActivityQuerySchema,
   adminListUsersQuerySchema,

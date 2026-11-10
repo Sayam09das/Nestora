@@ -64,3 +64,5 @@ uploads/
 docker/data/
 tmp/
 temp/
+.agents/
+.cursor/
