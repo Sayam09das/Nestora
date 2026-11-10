@@ -146,13 +146,19 @@ export const adminNavGroups: AdminNavGroup[] = [
         ],
       },
       {
-        kind: 'link',
+        kind: 'collapsible',
         id: 'hostels',
-        href: '/admin/hostels',
         label: 'Hostel Management',
         description: 'Buildings & blocks',
         icon: Building2,
         isActive: pathStarts('/admin/hostels'),
+        children: [
+          {
+            href: '/admin/hostels',
+            label: 'All Hostels',
+            isActive: (p) => p === '/admin/hostels',
+          },
+        ],
       },
     ],
   },
