@@ -205,12 +205,19 @@ export const adminNavGroups: AdminNavGroup[] = [
         isActive: pathStarts('/admin/fees'),
       },
       {
-        kind: 'link',
+        kind: 'collapsible',
         id: 'complaints',
-        href: '/admin/complaints',
         label: 'Complaints',
+        description: 'Maintenance tickets',
         icon: MessageSquareWarning,
         isActive: pathStarts('/admin/complaints'),
+        children: [
+          {
+            href: '/admin/complaints',
+            label: 'Ticket board',
+            isActive: (p) => p === '/admin/complaints' || p.startsWith('/admin/complaints/'),
+          },
+        ],
       },
       {
         kind: 'link',
