@@ -220,12 +220,19 @@ export const adminNavGroups: AdminNavGroup[] = [
         ],
       },
       {
-        kind: 'link',
+        kind: 'collapsible',
         id: 'leave',
-        href: '/admin/leave',
         label: 'Leave Requests',
+        description: 'Approvals & gate passes',
         icon: CalendarOff,
         isActive: pathStarts('/admin/leave'),
+        children: [
+          {
+            href: '/admin/leave',
+            label: 'Warden desk',
+            isActive: (p) => p === '/admin/leave' || p.startsWith('/admin/leave/'),
+          },
+        ],
       },
       {
         kind: 'link',
