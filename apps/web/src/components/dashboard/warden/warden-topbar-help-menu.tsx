@@ -7,9 +7,9 @@ import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
@@ -35,29 +35,30 @@ export function WardenTopbarHelpMenu() {
         </motion.span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 rounded-xl">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">Warden assistance</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="rounded-lg"
-          onClick={() => toast.message('Duty officer', { description: '+91 98765 43210 · escalation line (sample).' })}
-        >
-          <Phone className="size-4 text-[var(--nestora-gold)]" />
-          Call duty officer
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="rounded-lg"
-          onClick={() => toast.message('Admin support', { description: 'Connects to university admin desk (sample).' })}
-        >
-          <Headphones className="size-4 text-[var(--nestora-sage)]" />
-          Live support chat
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="rounded-lg"
-          onClick={() => toast.message('Handbook', { description: 'Warden SOP library (sample).' })}
-        >
-          <BookOpen className="size-4 text-[var(--nestora-forest)]" />
-          Warden handbook
-        </DropdownMenuItem>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="text-xs text-muted-foreground">Warden assistance</DropdownMenuLabel>
+          <DropdownMenuItem
+            className="rounded-lg"
+            onClick={() => toast.message('Duty officer', { description: '+91 98765 43210 · escalation line (sample).' })}
+          >
+            <Phone className="size-4 text-[var(--nestora-gold)]" />
+            Call duty officer
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="rounded-lg"
+            onClick={() => toast.message('Admin support', { description: 'Connects to university admin desk (sample).' })}
+          >
+            <Headphones className="size-4 text-[var(--nestora-sage)]" />
+            Live support chat
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="rounded-lg"
+            onClick={() => toast.message('Handbook', { description: 'Warden SOP library (sample).' })}
+          >
+            <BookOpen className="size-4 text-[var(--nestora-forest)]" />
+            Warden handbook
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );

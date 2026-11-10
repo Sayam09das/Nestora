@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
-import { wardenNavLinks } from '@/components/dashboard/warden/warden-nav-items';
+import { filterWardenNavGroups, flattenWardenNavLinks, wardenNavGroups } from '@/components/dashboard/warden/warden-nav-items';
+import { createDefaultWardenPermissions } from '@/components/dashboard/warden/warden-nav-permissions';
 import { SAMPLE_WARDEN_SEARCH_HITS } from '@/components/dashboard/warden/warden-topbar-data';
 import {
   CommandDialog,
@@ -37,6 +38,11 @@ export function WardenTopbarGlobalSearch({ open, onOpenChange }: Props) {
     setQuery('');
     router.push(href);
   };
+
+  const deskModules = useMemo(
+    () => flattenWardenNavLinks(filterWardenNavGroups(wardenNavGroups, createDefaultWardenPermissions())),
+    [],
+  );
 
   const students = filteredHits.filter((h) => h.category === 'Students');
   const rooms = filteredHits.filter((h) => h.category === 'Rooms');
@@ -99,7 +105,7 @@ export function WardenTopbarGlobalSearch({ open, onOpenChange }: Props) {
         ) : null}
         <CommandSeparator />
         <CommandGroup heading="Desk modules">
-          {wardenNavLinks.map((item) => {
+          {deskModules.map((item) => {
             const Icon = item.icon;
             return (
               <CommandItem key={item.href} onSelect={() => go(item.href)}>

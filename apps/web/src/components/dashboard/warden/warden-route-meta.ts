@@ -6,10 +6,19 @@ const dashboardCrumb: WardenBreadcrumb = { label: 'Dashboard', href: '/warden' }
 
 const SEGMENT_LABELS: Record<string, string> = {
   attendance: 'Attendance',
-  complaints: 'Complaints',
-  leave: 'Leave & outings',
-  students: 'Residents',
-  visitors: 'Visitors',
+  announcements: 'Announcements',
+  complaints: 'Complaints & Issues',
+  events: 'Events & Activities',
+  incidents: 'Incident Reports',
+  leave: 'Leave Requests',
+  maintenance: 'Maintenance Requests',
+  profile: 'My Profile',
+  register: 'Daily Register',
+  reports: 'Reports & Analytics',
+  rooms: 'Room & Bed Management',
+  settings: 'Settings',
+  students: 'Student Management',
+  visitors: 'Visitor Management',
 };
 
 export function getWardenRouteMeta(pathname: string): WardenRouteMeta {

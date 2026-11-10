@@ -9,9 +9,9 @@ import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
@@ -82,30 +82,31 @@ export function WardenTopbarQuickActions() {
         </motion.span>
       </DropdownMenuTrigger>
       <DropdownMenuContent ref={menuRef} align="end" className="w-60 rounded-xl">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">Quick actions</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {actions.map((action) => {
-          const Icon = action.icon;
-          return (
-            <DropdownMenuItem
-              key={action.id}
-              data-warden-quick
-              className="rounded-lg py-2.5"
-              render={<Link href={action.href} onClick={() => setOpen(false)} />}
-            >
-              <span
-                className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-muted/40"
-                style={{ color: action.accent }}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="text-xs text-muted-foreground">Quick actions</DropdownMenuLabel>
+          {actions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <DropdownMenuItem
+                key={action.id}
+                data-warden-quick
+                className="rounded-lg py-2.5"
+                render={<Link href={action.href} onClick={() => setOpen(false)} />}
               >
-                <Icon className="size-4" aria-hidden />
-              </span>
-              <span className="min-w-0 flex flex-col gap-0.5">
-                <span className="text-sm font-medium">{action.label}</span>
-                <span className="text-[10px] text-muted-foreground">{action.hint}</span>
-              </span>
-            </DropdownMenuItem>
-          );
-        })}
+                <span
+                  className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-muted/40"
+                  style={{ color: action.accent }}
+                >
+                  <Icon className="size-4" aria-hidden />
+                </span>
+                <span className="min-w-0 flex flex-col gap-0.5">
+                  <span className="text-sm font-medium">{action.label}</span>
+                  <span className="text-[10px] text-muted-foreground">{action.hint}</span>
+                </span>
+              </DropdownMenuItem>
+            );
+          })}
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );

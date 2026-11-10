@@ -8,6 +8,7 @@ import { WARDEN_ASSIGNED_HOSTELS } from '@/components/dashboard/warden/warden-to
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -55,28 +56,32 @@ export function WardenTopbarHostelSelector({ className, compact, iconOnly }: Pro
         ) : null}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64 rounded-xl">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">Switch assigned hostel</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="text-xs text-muted-foreground">Switch assigned hostel</DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        {WARDEN_ASSIGNED_HOSTELS.map((hostel) => {
-          const selected = hostel.id === selectedHostelId;
-          return (
-            <DropdownMenuItem key={hostel.id} className="rounded-lg" onClick={() => setSelectedHostelId(hostel.id)}>
-              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="flex items-center gap-2 font-medium">
-                  {hostel.label}
-                  {selected ? (
-                    <motion.span initial={reduceMotion ? false : { scale: 0 }} animate={{ scale: 1 }}>
-                      <Check className="size-3.5 text-[var(--nestora-sage)]" aria-hidden />
-                    </motion.span>
-                  ) : null}
+        <DropdownMenuGroup>
+          {WARDEN_ASSIGNED_HOSTELS.map((hostel) => {
+            const selected = hostel.id === selectedHostelId;
+            return (
+              <DropdownMenuItem key={hostel.id} className="rounded-lg" onClick={() => setSelectedHostelId(hostel.id)}>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="flex items-center gap-2 font-medium">
+                    {hostel.label}
+                    {selected ? (
+                      <motion.span initial={reduceMotion ? false : { scale: 0 }} animate={{ scale: 1 }}>
+                        <Check className="size-3.5 text-[var(--nestora-sage)]" aria-hidden />
+                      </motion.span>
+                    ) : null}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {hostel.rooms} rooms · {hostel.occupancy} occupied
+                  </span>
                 </span>
-                <span className="text-[10px] text-muted-foreground">
-                  {hostel.rooms} rooms · {hostel.occupancy} occupied
-                </span>
-              </span>
-            </DropdownMenuItem>
-          );
-        })}
+              </DropdownMenuItem>
+            );
+          })}
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
