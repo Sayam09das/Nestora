@@ -3,7 +3,7 @@ import { createPrivatePageMetadata } from '@/lib/seo/metadata';
 
 export const metadata = createPrivatePageMetadata(
   'Warden Dashboard',
-  'Hostel-scoped operations for wardens.',
+  'Operational overview for hostel wardens.',
   '/warden',
 );
 
