@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { useRef, useState } from 'react';
 
 import {
-  BED_INVENTORY_STATS,
   BED_STATUS_HINTS,
   type BedRecord,
   type BedStatus,
@@ -155,6 +154,7 @@ function BedGridCard({ bed, onDelete }: { bed: BedRecord; onDelete: () => void }
 export type AdminBedsDirectoryProps = {
   pageRows: BedRecord[];
   filteredCount: number;
+  totalBeds: number;
   onDelete: (row: BedRecord) => void;
   pageSize: number;
   onPageSizeChange: (size: number) => void;
@@ -166,7 +166,19 @@ export type AdminBedsDirectoryProps = {
 };
 
 export function AdminBedsDirectory(props: AdminBedsDirectoryProps) {
-  const { pageRows, filteredCount, onDelete, pageSize, onPageSizeChange, safePage, totalPages, onPagePrev, onPageNext, listKey } = props;
+  const {
+    pageRows,
+    filteredCount,
+    totalBeds,
+    onDelete,
+    pageSize,
+    onPageSizeChange,
+    safePage,
+    totalPages,
+    onPagePrev,
+    onPageNext,
+    listKey,
+  } = props;
 
   const reduceMotion = useReducedMotion();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -219,7 +231,7 @@ export function AdminBedsDirectory(props: AdminBedsDirectoryProps) {
               Bed directory
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {pageRows.length} of {filteredCount} filtered · {BED_INVENTORY_STATS.totalBeds.toLocaleString('en-IN')} total
+              {pageRows.length} of {filteredCount} filtered · {totalBeds.toLocaleString('en-IN')} total
             </p>
           </div>
           <div className="flex items-center gap-2">

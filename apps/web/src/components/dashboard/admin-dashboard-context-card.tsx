@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Cloud, CloudFog, CloudRain, CloudSun, Loader2, MapPin, Sun, Zap } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
+import { fetchApiReadiness } from '@/lib/api/dashboard';
 import { cn } from '@/lib/utils';
 
 const CAMPUS_FALLBACK = {
@@ -136,6 +137,7 @@ export function AdminDashboardContextCard({ showSystemStatus = true }: AdminDash
   const [now, setNow] = useState(() => new Date());
   const [context, setContext] = useState<LocalContext | null>(null);
   const [loading, setLoading] = useState(true);
+  const [apiStatus, setApiStatus] = useState<'ready' | 'degraded' | 'unknown'>('unknown');
 
   useEffect(() => {
     const tick = setInterval(() => setNow(new Date()), 1000);
@@ -144,10 +146,11 @@ export function AdminDashboardContextCard({ showSystemStatus = true }: AdminDash
 
   useEffect(() => {
     let cancelled = false;
-    void resolveLocalContext()
-      .then((value) => {
+    void Promise.all([resolveLocalContext(), fetchApiReadiness()])
+      .then(([value, readiness]) => {
         if (!cancelled) {
           setContext(value);
+          setApiStatus(readiness);
         }
       })
       .finally(() => {
@@ -270,7 +273,11 @@ export function AdminDashboardContextCard({ showSystemStatus = true }: AdminDash
               <span className="absolute inset-0 rounded-full bg-[var(--nestora-gold)]" />
             )}
           </span>
-          System operational
+          {apiStatus === 'ready'
+            ? 'System operational'
+            : apiStatus === 'degraded'
+              ? 'API degraded'
+              : 'Checking API…'}
         </div>
       ) : null}
     </motion.div>

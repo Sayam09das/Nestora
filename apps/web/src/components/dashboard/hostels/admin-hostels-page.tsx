@@ -1,6 +1,7 @@
 'use client';
 
 import { useReducedMotion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 
 import { AdminHostelsAddDrawer } from '@/components/dashboard/hostels/admin-hostels-add-drawer';
@@ -8,12 +9,7 @@ import { AdminHostelsDirectory } from '@/components/dashboard/hostels/admin-host
 import { AdminHostelsFiltersBar } from '@/components/dashboard/hostels/admin-hostels-filters-bar';
 import { AdminHostelsPageHeader } from '@/components/dashboard/hostels/admin-hostels-page-header';
 import { AdminHostelsStatsStrip } from '@/components/dashboard/hostels/admin-hostels-stats-strip';
-import {
-  SAMPLE_HOSTELS,
-  canDeleteHostel,
-  matchesOccupancyFilter,
-  type HostelRecord,
-} from '@/components/dashboard/hostels/admin-hostels-data';
+import { canDeleteHostel, type HostelRecord } from '@/components/dashboard/hostels/admin-hostels-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import {
   AlertDialog,
@@ -25,6 +21,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { useHostelsDirectory } from '@/hooks/use-hostels-directory';
 
 export function AdminHostelsPage() {
   const reduceMotion = useReducedMotion();
@@ -39,28 +37,33 @@ export function AdminHostelsPage() {
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<HostelRecord | null>(null);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return SAMPLE_HOSTELS.filter((row) => {
-      if (genderFilter !== 'All Categories' && row.genderCategory !== genderFilter) return false;
-      if (campusFilter !== 'All Campus Zones' && row.campusZone !== campusFilter) return false;
-      if (statusFilter !== 'All Status' && row.status !== statusFilter) return false;
-      if (!matchesOccupancyFilter(row, occupancyFilter)) return false;
-      if (!q) return true;
-      return (
-        row.name.toLowerCase().includes(q) ||
-        row.hostelCode.toLowerCase().includes(q) ||
-        row.address.toLowerCase().includes(q) ||
-        row.wardenName.toLowerCase().includes(q) ||
-        row.description.toLowerCase().includes(q)
-      );
-    });
-  }, [search, genderFilter, campusFilter, statusFilter, occupancyFilter]);
+  const filters = useMemo(
+    () => ({
+      q: search,
+      gender: genderFilter,
+      campus: campusFilter,
+      status: statusFilter,
+      occupancy: occupancyFilter,
+      page,
+      pageSize,
+    }),
+    [search, genderFilter, campusFilter, statusFilter, occupancyFilter, page, pageSize],
+  );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const { summary, hostels, total, loadingSummary, loadingList, error, refresh } = useHostelsDirectory(filters);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pageRows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
-  const listKey = `${search}|${genderFilter}|${campusFilter}|${statusFilter}|${occupancyFilter}|${safePage}`;
+  const pageRows = hostels;
+  const listKey = `${search}|${genderFilter}|${campusFilter}|${statusFilter}|${occupancyFilter}|${safePage}|${total}`;
+
+  const facetOptions = useMemo(() => {
+    const facets = summary?.facets;
+    return {
+      genders: ['All Categories', ...(facets?.genders ?? [])] as const,
+      campuses: ['All Campus Zones', ...(facets?.campuses ?? [])] as const,
+    };
+  }, [summary?.facets]);
 
   useGSAP(
     () => {
@@ -91,8 +94,18 @@ export function AdminHostelsPage() {
 
   return (
     <div ref={rootRef} className="space-y-6 pb-6">
-      <AdminHostelsPageHeader onAdd={() => setAddOpen(true)} />
-      <AdminHostelsStatsStrip />
+      {error ? (
+        <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}{' '}
+          <Button type="button" variant="link" className="h-auto p-0 text-destructive" onClick={() => refresh()}>
+            Retry
+          </Button>
+        </p>
+      ) : null}
+
+      <AdminHostelsPageHeader onAdd={() => setAddOpen(true)} summary={summary} loading={loadingSummary} />
+      <AdminHostelsStatsStrip summary={summary} loading={loadingSummary} />
+
       <AdminHostelsFiltersBar
         search={search}
         onSearchChange={(v) => {
@@ -120,22 +133,33 @@ export function AdminHostelsPage() {
           setPage(1);
         }}
         onReset={reset}
+        genderOptions={facetOptions.genders}
+        campusOptions={facetOptions.campuses}
       />
-      <AdminHostelsDirectory
-        pageRows={pageRows}
-        filteredCount={filtered.length}
-        onDelete={handleDeleteRequest}
-        pageSize={pageSize}
-        onPageSizeChange={(n) => {
-          setPageSize(n);
-          setPage(1);
-        }}
-        safePage={safePage}
-        totalPages={totalPages}
-        onPagePrev={() => setPage((p) => Math.max(1, p - 1))}
-        onPageNext={() => setPage((p) => Math.min(totalPages, p + 1))}
-        listKey={listKey}
-      />
+
+      {loadingList ? (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--nestora-sage-muted)] bg-card py-16 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin text-[var(--nestora-sage)]" aria-hidden />
+          Loading hostels…
+        </div>
+      ) : (
+        <AdminHostelsDirectory
+          pageRows={pageRows}
+          filteredCount={total}
+          onDelete={handleDeleteRequest}
+          pageSize={pageSize}
+          onPageSizeChange={(n) => {
+            setPageSize(n);
+            setPage(1);
+          }}
+          safePage={safePage}
+          totalPages={totalPages}
+          onPagePrev={() => setPage((p) => Math.max(1, p - 1))}
+          onPageNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+          listKey={listKey}
+        />
+      )}
+
       <AdminHostelsAddDrawer open={addOpen} onOpenChange={setAddOpen} />
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent className="rounded-2xl">
@@ -145,7 +169,7 @@ export function AdminHostelsPage() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {deleteTarget && canDeleteHostel(deleteTarget)
-                ? `${deleteTarget.name} has no linked rooms. This action is illustrative only in the sample UI.`
+                ? `${deleteTarget.name} has no linked rooms. Permanent deletion is not wired in this build; use deactivate for production workflows.`
                 : `${deleteTarget?.name} has ${deleteTarget?.totalRooms ?? 0} rooms and ${deleteTarget?.occupiedBeds ?? 0} occupied beds. Deactivate to block new room assignments while preserving history.`}
             </AlertDialogDescription>
           </AlertDialogHeader>

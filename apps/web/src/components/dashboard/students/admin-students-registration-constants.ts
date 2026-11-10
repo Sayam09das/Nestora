@@ -58,6 +58,14 @@ export type StudentRegistrationForm = {
   phone: string;
   email: string;
   profilePhotoName: string;
+  profilePhotoObjectKey: string;
+  profilePhotoUrl: string;
+  documentUploads: {
+    objectKey: string;
+    fileName: string;
+    mimeType: string;
+    fileSize: number;
+  }[];
   studentId: string;
   admissionDate: string;
   course: string;
@@ -94,6 +102,9 @@ export function createEmptyRegistrationForm(): StudentRegistrationForm {
     phone: '',
     email: '',
     profilePhotoName: '',
+    profilePhotoObjectKey: '',
+    profilePhotoUrl: '',
+    documentUploads: [],
     studentId: generateStudentId(),
     admissionDate: '',
     course: '',

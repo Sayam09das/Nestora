@@ -70,11 +70,12 @@ export async function loginWithPassword(
 export async function fetchCurrentUser(): Promise<{
   user?: AuthUserPayload;
   error?: string;
+  status: number;
 }> {
   const response = await apiFetch(`${AUTH_PREFIX}/me`);
   const parsed = await parseApiResponse<{ user: AuthUserPayload }>(response);
   if (!parsed.ok) {
-    return { error: parsed.message };
+    return { error: parsed.message, status: response.status };
   }
   const user = parsed.data.user;
   return {
@@ -82,6 +83,7 @@ export async function fetchCurrentUser(): Promise<{
       ...user,
       dashboardPath: user.dashboardPath ?? dashboardPathForRole(user.role),
     },
+    status: response.status,
   };
 }
 

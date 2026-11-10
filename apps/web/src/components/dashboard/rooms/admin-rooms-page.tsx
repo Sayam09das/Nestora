@@ -1,13 +1,14 @@
 'use client';
 
 import { useReducedMotion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 
 import { AdminRoomsDirectory } from '@/components/dashboard/rooms/admin-rooms-directory';
 import { AdminRoomsFiltersBar } from '@/components/dashboard/rooms/admin-rooms-filters-bar';
 import { AdminRoomsPageHeader } from '@/components/dashboard/rooms/admin-rooms-page-header';
 import { AdminRoomsStatsStrip } from '@/components/dashboard/rooms/admin-rooms-stats-strip';
-import { SAMPLE_ROOMS, roomAvailableBeds, type RoomRecord } from '@/components/dashboard/rooms/admin-rooms-data';
+import type { RoomRecord } from '@/components/dashboard/rooms/admin-rooms-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import {
   AlertDialog,
@@ -19,23 +20,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-
-function matchesOccupancyFilter(room: RoomRecord, filter: string): boolean {
-  const available = roomAvailableBeds(room);
-  if (filter === 'All Occupancy') {
-    return true;
-  }
-  if (filter === 'Has open beds') {
-    return available > 0;
-  }
-  if (filter === 'Fully occupied') {
-    return room.occupiedBeds >= room.capacity && room.capacity > 0;
-  }
-  if (filter === 'Vacant') {
-    return room.occupiedBeds === 0;
-  }
-  return true;
-}
+import { Button } from '@/components/ui/button';
+import { useRoomsDirectory } from '@/hooks/use-rooms-directory';
 
 export function AdminRoomsPage() {
   const reduceMotion = useReducedMotion();
@@ -52,41 +38,36 @@ export function AdminRoomsPage() {
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<RoomRecord | null>(null);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return SAMPLE_ROOMS.filter((row) => {
-      if (hostelFilter !== 'All Hostels' && row.hostel !== hostelFilter) {
-        return false;
-      }
-      if (blockFilter !== 'All Blocks' && row.block !== blockFilter) {
-        return false;
-      }
-      if (floorFilter !== 'All Floors' && row.floor !== floorFilter) {
-        return false;
-      }
-      if (roomTypeFilter !== 'All Types' && row.roomType !== roomTypeFilter) {
-        return false;
-      }
-      if (statusFilter !== 'All Status' && row.operationalStatus !== statusFilter) {
-        return false;
-      }
-      if (!matchesOccupancyFilter(row, occupancyFilter)) {
-        return false;
-      }
-      if (!q) {
-        return true;
-      }
-      return (
-        row.roomNumber.toLowerCase().includes(q) ||
-        row.roomId.toLowerCase().includes(q) ||
-        row.hostel.toLowerCase().includes(q)
-      );
-    });
-  }, [search, hostelFilter, blockFilter, floorFilter, roomTypeFilter, statusFilter, occupancyFilter]);
+  const filters = useMemo(
+    () => ({
+      q: search,
+      hostel: hostelFilter,
+      block: blockFilter,
+      floor: floorFilter,
+      roomType: roomTypeFilter,
+      status: statusFilter,
+      occupancy: occupancyFilter,
+      page,
+      pageSize,
+    }),
+    [search, hostelFilter, blockFilter, floorFilter, roomTypeFilter, statusFilter, occupancyFilter, page, pageSize],
+  );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const { summary, rooms, total, loadingSummary, loadingList, error, refresh } = useRoomsDirectory(filters);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pageRows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageRows = rooms;
+
+  const facetOptions = useMemo(() => {
+    const facets = summary?.facets;
+    return {
+      hostels: ['All Hostels', ...(facets?.hostels ?? [])] as const,
+      blocks: ['All Blocks', ...(facets?.blocks ?? [])] as const,
+      floors: ['All Floors', ...(facets?.floors ?? [])] as const,
+      roomTypes: ['All Types', ...(facets?.roomTypes ?? [])] as const,
+    };
+  }, [summary?.facets]);
 
   const resetFilters = () => {
     setSearch('');
@@ -118,8 +99,18 @@ export function AdminRoomsPage() {
 
   return (
     <div ref={rootRef} className="space-y-6 pb-6">
-      <AdminRoomsPageHeader />
-      <AdminRoomsStatsStrip />
+      {error ? (
+        <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}{' '}
+          <Button type="button" variant="link" className="h-auto p-0 text-destructive" onClick={() => refresh()}>
+            Retry
+          </Button>
+        </p>
+      ) : null}
+
+      <AdminRoomsPageHeader summary={summary} loading={loadingSummary} />
+      <AdminRoomsStatsStrip summary={summary} loading={loadingSummary} />
+
       <AdminRoomsFiltersBar
         search={search}
         onSearchChange={(value) => {
@@ -157,26 +148,37 @@ export function AdminRoomsPage() {
           setPage(1);
         }}
         onReset={resetFilters}
-        filteredCount={filtered.length}
+        filteredCount={total}
+        hostelOptions={facetOptions.hostels}
+        blockOptions={facetOptions.blocks}
+        floorOptions={facetOptions.floors}
+        roomTypeOptions={facetOptions.roomTypes}
       />
-      <AdminRoomsDirectory
-        pageRows={pageRows}
-        filteredCount={filtered.length}
-        onDelete={setDeleteTarget}
-        pageSize={pageSize}
-        onPageSizeChange={(size) => {
-          setPageSize(size);
-          setPage(1);
-        }}
-        safePage={safePage}
-        totalPages={totalPages}
-        onPagePrev={() => setPage((p) => Math.max(1, p - 1))}
-        onPageNext={() => setPage((p) => Math.min(totalPages, p + 1))}
-        listKey={`${safePage}-${pageSize}-${filtered.length}-${search}-${statusFilter}`}
-      />
-      <p className="text-center text-xs text-muted-foreground" role="note">
-        Showing sample rooms · Illustrative UI data
-      </p>
+
+      {loadingList ? (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--nestora-sage-muted)] bg-card py-16 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin text-[var(--nestora-sage)]" aria-hidden />
+          Loading rooms…
+        </div>
+      ) : (
+        <AdminRoomsDirectory
+          pageRows={pageRows}
+          filteredCount={total}
+          totalRooms={summary?.totalRooms ?? 0}
+          onDelete={setDeleteTarget}
+          pageSize={pageSize}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          safePage={safePage}
+          totalPages={totalPages}
+          onPagePrev={() => setPage((p) => Math.max(1, p - 1))}
+          onPageNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+          listKey={`${safePage}-${pageSize}-${total}-${search}-${statusFilter}`}
+        />
+      )}
+
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>

@@ -4,8 +4,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Clock3, TrendingUp, UserCheck, UserCog, UserX } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
-import { STAFF_DIRECTORY_STATS } from '@/components/dashboard/staff/admin-staff-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { StaffDirectorySummary } from '@/lib/api/staff';
 import { cn } from '@/lib/utils';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
@@ -13,15 +13,31 @@ const motionEase = [0.22, 1, 0.36, 1] as const;
 const BAR_GREEN = '#6d9773';
 const BAR_GOLD = '#ffba00';
 
-export function AdminStaffStatsStrip() {
+type AdminStaffStatsStripProps = {
+  summary: StaffDirectorySummary | null;
+  loading?: boolean;
+};
+
+export function AdminStaffStatsStrip({ summary, loading = false }: AdminStaffStatsStripProps) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
 
   const stats = useMemo(() => {
-    const total = STAFF_DIRECTORY_STATS.total;
-    const activePct = Math.round((STAFF_DIRECTORY_STATS.active / total) * 1000) / 10;
-    const onLeavePct = Math.round((STAFF_DIRECTORY_STATS.onLeave / total) * 1000) / 10;
-    const inactivePct = Math.round((STAFF_DIRECTORY_STATS.inactive / total) * 1000) / 10;
+    const total = summary?.total ?? 0;
+    const active = summary?.active ?? 0;
+    const onLeave = summary?.onLeave ?? 0;
+    const inactive = summary?.inactive ?? 0;
+    const activePct = total > 0 ? Math.round((active / total) * 1000) / 10 : 0;
+    const onLeavePct = total > 0 ? Math.round((onLeave / total) * 1000) / 10 : 0;
+    const inactivePct = total > 0 ? Math.round((inactive / total) * 1000) / 10 : 0;
+    const monthDelta =
+      summary == null
+        ? '—'
+        : summary.createdThisMonth === 0
+          ? 'No new this month'
+          : summary.createdThisMonth === 1
+            ? '+1 this mo.'
+            : `+${summary.createdThisMonth} this mo.`;
 
     return [
       {
@@ -29,7 +45,7 @@ export function AdminStaffStatsStrip() {
         label: 'Total Staff',
         value: total,
         hint: 'Full personnel directory',
-        delta: '+2 this mo.',
+        delta: monthDelta,
         icon: UserCog,
         accent: 'var(--nestora-forest)',
         surface: 'color-mix(in oklch, var(--nestora-forest) 7%, var(--card))',
@@ -39,7 +55,7 @@ export function AdminStaffStatsStrip() {
       {
         key: 'active',
         label: 'Active',
-        value: STAFF_DIRECTORY_STATS.active,
+        value: active,
         hint: 'On duty & available',
         delta: `${activePct}%`,
         icon: UserCheck,
@@ -51,7 +67,7 @@ export function AdminStaffStatsStrip() {
       {
         key: 'onLeave',
         label: 'On Leave',
-        value: STAFF_DIRECTORY_STATS.onLeave,
+        value: onLeave,
         hint: 'Approved time away',
         delta: `${onLeavePct}%`,
         icon: Clock3,
@@ -63,7 +79,7 @@ export function AdminStaffStatsStrip() {
       {
         key: 'inactive',
         label: 'Inactive',
-        value: STAFF_DIRECTORY_STATS.inactive,
+        value: inactive,
         hint: 'Separated or dormant',
         delta: `${inactivePct}%`,
         icon: UserX,
@@ -73,7 +89,7 @@ export function AdminStaffStatsStrip() {
         barColor: 'color-mix(in oklch, var(--muted-foreground) 55%, var(--border))',
       },
     ] as const;
-  }, []);
+  }, [summary]);
 
   useGSAP(
     () => {
@@ -110,7 +126,9 @@ export function AdminStaffStatsStrip() {
             Live snapshot
           </h2>
         </div>
-        <p className="text-xs text-muted-foreground">Shares of {STAFF_DIRECTORY_STATS.total.toLocaleString('en-IN')} records</p>
+        <p className="text-xs text-muted-foreground">
+          Shares of {loading && summary == null ? '—' : (summary?.total ?? 0).toLocaleString('en-IN')} records
+        </p>
       </div>
 
       <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

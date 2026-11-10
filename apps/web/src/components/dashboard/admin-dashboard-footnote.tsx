@@ -25,7 +25,7 @@ export function AdminDashboardFootnote() {
       aria-label="Dashboard notes and shortcuts"
     >
       <p className="text-center text-xs text-muted-foreground">
-        Sample UI data only — not live hostel records. Connect the API to replace placeholders.
+        Metrics refresh about every minute from the Nestora API. Fees and notices fill in as MS-4 and MOD-17 ship.
       </p>
       <ul className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-semibold text-[var(--nestora-forest)]">
         <li>

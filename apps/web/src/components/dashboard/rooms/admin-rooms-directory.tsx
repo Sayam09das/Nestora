@@ -17,7 +17,6 @@ import Link from 'next/link';
 import { useRef, useState } from 'react';
 
 import {
-  ROOM_DIRECTORY_STATS,
   roomAvailableBeds,
   roomOccupancyPercent,
   type RoomOperationalStatus,
@@ -209,6 +208,7 @@ function RoomGridCard({ room, onDelete }: { room: RoomRecord; onDelete: () => vo
 export type AdminRoomsDirectoryProps = {
   pageRows: RoomRecord[];
   filteredCount: number;
+  totalRooms: number;
   onDelete: (row: RoomRecord) => void;
   pageSize: number;
   onPageSizeChange: (size: number) => void;
@@ -222,6 +222,7 @@ export type AdminRoomsDirectoryProps = {
 export function AdminRoomsDirectory({
   pageRows,
   filteredCount,
+  totalRooms,
   onDelete,
   pageSize,
   onPageSizeChange,
@@ -299,7 +300,7 @@ export function AdminRoomsDirectory({
                 <span className="font-semibold tabular-nums text-foreground">{pageRows.length}</span> of{' '}
                 <span className="font-semibold tabular-nums text-foreground">{filteredCount}</span> filtered ·{' '}
                 <span className="font-semibold tabular-nums text-foreground">
-                  {ROOM_DIRECTORY_STATS.totalRooms.toLocaleString('en-IN')}
+                  {totalRooms.toLocaleString('en-IN')}
                 </span>{' '}
                 total
               </p>

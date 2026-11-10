@@ -25,11 +25,9 @@ import { toast } from 'sonner';
 
 import {
   ACCOUNT_STATUS_OPTIONS,
-  ASSIGNED_HOSTEL_OPTIONS,
   COUNTRY_OPTIONS,
   createEmptyStaffForm,
   DEPARTMENT_OPTIONS,
-  derivedAssignedStudents,
   EMPLOYMENT_TYPE_OPTIONS,
   GENDER_OPTIONS,
   generateEmployeeId,
@@ -41,7 +39,6 @@ import {
   isWardenRole,
   JOB_TITLE_OPTIONS,
   RELATIONSHIP_OPTIONS,
-  REPORTING_MANAGER_OPTIONS,
   STAFF_DRAFT_STORAGE_KEY,
   STAFF_REGISTRATION_STEPS,
   suggestedSystemRole,
@@ -52,8 +49,14 @@ import {
   validateStaffStep,
   WARDEN_TYPE_OPTIONS,
   WORK_SHIFT_OPTIONS,
+  type StaffDocumentUpload,
   type StaffRegistrationForm,
 } from '@/components/dashboard/staff/admin-staff-registration-constants';
+import { useStaffRegistrationFacets } from '@/hooks/use-staff-registration-facets';
+import { fetchStudentDirectoryList } from '@/lib/api/students';
+import { registerStaff } from '@/lib/api/staff';
+import { getApiBaseUrl } from '@/lib/api/client';
+import { uploadStaffDocument, uploadStaffProfilePhoto } from '@/lib/api/uploads';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -81,14 +84,51 @@ export function AdminStaffNewPage() {
   const [form, setForm] = useState<StaffRegistrationForm>(() => createEmptyStaffForm());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [docUploading, setDocUploading] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
 
   const progressPct = useMemo(() => (step / STAFF_REGISTRATION_STEPS.length) * 100, [step]);
-  const assignedStudents = useMemo(() => derivedAssignedStudents(form.assignedHostel), [form.assignedHostel]);
+  const { hostelOptions, managerOptions, loading: facetsLoading } = useStaffRegistrationFacets();
+  const [hostelStudentCount, setHostelStudentCount] = useState<number | null>(null);
+
   const blockOptions = useMemo(
-    () => (form.assignedHostel ? HOSTEL_BLOCKS[form.assignedHostel] ?? [] : []),
+    () => (form.assignedHostel ? HOSTEL_BLOCKS[form.assignedHostel] ?? ['—'] : []),
     [form.assignedHostel],
   );
+
+  const stepComplete = useMemo(
+    () => STAFF_REGISTRATION_STEPS.map((s) => Object.keys(validateStaffStep(s.id, form)).length === 0),
+    [form],
+  );
+
+  const profilePhotoPreview = useMemo(() => {
+    if (form.profilePhotoUrl) {
+      return form.profilePhotoUrl;
+    }
+    if (form.profilePhotoObjectKey && getApiBaseUrl()) {
+      const encoded = form.profilePhotoObjectKey.split('/').map(encodeURIComponent).join('/');
+      return `${getApiBaseUrl()}/api/v1/uploads/staff-public/${encoded}`;
+    }
+    return null;
+  }, [form.profilePhotoObjectKey, form.profilePhotoUrl]);
+
+  useEffect(() => {
+    const hostel = form.assignedHostel.trim();
+    if (!hostel || hostel === 'All Hostels' || hostel === 'Central Office') {
+      setHostelStudentCount(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchStudentDirectoryList({ page: 1, limit: 1, hostel }).then((result) => {
+      if (!cancelled) {
+        setHostelStudentCount(result.total ?? null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [form.assignedHostel]);
 
   const patch = useCallback((partial: Partial<StaffRegistrationForm>) => {
     setForm((prev) => ({ ...prev, ...partial }));
@@ -190,21 +230,43 @@ export function AdminStaffNewPage() {
       return;
     }
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 500));
-    localStorage.removeItem(STAFF_DRAFT_STORAGE_KEY);
-    toast.success('Employee profile created', {
-      description: form.sendInvitation
-        ? `${form.firstName} ${form.lastName} — invitation sent to ${form.loginEmail}`
-        : `${form.firstName} ${form.lastName} (${form.employeeId})`,
-    });
+    const result = await registerStaff(form);
     setSubmitting(false);
+    if (!result.ok) {
+      toast.error('Could not register staff', { description: result.message });
+      return;
+    }
+    localStorage.removeItem(STAFF_DRAFT_STORAGE_KEY);
+    toast.success(
+      form.sendInvitation ? 'Staff registered — invitation sent' : 'Staff profile created',
+      {
+        description: form.sendInvitation
+          ? `${form.firstName} ${form.lastName} — ${form.loginEmail}`
+          : `${form.firstName} ${form.lastName} (${form.employeeId})`,
+      },
+    );
     router.push('/admin/staff');
   };
 
-  const onPhoto = (file: File | undefined, field: 'profilePhotoName' | 'employeePhotoName') => {
+  const upsertDocument = (kind: StaffDocumentUpload['kind'], upload: StaffDocumentUpload) => {
+    setForm((prev) => {
+      const rest = prev.documentUploads.filter((d) => d.kind !== kind);
+      return { ...prev, documentUploads: [...rest, upload] };
+    });
+  };
+
+  const onPhoto = async (file: File | undefined, field: 'profilePhotoName' | 'employeePhotoName') => {
     setFileError(null);
     if (!file) {
-      patch({ [field]: '' });
+      if (field === 'profilePhotoName') {
+        patch({ profilePhotoName: '', profilePhotoObjectKey: '', profilePhotoUrl: '' });
+      } else {
+        patch({ employeePhotoName: '' });
+        setForm((prev) => ({
+          ...prev,
+          documentUploads: prev.documentUploads.filter((d) => d.kind !== 'EMPLOYEE_PHOTO'),
+        }));
+      }
       return;
     }
     const err = validatePhotoFile(file);
@@ -212,18 +274,72 @@ export function AdminStaffNewPage() {
       setFileError(err);
       return;
     }
-    patch({ [field]: file.name });
+    if (field === 'profilePhotoName') {
+      setPhotoUploading(true);
+      const result = await uploadStaffProfilePhoto(file);
+      setPhotoUploading(false);
+      if (!result.upload) {
+        setFileError(result.error ?? 'Photo upload failed.');
+        return;
+      }
+      patch({
+        profilePhotoName: result.upload.fileName,
+        profilePhotoObjectKey: result.upload.objectKey,
+        profilePhotoUrl: result.upload.publicUrl,
+      });
+      return;
+    }
+    setDocUploading(true);
+    const docResult = await uploadStaffDocument(file);
+    setDocUploading(false);
+    if (!docResult.upload) {
+      setFileError(docResult.error ?? 'Photo upload failed.');
+      return;
+    }
+    patch({ employeePhotoName: docResult.upload.fileName });
+    upsertDocument('EMPLOYEE_PHOTO', {
+      kind: 'EMPLOYEE_PHOTO',
+      objectKey: docResult.upload.objectKey,
+      fileName: docResult.upload.fileName,
+      mimeType: docResult.upload.mimeType,
+      fileSize: docResult.upload.sizeBytes,
+    });
   };
 
-  const onDoc = (file: File | undefined, field: keyof StaffRegistrationForm) => {
+  const onDoc = async (
+    file: File | undefined,
+    field: 'identityProofDocName' | 'qualificationDocName' | 'appointmentDocName',
+    kind: StaffDocumentUpload['kind'],
+  ) => {
     setFileError(null);
-    if (!file) return;
+    if (!file) {
+      patch({ [field]: '' });
+      setForm((prev) => ({
+        ...prev,
+        documentUploads: prev.documentUploads.filter((d) => d.kind !== kind),
+      }));
+      return;
+    }
     const err = validateDocumentFile(file);
     if (err) {
       setFileError(err);
       return;
     }
-    patch({ [field]: file.name });
+    setDocUploading(true);
+    const result = await uploadStaffDocument(file);
+    setDocUploading(false);
+    if (!result.upload) {
+      setFileError(result.error ?? 'Document upload failed.');
+      return;
+    }
+    patch({ [field]: result.upload.fileName });
+    upsertDocument(kind, {
+      kind,
+      objectKey: result.upload.objectKey,
+      fileName: result.upload.fileName,
+      mimeType: result.upload.mimeType,
+      fileSize: result.upload.sizeBytes,
+    });
   };
 
   const errorEntries = Object.entries(errors);
@@ -270,7 +386,7 @@ export function AdminStaffNewPage() {
           {STAFF_REGISTRATION_STEPS.map((s) => {
             const Icon = STEP_ICONS[s.id - 1] ?? UserCog;
             const active = s.id === step;
-            const done = s.id < step;
+            const done = stepComplete[s.id - 1] === true && s.id !== step;
             return (
               <button
                 key={s.id}
@@ -346,7 +462,14 @@ export function AdminStaffNewPage() {
                     label="Profile Photo"
                     hint="JPG or PNG · Max 2 MB"
                     fileName={form.profilePhotoName}
-                    onFile={(f) => onPhoto(f, 'profilePhotoName')}
+                    uploading={photoUploading}
+                    storedHint={
+                      form.profilePhotoObjectKey
+                        ? 'Stored in Neon (nestora-staff-profiles)'
+                        : undefined
+                    }
+                    previewUrl={profilePhotoPreview}
+                    onFile={(f) => void onPhoto(f, 'profilePhotoName')}
                     className="sm:col-span-2"
                   />
                   <FormField id="firstName" label="First Name" required error={errors.firstName} value={form.firstName} onChange={(v) => patch({ firstName: v })} />
@@ -390,7 +513,14 @@ export function AdminStaffNewPage() {
                   <FormField id="joiningDate" label="Joining Date" required type="date" error={errors.joiningDate} value={form.joiningDate} onChange={(v) => patch({ joiningDate: v })} />
                   <SelectField id="workShift" label="Work Shift" required error={errors.workShift} value={form.workShift} onChange={(v) => patch({ workShift: v })} options={WORK_SHIFT_OPTIONS} />
                   <FormField id="salary" label="Salary (optional)" type="number" value={form.salary} onChange={(v) => patch({ salary: v })} />
-                  <SelectField id="reportingManager" label="Reporting Manager" value={form.reportingManager} onChange={(v) => patch({ reportingManager: v })} options={REPORTING_MANAGER_OPTIONS} />
+                  <SelectField
+                    id="reportingManager"
+                    label="Reporting Manager"
+                    value={form.reportingManager}
+                    onChange={(v) => patch({ reportingManager: v })}
+                    options={managerOptions}
+                    disabled={facetsLoading && managerOptions.length <= 1}
+                  />
                 </div>
               )}
 
@@ -409,7 +539,8 @@ export function AdminStaffNewPage() {
                             error={errors.assignedHostel}
                             value={form.assignedHostel}
                             onChange={(v) => patch({ assignedHostel: v, assignedBlock: '', assignedFloor: '' })}
-                            options={ASSIGNED_HOSTEL_OPTIONS}
+                            options={hostelOptions}
+                            disabled={facetsLoading && hostelOptions.length <= 2}
                           />
                           <SelectField
                             id="assignedBlock"
@@ -441,11 +572,15 @@ export function AdminStaffNewPage() {
                             <SelectField id="wardenType" label="Warden Type" required error={errors.wardenType} value={form.wardenType} onChange={(v) => patch({ wardenType: v })} options={WARDEN_TYPE_OPTIONS} />
                             <FormField id="managedCapacity" label="Managed Capacity (optional)" type="number" value={form.managedCapacity} onChange={(v) => patch({ managedCapacity: v })} />
                             <div className="sm:col-span-2 rounded-xl border border-dashed border-[var(--nestora-sage-muted)] bg-muted/20 px-3 py-2">
-                              <p className="text-[10px] font-bold uppercase text-muted-foreground">Assigned students</p>
+                              <p className="text-[10px] font-bold uppercase text-muted-foreground">Students at hostel</p>
                               <p className="text-lg font-semibold tabular-nums text-[var(--nestora-forest)]">
-                                {form.assignedHostel ? assignedStudents.toLocaleString('en-IN') : '—'}
+                                {hostelStudentCount == null
+                                  ? form.assignedHostel
+                                    ? '…'
+                                    : '—'
+                                  : hostelStudentCount.toLocaleString('en-IN')}
                               </p>
-                              <p className="text-xs text-muted-foreground">Derived from hostel roster — not entered manually.</p>
+                              <p className="text-xs text-muted-foreground">Live count from student directory API.</p>
                             </div>
                           </div>
                         </div>
@@ -499,12 +634,23 @@ export function AdminStaffNewPage() {
                     hint="JPG, PNG, or PDF · Max 5 MB"
                     required
                     fileName={form.identityProofDocName}
-                    onFile={(f) => onDoc(f, 'identityProofDocName')}
+                    uploading={docUploading}
+                    storedHint={form.documentUploads.some((d) => d.kind === 'IDENTITY_PROOF') ? 'Saved to nestora-staff-documents' : undefined}
+                    onFile={(f) => void onDoc(f, 'identityProofDocName', 'IDENTITY_PROOF')}
                     className="sm:col-span-2"
                   />
                   <UploadCard label="Employee Photograph" fileName={form.employeePhotoName} onFile={(f) => onPhoto(f, 'employeePhotoName')} />
-                  <UploadCard label="Qualification Certificate" fileName={form.qualificationDocName} onFile={(f) => onDoc(f, 'qualificationDocName')} />
-                  <UploadCard label="Appointment Letter" fileName={form.appointmentDocName} onFile={(f) => onDoc(f, 'appointmentDocName')} className="sm:col-span-2" />
+                  <UploadCard
+                    label="Qualification Certificate"
+                    fileName={form.qualificationDocName}
+                    onFile={(f) => onDoc(f, 'qualificationDocName', 'QUALIFICATION')}
+                  />
+                  <UploadCard
+                    label="Appointment Letter"
+                    fileName={form.appointmentDocName}
+                    onFile={(f) => onDoc(f, 'appointmentDocName', 'APPOINTMENT')}
+                    className="sm:col-span-2"
+                  />
                 </div>
               )}
 
@@ -541,7 +687,7 @@ export function AdminStaffNewPage() {
 
           <footer data-staff-reg className="flex flex-col gap-3 rounded-2xl border border-[var(--nestora-sage-muted)]/80 bg-card px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <p className="text-xs text-muted-foreground" role="note">
-              Layout preview with illustrative values — connect Nestora APIs for production.
+              Registration submits to Nestora API · photos &amp; documents upload to Neon staff buckets before create.
             </p>
             <div className="flex flex-wrap justify-end gap-2">
               <Button nativeButton={false} variant="outline" className="rounded-xl" render={<Link href="/admin/staff" />}>
@@ -562,9 +708,14 @@ export function AdminStaffNewPage() {
                   <ArrowRight className="size-4" aria-hidden />
                 </Button>
               ) : (
-                <Button type="button" disabled={submitting} className="rounded-xl bg-[var(--nestora-forest)]" onClick={handleCreate}>
+                <Button
+                  type="button"
+                  disabled={submitting || photoUploading || docUploading}
+                  className="rounded-xl bg-[var(--nestora-forest)]"
+                  onClick={handleCreate}
+                >
                   <UserPlus className="size-4" aria-hidden />
-                  {submitting ? 'Creating…' : 'Create Employee'}
+                  {submitting ? 'Creating…' : photoUploading || docUploading ? 'Uploading…' : 'Create Employee'}
                 </Button>
               )}
             </div>
@@ -696,6 +847,9 @@ function UploadCard({
   fileName,
   onFile,
   className,
+  uploading = false,
+  previewUrl,
+  storedHint,
 }: {
   label: string;
   hint?: string;
@@ -703,22 +857,36 @@ function UploadCard({
   fileName: string;
   onFile: (file: File | undefined) => void;
   className?: string;
+  uploading?: boolean;
+  previewUrl?: string | null;
+  storedHint?: string;
 }) {
   return (
     <FieldBlock label={label} required={required} className={className}>
       <div className="rounded-xl border border-dashed border-[var(--nestora-sage-muted)] bg-card/90 p-4">
         {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
-        <label className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--nestora-sage-muted)] bg-card px-3 py-2 text-sm font-medium shadow-sm hover:bg-muted/30">
+        <label
+          className={cn(
+            'mt-2 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--nestora-sage-muted)] bg-card px-3 py-2 text-sm font-medium shadow-sm hover:bg-muted/30',
+            uploading && 'pointer-events-none opacity-60',
+          )}
+        >
           <FileUp className="size-4" aria-hidden />
-          Upload
+          {uploading ? 'Uploading…' : 'Upload'}
           <input
             type="file"
             className="sr-only"
+            disabled={uploading}
             onChange={(e) => onFile(e.target.files?.[0])}
             accept={hint?.includes('PDF') ? 'image/jpeg,image/png,application/pdf' : 'image/jpeg,image/png'}
           />
         </label>
+        {previewUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={previewUrl} alt="" className="mt-3 size-20 rounded-xl border border-[var(--nestora-sage-muted)] object-cover" />
+        ) : null}
         {fileName ? <p className="mt-2 text-xs text-muted-foreground">Selected: {fileName}</p> : null}
+        {storedHint ? <p className="mt-1 text-xs font-medium text-[var(--nestora-forest)]">{storedHint}</p> : null}
       </div>
     </FieldBlock>
   );

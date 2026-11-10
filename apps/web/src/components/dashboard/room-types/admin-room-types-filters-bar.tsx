@@ -33,6 +33,8 @@ export type AdminRoomTypesFiltersBarProps = {
   onStatusFilterChange: (v: string) => void;
   onReset: () => void;
   filteredCount: number;
+  hostelOptions?: readonly string[];
+  categoryOptions?: readonly string[];
 };
 
 function SelectField({
@@ -124,8 +126,18 @@ export function AdminRoomTypesFiltersBar(props: AdminRoomTypesFiltersBarProps) {
           </div>
         </label>
         <div className="grid gap-3 sm:grid-cols-2 lg:col-span-8 lg:grid-cols-3">
-          <SelectField label="Hostel" value={props.hostelFilter} options={ROOM_TYPE_HOSTEL_FILTERS} onChange={props.onHostelFilterChange} />
-          <SelectField label="Category" value={props.categoryFilter} options={ROOM_TYPE_CATEGORY_FILTERS} onChange={props.onCategoryFilterChange} />
+          <SelectField
+            label="Hostel"
+            value={props.hostelFilter}
+            options={props.hostelOptions ?? ROOM_TYPE_HOSTEL_FILTERS}
+            onChange={props.onHostelFilterChange}
+          />
+          <SelectField
+            label="Category"
+            value={props.categoryFilter}
+            options={props.categoryOptions ?? ROOM_TYPE_CATEGORY_FILTERS}
+            onChange={props.onCategoryFilterChange}
+          />
           <SelectField label="Capacity" value={props.capacityFilter} options={ROOM_TYPE_CAPACITY_FILTERS} onChange={props.onCapacityFilterChange} />
           <SelectField label="Pricing" value={props.priceFilter} options={ROOM_TYPE_PRICE_FILTERS} onChange={props.onPriceFilterChange} />
           <SelectField label="Status" value={props.statusFilter} options={ROOM_TYPE_STATUS_FILTERS} onChange={props.onStatusFilterChange} />

@@ -18,7 +18,6 @@ import { useRef } from 'react';
 import {
   formatJoinedDate,
   getStudentInitials,
-  STUDENT_DIRECTORY_STATS,
   type StudentRecord,
   type StudentStatus,
 } from '@/components/dashboard/students/admin-students-data';
@@ -144,11 +143,15 @@ export type AdminStudentsDirectoryProps = {
   onPagePrev: () => void;
   onPageNext: () => void;
   listKey: string;
+  totalDirectoryCount: number;
+  loading?: boolean;
 };
 
 export function AdminStudentsDirectory({
   pageRows,
   filteredCount,
+  totalDirectoryCount,
+  loading = false,
   selected,
   allPageSelected,
   onToggleAllOnPage,
@@ -232,7 +235,7 @@ export function AdminStudentsDirectory({
                 <span className="font-semibold tabular-nums text-foreground">{pageRows.length}</span> of{' '}
                 <span className="font-semibold tabular-nums text-foreground">{filteredCount}</span> filtered ·{' '}
                 <span className="font-semibold tabular-nums text-foreground">
-                  {STUDENT_DIRECTORY_STATS.total.toLocaleString('en-IN')}
+                  {totalDirectoryCount.toLocaleString('en-IN')}
                 </span>{' '}
                 total
               </p>

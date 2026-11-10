@@ -1,6 +1,7 @@
 'use client';
 
 import { useReducedMotion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 
 import { AdminBedsAddDrawer } from '@/components/dashboard/beds/admin-beds-add-drawer';
@@ -8,7 +9,7 @@ import { AdminBedsDirectory } from '@/components/dashboard/beds/admin-beds-direc
 import { AdminBedsFiltersBar } from '@/components/dashboard/beds/admin-beds-filters-bar';
 import { AdminBedsPageHeader } from '@/components/dashboard/beds/admin-beds-page-header';
 import { AdminBedsStatsStrip } from '@/components/dashboard/beds/admin-beds-stats-strip';
-import { SAMPLE_BEDS, type BedRecord } from '@/components/dashboard/beds/admin-beds-data';
+import type { BedRecord } from '@/components/dashboard/beds/admin-beds-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import {
   AlertDialog,
@@ -20,6 +21,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { useBedsDirectory } from '@/hooks/use-beds-directory';
 
 export function AdminBedsPage() {
   const reduceMotion = useReducedMotion();
@@ -36,27 +39,35 @@ export function AdminBedsPage() {
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<BedRecord | null>(null);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return SAMPLE_BEDS.filter((row) => {
-      if (hostelFilter !== 'All Hostels' && row.hostel !== hostelFilter) return false;
-      if (blockFilter !== 'All Blocks' && row.block !== blockFilter) return false;
-      if (floorFilter !== 'All Floors' && row.floor !== floorFilter) return false;
-      if (roomFilter !== 'All Rooms' && row.roomNumber !== roomFilter) return false;
-      if (statusFilter !== 'All Status' && row.status !== statusFilter) return false;
-      if (!q) return true;
-      return (
-        row.bedId.toLowerCase().includes(q) ||
-        row.roomNumber.toLowerCase().includes(q) ||
-        row.student?.name.toLowerCase().includes(q) ||
-        row.student?.studentId.toLowerCase().includes(q)
-      );
-    });
-  }, [search, hostelFilter, blockFilter, floorFilter, roomFilter, statusFilter]);
+  const filters = useMemo(
+    () => ({
+      q: search,
+      hostel: hostelFilter,
+      block: blockFilter,
+      floor: floorFilter,
+      room: roomFilter,
+      status: statusFilter,
+      page,
+      pageSize,
+    }),
+    [search, hostelFilter, blockFilter, floorFilter, roomFilter, statusFilter, page, pageSize],
+  );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const { summary, beds, total, loadingSummary, loadingList, error, refresh } = useBedsDirectory(filters);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pageRows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageRows = beds;
+
+  const facetOptions = useMemo(() => {
+    const facets = summary?.facets;
+    return {
+      hostels: ['All Hostels', ...(facets?.hostels ?? [])] as const,
+      blocks: ['All Blocks', ...(facets?.blocks ?? [])] as const,
+      floors: ['All Floors', ...(facets?.floors ?? [])] as const,
+      rooms: ['All Rooms', ...(facets?.rooms ?? [])] as const,
+    };
+  }, [summary?.facets]);
 
   const resetFilters = () => {
     setSearch('');
@@ -85,8 +96,18 @@ export function AdminBedsPage() {
 
   return (
     <div ref={rootRef} className="space-y-6 pb-6">
-      <AdminBedsPageHeader onAddBed={() => setAddOpen(true)} />
-      <AdminBedsStatsStrip />
+      {error ? (
+        <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}{' '}
+          <Button type="button" variant="link" className="h-auto p-0 text-destructive" onClick={() => refresh()}>
+            Retry
+          </Button>
+        </p>
+      ) : null}
+
+      <AdminBedsPageHeader summary={summary} loading={loadingSummary} onAddBed={() => setAddOpen(true)} />
+      <AdminBedsStatsStrip summary={summary} loading={loadingSummary} />
+
       <AdminBedsFiltersBar
         search={search}
         onSearchChange={(v) => {
@@ -119,26 +140,36 @@ export function AdminBedsPage() {
           setPage(1);
         }}
         onReset={resetFilters}
-        filteredCount={filtered.length}
+        filteredCount={total}
+        hostelOptions={facetOptions.hostels}
+        blockOptions={facetOptions.blocks}
+        floorOptions={facetOptions.floors}
+        roomOptions={facetOptions.rooms}
       />
-      <AdminBedsDirectory
-        pageRows={pageRows}
-        filteredCount={filtered.length}
-        onDelete={setDeleteTarget}
-        pageSize={pageSize}
-        onPageSizeChange={(size) => {
-          setPageSize(size);
-          setPage(1);
-        }}
-        safePage={safePage}
-        totalPages={totalPages}
-        onPagePrev={() => setPage((p) => Math.max(1, p - 1))}
-        onPageNext={() => setPage((p) => Math.min(totalPages, p + 1))}
-        listKey={`${safePage}-${pageSize}-${filtered.length}-${search}`}
-      />
-      <p className="text-center text-xs text-muted-foreground" role="note">
-        Showing illustrative bed records · Visual UI concept with sample inventory data
-      </p>
+
+      {loadingList ? (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--nestora-sage-muted)] bg-card py-16 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin text-[var(--nestora-sage)]" aria-hidden />
+          Loading beds…
+        </div>
+      ) : (
+        <AdminBedsDirectory
+          pageRows={pageRows}
+          filteredCount={total}
+          totalBeds={summary?.totalBeds ?? 0}
+          onDelete={setDeleteTarget}
+          pageSize={pageSize}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          safePage={safePage}
+          totalPages={totalPages}
+          onPagePrev={() => setPage((p) => Math.max(1, p - 1))}
+          onPageNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+          listKey={`${safePage}-${pageSize}-${total}-${search}`}
+        />
+      )}
 
       <AdminBedsAddDrawer open={addOpen} onOpenChange={setAddOpen} />
 

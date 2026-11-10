@@ -5,7 +5,7 @@ import { Download, FileSpreadsheet, Plus, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useRef } from 'react';
 
-import { STUDENT_DIRECTORY_STATS } from '@/components/dashboard/students/admin-students-data';
+import type { StudentDirectorySummary } from '@/lib/api/students';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,20 +23,30 @@ const BAR_GREEN = '#6d9773';
 const BAR_YELLOW = '#ffba00';
 const BAR_TRACK = '#e7e7dc';
 
-export function AdminStudentsPageHeader() {
+type AdminStudentsPageHeaderProps = {
+  summary: StudentDirectorySummary | null;
+  loading?: boolean;
+};
+
+export function AdminStudentsPageHeader({ summary, loading = false }: AdminStudentsPageHeaderProps) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
 
-  const { activeRate, activeWidthPct, pendingWidthPct } = useMemo(() => {
-    const total = STUDENT_DIRECTORY_STATS.total;
-    const activePct = (STUDENT_DIRECTORY_STATS.active / total) * 100;
-    const pendingPct = (STUDENT_DIRECTORY_STATS.pending / total) * 100;
+  const { activeRate, activeWidthPct, pendingWidthPct, total, active, pending } = useMemo(() => {
+    const totalCount = summary?.total ?? 0;
+    const activeCount = summary?.active ?? 0;
+    const pendingCount = summary?.pending ?? 0;
+    const activePct = totalCount > 0 ? (activeCount / totalCount) * 100 : 0;
+    const pendingPct = totalCount > 0 ? (pendingCount / totalCount) * 100 : 0;
     return {
-      activeRate: Math.round(activePct * 10) / 10,
+      activeRate: summary?.activeRatePercent ?? (totalCount > 0 ? Math.round(activePct * 10) / 10 : 0),
       activeWidthPct: activePct,
       pendingWidthPct: pendingPct,
+      total: totalCount,
+      active: activeCount,
+      pending: pendingCount,
     };
-  }, []);
+  }, [summary]);
 
   useGSAP(
     () => {
@@ -104,10 +114,13 @@ export function AdminStudentsPageHeader() {
             </h1>
             <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
               <span className="font-semibold tabular-nums text-foreground">
-                {STUDENT_DIRECTORY_STATS.total.toLocaleString('en-IN')}
+                {loading && !summary ? '—' : total.toLocaleString('en-IN')}
               </span>{' '}
               records ·{' '}
-              <span className="font-medium text-[var(--nestora-forest)]">{activeRate}%</span> active enrollment
+              <span className="font-medium text-[var(--nestora-forest)]">
+                {summary || !loading ? `${activeRate}%` : '—'}
+              </span>{' '}
+              active enrollment
             </p>
             <ul className="mt-3 flex flex-wrap gap-2" aria-label="Quick counts">
               <li
@@ -115,14 +128,14 @@ export function AdminStudentsPageHeader() {
                 className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nestora-sage-muted)] bg-[color-mix(in_oklch,var(--nestora-sage-light)_35%,var(--card))] px-2.5 py-1 text-[11px] font-semibold text-[var(--nestora-forest)]"
               >
                 <span className="size-1.5 rounded-full bg-[var(--nestora-sage)]" aria-hidden />
-                {STUDENT_DIRECTORY_STATS.active} active
+                {summary == null && loading ? '…' : active} active
               </li>
               <li
                 data-students-hero
                 className="inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_oklch,var(--nestora-gold)_35%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-gold)_12%,var(--card))] px-2.5 py-1 text-[11px] font-semibold text-[var(--nestora-forest)]"
               >
                 <span className="size-1.5 rounded-full bg-[var(--nestora-gold)]" aria-hidden />
-                {STUDENT_DIRECTORY_STATS.pending} pending
+                {summary == null && loading ? '…' : pending} pending
               </li>
             </ul>
           </div>
@@ -197,8 +210,11 @@ export function AdminStudentsPageHeader() {
           />
         </div>
         <p className="mt-2 text-[11px] text-muted-foreground">
-          <span className="font-semibold tabular-nums text-[var(--nestora-forest)]">{activeRate}%</span> active ·
-          sample directory data for UI preview
+          <span className="font-semibold tabular-nums text-[var(--nestora-forest)]">{activeRate}%</span> active · live
+          Nestora directory
+          {summary?.generatedAt ? (
+            <span className="text-muted-foreground"> · refreshes each minute</span>
+          ) : null}
         </p>
       </div>
     </header>

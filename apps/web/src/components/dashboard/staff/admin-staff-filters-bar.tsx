@@ -44,6 +44,9 @@ type AdminStaffFiltersBarProps = {
   onLocationFilterChange: (value: string) => void;
   onReset: () => void;
   filteredCount: number;
+  roleOptions?: readonly string[];
+  departmentOptions?: readonly string[];
+  locationOptions?: readonly string[];
 };
 
 function FilterField({
@@ -111,9 +114,22 @@ export function AdminStaffFiltersBar({
   onLocationFilterChange,
   onReset,
   filteredCount,
+  roleOptions,
+  departmentOptions,
+  locationOptions,
 }: AdminStaffFiltersBarProps) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
+
+  const resolvedRoleOptions = useMemo(() => roleOptions ?? ROLE_FILTER_OPTIONS, [roleOptions]);
+  const resolvedDepartmentOptions = useMemo(
+    () => departmentOptions ?? DEPARTMENT_FILTER_OPTIONS,
+    [departmentOptions],
+  );
+  const resolvedLocationOptions = useMemo(
+    () => locationOptions ?? HOSTEL_STAFF_FILTER_OPTIONS,
+    [locationOptions],
+  );
 
   const activeChips = useMemo(() => {
     const chips: { key: string; label: string; clear: () => void }[] = [];
@@ -269,7 +285,7 @@ export function AdminStaffFiltersBar({
               label="Role"
               icon={<BadgeCheck className="size-3" aria-hidden />}
               value={roleFilter}
-              options={ROLE_FILTER_OPTIONS}
+              options={resolvedRoleOptions}
               onChange={onRoleFilterChange}
               active={roleFilter !== 'All Roles'}
             />
@@ -277,7 +293,7 @@ export function AdminStaffFiltersBar({
               label="Department"
               icon={<Layers className="size-3" aria-hidden />}
               value={departmentFilter}
-              options={DEPARTMENT_FILTER_OPTIONS}
+              options={resolvedDepartmentOptions}
               onChange={onDepartmentFilterChange}
               active={departmentFilter !== 'All Departments'}
             />
@@ -285,7 +301,7 @@ export function AdminStaffFiltersBar({
               label="Location"
               icon={<Building2 className="size-3" aria-hidden />}
               value={locationFilter}
-              options={HOSTEL_STAFF_FILTER_OPTIONS}
+              options={resolvedLocationOptions}
               onChange={onLocationFilterChange}
               active={locationFilter !== 'All Locations'}
             />

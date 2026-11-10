@@ -1,12 +1,13 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { CircleDollarSign, LayoutGrid, ShieldCheck } from 'lucide-react';
+import { CircleDollarSign, LayoutGrid, Loader2, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useRef } from 'react';
 
 import { AdminDashboardContextCard } from '@/components/dashboard/admin-dashboard-context-card';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { AdminDashboardSession } from '@/hooks/use-admin-dashboard-overview';
 import { cn } from '@/lib/utils';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
@@ -25,28 +26,59 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
-const insightPills = [
-  {
-    label: '80.6% occupancy',
-    href: '/admin/rooms',
-    icon: LayoutGrid,
-  },
-  {
-    label: '12 pending',
-    href: '/admin/students/requests',
-    icon: ShieldCheck,
-  },
-  {
-    label: '₹4.85L collected',
-    href: '/admin/fees',
-    icon: CircleDollarSign,
-  },
-] as const;
+function formatOccupancyLabel(percent: number | null, totalBeds: number): string {
+  if (totalBeds === 0) {
+    return 'No beds configured';
+  }
+  if (percent === null) {
+    return 'Occupancy —';
+  }
+  return `${percent}% occupancy`;
+}
 
-export function AdminDashboardWelcome() {
+type AdminDashboardWelcomeProps = {
+  session: AdminDashboardSession;
+};
+
+export function AdminDashboardWelcome({ session }: AdminDashboardWelcomeProps) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
   const greeting = useMemo(() => getGreeting(), []);
+  const { displayName, overview, loading, error, refresh } = session;
+
+  const pills = useMemo(() => {
+    const occupancy = overview?.occupancy;
+    const pending = overview?.pendingActivations ?? 0;
+
+    const items = [
+      {
+        id: 'occupancy',
+        label: formatOccupancyLabel(
+          occupancy?.percent ?? null,
+          occupancy?.totalOperationalBeds ?? 0,
+        ),
+        href: '/admin/rooms',
+        icon: LayoutGrid,
+      },
+      {
+        id: 'pending',
+        label: pending === 1 ? '1 pending activation' : `${pending} pending activations`,
+        href: '/admin/students/requests',
+        icon: ShieldCheck,
+      },
+    ];
+
+    if (!overview?.fees.available) {
+      items.push({
+        id: 'fees',
+        label: 'Fees — coming in MS-4',
+        href: '/admin/fees',
+        icon: CircleDollarSign,
+      });
+    }
+
+    return items;
+  }, [overview]);
 
   useGSAP(
     () => {
@@ -70,7 +102,7 @@ export function AdminDashboardWelcome() {
         clearProps: 'opacity,transform',
       });
     },
-    { scope: sectionRef, dependencies: [reduceMotion] },
+    { scope: sectionRef, dependencies: [reduceMotion, pills.length] },
   );
 
   return (
@@ -95,7 +127,7 @@ export function AdminDashboardWelcome() {
             transition={{ duration: 0.42, ease: motionEase }}
           >
             <span className="block text-muted-foreground">{greeting},</span>
-            <span className="mt-0.5 block text-[var(--nestora-forest)]">Admin</span>
+            <span className="mt-0.5 block text-[var(--nestora-forest)]">{displayName}</span>
           </motion.h2>
 
           <motion.p
@@ -105,26 +137,58 @@ export function AdminDashboardWelcome() {
             transition={{ duration: 0.42, delay: 0.06, ease: motionEase }}
           >
             Here&apos;s what&apos;s happening across your hostel today.
+            {overview?.generatedAt ? (
+              <span className="mt-1 block text-[11px] text-muted-foreground/80">
+                Metrics updated{' '}
+                {new Intl.DateTimeFormat(undefined, {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                }).format(new Date(overview.generatedAt))}
+              </span>
+            ) : null}
           </motion.p>
 
+          {error ? (
+            <div
+              role="alert"
+              className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            >
+              {error}
+              <button
+                type="button"
+                onClick={() => refresh()}
+                className="font-semibold underline underline-offset-2"
+              >
+                Retry
+              </button>
+            </div>
+          ) : null}
+
           <ul className="mt-5 flex flex-wrap gap-2">
-            {insightPills.map((pill) => {
-              const Icon = pill.icon;
-              return (
-                <li key={pill.label} data-welcome-pill>
-                  <Link
-                    href={pill.href}
-                    className={cn(
-                      'inline-flex items-center gap-2 rounded-full border border-[var(--nestora-sage-muted)] bg-card/80 px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm backdrop-blur-sm transition-colors hover:border-[color-mix(in_oklch,var(--nestora-sage)_35%,var(--border))] hover:bg-card',
-                      focusRing,
-                    )}
-                  >
-                    <Icon className="size-3.5 text-[var(--nestora-forest)]" aria-hidden />
-                    {pill.label}
-                  </Link>
-                </li>
-              );
-            })}
+            {loading && !overview ? (
+              <li className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                Loading live metrics…
+              </li>
+            ) : (
+              pills.map((pill) => {
+                const Icon = pill.icon;
+                return (
+                  <li key={pill.id} data-welcome-pill>
+                    <Link
+                      href={pill.href}
+                      className={cn(
+                        'inline-flex items-center gap-2 rounded-full border border-[var(--nestora-sage-muted)] bg-card/80 px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm backdrop-blur-sm transition-colors hover:border-[color-mix(in_oklch,var(--nestora-sage)_35%,var(--border))] hover:bg-card',
+                        focusRing,
+                      )}
+                    >
+                      <Icon className="size-3.5 text-[var(--nestora-forest)]" aria-hidden />
+                      {pill.label}
+                    </Link>
+                  </li>
+                );
+              })
+            )}
           </ul>
         </div>
 

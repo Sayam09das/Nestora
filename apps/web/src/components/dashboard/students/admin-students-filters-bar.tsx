@@ -44,6 +44,9 @@ type AdminStudentsFiltersBarProps = {
   onYearFilterChange: (value: string) => void;
   onReset: () => void;
   filteredCount: number;
+  hostelOptions?: readonly string[];
+  courseOptions?: readonly string[];
+  yearOptions?: readonly string[];
 };
 
 function FilterField({
@@ -114,9 +117,22 @@ export function AdminStudentsFiltersBar({
   onYearFilterChange,
   onReset,
   filteredCount,
+  hostelOptions,
+  courseOptions,
+  yearOptions,
 }: AdminStudentsFiltersBarProps) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
+
+  const hostelSelectOptions = useMemo(
+    () => hostelOptions ?? HOSTEL_FILTER_OPTIONS,
+    [hostelOptions],
+  );
+  const courseSelectOptions = useMemo(
+    () => courseOptions ?? COURSE_FILTER_OPTIONS,
+    [courseOptions],
+  );
+  const yearSelectOptions = useMemo(() => yearOptions ?? YEAR_FILTER_OPTIONS, [yearOptions]);
 
   const activeChips = useMemo(() => {
     const chips: { key: string; label: string; clear: () => void }[] = [];
@@ -275,7 +291,7 @@ export function AdminStudentsFiltersBar({
               label="Hostel"
               icon={<Building2 className="size-3" aria-hidden />}
               value={hostelFilter}
-              options={HOSTEL_FILTER_OPTIONS}
+              options={hostelSelectOptions}
               onChange={onHostelFilterChange}
               active={hostelFilter !== 'All Hostels'}
             />
@@ -283,7 +299,7 @@ export function AdminStudentsFiltersBar({
               label="Course"
               icon={<GraduationCap className="size-3" aria-hidden />}
               value={courseFilter}
-              options={COURSE_FILTER_OPTIONS}
+              options={courseSelectOptions}
               onChange={onCourseFilterChange}
               active={courseFilter !== 'All Courses'}
             />
@@ -291,7 +307,7 @@ export function AdminStudentsFiltersBar({
               label="Year"
               icon={<CalendarRange className="size-3" aria-hidden />}
               value={yearFilter}
-              options={YEAR_FILTER_OPTIONS}
+              options={yearSelectOptions}
               onChange={onYearFilterChange}
               active={yearFilter !== 'All Years'}
             />

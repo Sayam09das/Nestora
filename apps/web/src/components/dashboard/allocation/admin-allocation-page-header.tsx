@@ -2,19 +2,40 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { Download, LayoutGrid, Plus } from 'lucide-react';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 
-import { ALLOCATION_STATS } from '@/components/dashboard/allocation/admin-allocation-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { AllocationDirectorySummary } from '@/lib/api/allocations';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-export function AdminAllocationPageHeader({ onAllocate }: { onAllocate: () => void }) {
+type AdminAllocationPageHeaderProps = {
+  onAllocate: () => void;
+  summary: AllocationDirectorySummary | null;
+  loading?: boolean;
+};
+
+export function AdminAllocationPageHeader({
+  onAllocate,
+  summary,
+  loading = false,
+}: AdminAllocationPageHeaderProps) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
+
+  const { bedsAvailable, pendingQueue, fillPct } = useMemo(() => {
+    const beds = summary?.bedsAvailable ?? 0;
+    const total = summary?.totalBedCapacity ?? 0;
+    const share = summary?.bedsAvailableSharePct ?? (total > 0 ? (beds / total) * 100 : 0);
+    return {
+      bedsAvailable: beds,
+      pendingQueue: summary?.pendingQueue ?? 0,
+      fillPct: Math.round(share),
+    };
+  }, [summary]);
 
   useGSAP(
     () => {
@@ -39,8 +60,6 @@ export function AdminAllocationPageHeader({ onAllocate }: { onAllocate: () => vo
     },
     { scope: headerRef, dependencies: [reduceMotion] },
   );
-
-  const fillPct = Math.round((ALLOCATION_STATS.bedsAvailable / 540) * 100);
 
   return (
     <header
@@ -82,12 +101,20 @@ export function AdminAllocationPageHeader({ onAllocate }: { onAllocate: () => vo
           className="rounded-xl border border-[color-mix(in_oklch,var(--nestora-sage)_22%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-cream)_12%,var(--card))] p-4"
         >
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--nestora-sage)]">Live capacity</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums text-[var(--nestora-forest)]">{ALLOCATION_STATS.bedsAvailable}</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums text-[var(--nestora-forest)]">
+            {loading ? '—' : bedsAvailable.toLocaleString('en-IN')}
+          </p>
           <p className="text-xs text-muted-foreground">beds ready now</p>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e7e7dc]">
-            <div data-alloc-hero-bar className="h-full rounded-full bg-[#6d9773]" style={{ width: `${fillPct}%` }} />
+            <div
+              data-alloc-hero-bar
+              className="h-full rounded-full bg-[#6d9773]"
+              style={{ width: loading ? '0%' : `${fillPct}%` }}
+            />
           </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">{ALLOCATION_STATS.pendingQueue} in queue</p>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            {loading ? '—' : pendingQueue} in queue
+          </p>
         </motion.aside>
       </div>
     </header>

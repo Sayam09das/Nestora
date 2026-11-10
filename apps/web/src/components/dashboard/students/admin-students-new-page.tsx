@@ -46,6 +46,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress, ProgressIndicator, ProgressTrack } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
+import { uploadStudentDocument, uploadStudentProfilePhoto } from '@/lib/api/uploads';
+import { registerStudent } from '@/lib/api/students';
 import { cn } from '@/lib/utils';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
@@ -72,6 +74,8 @@ export function AdminStudentsNewPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [documentsUploading, setDocumentsUploading] = useState(false);
 
   const progressPct = useMemo(() => (step / REGISTRATION_STEPS.length) * 100, [step]);
 
@@ -189,19 +193,23 @@ export function AdminStudentsNewPage() {
     }
 
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 600));
+    const result = await registerStudent(form);
+    setSubmitting(false);
+    if (!result.ok) {
+      toast.error('Could not register student', { description: result.message });
+      return;
+    }
     localStorage.removeItem(DRAFT_STORAGE_KEY);
     toast.success('Student registered — invitation sent to set password', {
-      description: `${form.firstName} ${form.lastName} (${form.studentId})`,
+      description: `${form.firstName} ${form.lastName} (${form.rollNumber.trim() || form.studentId})`,
     });
-    setSubmitting(false);
-    router.push('/admin/students');
+    router.push(result.userId ? `/admin/students/${result.userId}` : '/admin/students');
   };
 
-  const onPhotoChange = (file: File | undefined) => {
+  const onPhotoChange = async (file: File | undefined) => {
     setFileError(null);
     if (!file) {
-      patch({ profilePhotoName: '' });
+      patch({ profilePhotoName: '', profilePhotoObjectKey: '', profilePhotoUrl: '' });
       return;
     }
     const err = validatePhotoFile(file);
@@ -209,25 +217,52 @@ export function AdminStudentsNewPage() {
       setFileError(err);
       return;
     }
-    patch({ profilePhotoName: file.name });
-  };
-
-  const onDocumentsChange = (files: FileList | null) => {
-    setFileError(null);
-    if (!files?.length) {
-      patch({ documentNames: [] });
+    setPhotoUploading(true);
+    const result = await uploadStudentProfilePhoto(file);
+    setPhotoUploading(false);
+    if (!result.upload) {
+      setFileError(result.error ?? 'Photo upload failed.');
       return;
     }
+    patch({
+      profilePhotoName: result.upload.fileName,
+      profilePhotoObjectKey: result.upload.objectKey,
+      profilePhotoUrl: result.upload.publicUrl,
+    });
+  };
+
+  const onDocumentsChange = async (files: FileList | null) => {
+    setFileError(null);
+    if (!files?.length) {
+      patch({ documentNames: [], documentUploads: [] });
+      return;
+    }
+    const uploads: StudentRegistrationForm['documentUploads'] = [];
     const names: string[] = [];
+    setDocumentsUploading(true);
     for (const file of Array.from(files)) {
       const err = validateDocumentFile(file);
       if (err) {
+        setDocumentsUploading(false);
         setFileError(`${file.name}: ${err}`);
         return;
       }
-      names.push(file.name);
+      const result = await uploadStudentDocument(file);
+      if (!result.upload) {
+        setDocumentsUploading(false);
+        setFileError(result.error ?? `Could not upload ${file.name}.`);
+        return;
+      }
+      uploads.push({
+        objectKey: result.upload.objectKey,
+        fileName: result.upload.fileName,
+        mimeType: result.upload.mimeType,
+        fileSize: result.upload.sizeBytes,
+      });
+      names.push(result.upload.fileName);
     }
-    patch({ documentNames: names });
+    setDocumentsUploading(false);
+    patch({ documentNames: names, documentUploads: uploads });
   };
 
   const errorEntries = Object.entries(errors);
@@ -375,16 +410,27 @@ export function AdminStudentsNewPage() {
                       <p className="text-sm font-medium text-foreground">Upload JPG or PNG, max 2 MB</p>
                       <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--nestora-sage-muted)] bg-card px-3 py-2 text-sm font-medium shadow-sm hover:bg-muted/30">
                         <FileUp className="size-4" aria-hidden />
-                        Upload Photo
+                        {photoUploading ? 'Uploading…' : 'Upload Photo'}
                         <input
                           type="file"
                           accept="image/jpeg,image/png"
                           className="sr-only"
-                          onChange={(e) => onPhotoChange(e.target.files?.[0])}
+                          disabled={photoUploading}
+                          onChange={(e) => void onPhotoChange(e.target.files?.[0])}
                         />
                       </label>
+                      {form.profilePhotoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={form.profilePhotoUrl}
+                          alt="Profile preview"
+                          className="mt-3 size-20 rounded-xl border border-[var(--nestora-sage-muted)] object-cover"
+                        />
+                      ) : null}
                       {form.profilePhotoName ? (
-                        <p className="mt-2 text-xs text-muted-foreground">Selected: {form.profilePhotoName}</p>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Stored in Neon bucket ({form.profilePhotoName})
+                        </p>
                       ) : null}
                     </motion.div>
                   </FieldBlock>
@@ -504,19 +550,20 @@ export function AdminStudentsNewPage() {
                       <p className="text-xs text-muted-foreground">Photo ID, admission proof, and other supporting documents (JPG, PNG, PDF — 5 MB each)</p>
                       <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--nestora-sage-muted)] bg-card px-3 py-2 text-sm font-medium shadow-sm hover:bg-muted/30">
                         <BookUser className="size-4" aria-hidden />
-                        Choose Files
+                        {documentsUploading ? 'Uploading…' : 'Choose Files'}
                         <input
                           type="file"
                           multiple
                           accept="image/jpeg,image/png,application/pdf"
                           className="sr-only"
-                          onChange={(e) => onDocumentsChange(e.target.files)}
+                          disabled={documentsUploading}
+                          onChange={(e) => void onDocumentsChange(e.target.files)}
                         />
                       </label>
                       {form.documentNames.length > 0 ? (
                         <ul className="mt-2 list-inside list-disc text-xs text-muted-foreground">
                           {form.documentNames.map((name) => (
-                            <li key={name}>{name}</li>
+                            <li key={name}>{name} (Neon private bucket)</li>
                           ))}
                         </ul>
                       ) : null}
