@@ -48,13 +48,28 @@ export const envSchema = z
       .min(1)
       .default('Nestora University System <no-reply@nestora.university.edu>'),
 
-    STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
+    /** `local` = disk; `neon` = Neon Object Storage (from `neon deploy`); `s3` = other S3-compatible host. */
+    STORAGE_DRIVER: z.enum(['local', 'neon', 's3']).default('local'),
     UPLOAD_LOCAL_PATH: z.string().min(1).default('./uploads'),
+    /** Legacy / general attachments (complaints, notices). */
     S3_BUCKET_NAME: z.string().default(''),
+    /** Public bucket — student profile photos (world-readable). */
+    S3_BUCKET_PUBLIC: z.string().default('nestora-student-profiles'),
+    /** Private bucket — student registration / KYC documents. */
+    S3_BUCKET_PRIVATE: z.string().default('nestora-student-documents'),
+    /** Public bucket — staff / warden profile photos. */
+    S3_BUCKET_STAFF_PUBLIC: z.string().default('nestora-staff-profiles'),
+    /** Private bucket — staff / warden HR documents. */
+    S3_BUCKET_STAFF_PRIVATE: z.string().default('nestora-staff-documents'),
     S3_REGION: z.string().default(''),
     S3_ACCESS_KEY_ID: z.string().default(''),
     S3_SECRET_ACCESS_KEY: z.string().default(''),
+    /**
+     * Injected by Neon CLI (`neon deploy` / `neon env pull`). Standard S3 API names — not an Amazon AWS account.
+     */
+    AWS_ENDPOINT_URL_S3: z.string().url().optional(),
     MAX_UPLOAD_SIZE_BYTES: z.coerce.number().int().positive().default(5_242_880),
+    STUDENT_PHOTO_MAX_BYTES: z.coerce.number().int().positive().default(2_097_152),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === 'production') {
@@ -82,12 +97,19 @@ export const envSchema = z
         });
       }
 
-      if (data.STORAGE_DRIVER === 's3') {
-        if (!data.S3_BUCKET_NAME) {
+      if (data.STORAGE_DRIVER === 'neon' || data.STORAGE_DRIVER === 's3') {
+        if (!data.S3_BUCKET_PUBLIC) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ['S3_BUCKET_NAME'],
-            message: 'S3_BUCKET_NAME is required when STORAGE_DRIVER is s3.',
+            path: ['S3_BUCKET_PUBLIC'],
+            message: 'S3_BUCKET_PUBLIC is required when STORAGE_DRIVER is s3.',
+          });
+        }
+        if (!data.S3_BUCKET_PRIVATE) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['S3_BUCKET_PRIVATE'],
+            message: 'S3_BUCKET_PRIVATE is required when STORAGE_DRIVER is s3.',
           });
         }
         if (!data.S3_REGION) {
@@ -101,14 +123,21 @@ export const envSchema = z
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ['S3_ACCESS_KEY_ID'],
-            message: 'S3_ACCESS_KEY_ID is required when STORAGE_DRIVER is s3.',
+            message: 'Storage credentials are required (Neon: AWS_ACCESS_KEY_ID from neon env pull).',
           });
         }
         if (!data.S3_SECRET_ACCESS_KEY) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ['S3_SECRET_ACCESS_KEY'],
-            message: 'S3_SECRET_ACCESS_KEY is required when STORAGE_DRIVER is s3.',
+            message: 'Storage credentials are required (Neon: AWS_SECRET_ACCESS_KEY from neon env pull).',
+          });
+        }
+        if (data.STORAGE_DRIVER === 'neon' && !data.AWS_ENDPOINT_URL_S3) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['AWS_ENDPOINT_URL_S3'],
+            message: 'AWS_ENDPOINT_URL_S3 is required for Neon Object Storage (from neon env pull).',
           });
         }
       }

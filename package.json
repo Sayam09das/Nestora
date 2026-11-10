@@ -19,13 +19,28 @@
     "db:migrate:deploy": "pnpm --filter @nestora/database db:migrate:deploy",
     "db:seed": "pnpm --filter @nestora/database db:seed",
     "db:validate": "pnpm --filter @nestora/database db:validate",
+    "neon:storage-smoke": "node --env-file=apps/api/.env scripts/neon-object-storage-smoke.mjs",
+    "neon:list-student-buckets": "node scripts/list-student-buckets.mjs",
+    "neon:e2e-student": "node scripts/e2e-student-neon-upload.mjs",
+    "neon:verify-setup": "node scripts/verify-neon-storage-setup.mjs",
+    "neon:merge-api-env": "node scripts/merge-neon-storage-into-api-env.mjs",
+    "neon:seed-student": "pnpm --filter @nestora/api seed:neon-student",
+    "neon:seed-staff": "pnpm --filter @nestora/api seed:neon-staff",
+    "neon:seed-rooms": "pnpm --filter @nestora/api seed:neon-rooms",
     "docker:up": "docker compose -f docker/docker-compose.yml up -d",
     "docker:down": "docker compose -f docker/docker-compose.yml down",
     "docker:logs": "docker compose -f docker/docker-compose.yml logs -f"
   },
   "devDependencies": {
+    "@aws-sdk/s3-presigned-post": "^3.1164.0",
+    "@aws-sdk/s3-request-presigner": "^3.1164.0",
     "@biomejs/biome": "^2.0.6",
+    "files-sdk": "^3.1.2",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@neon/config": "^1.13.0",
+    "@neon/env": "^2.1.0"
   }
 }

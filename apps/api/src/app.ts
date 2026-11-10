@@ -8,10 +8,20 @@ import { errorResponse, successResponse } from './common/api-response.js';
 import { ERROR_CODES } from './common/constants/index.js';
 import { isAppError } from './common/errors/index.js';
 import type { Env } from './config/env.js';
+import { refreshSessionCookieIfPresent } from './modules/auth/session-cookie.js';
 import { authenticate } from './middleware/authenticate.js';
 import { enforcePasswordChangeGate } from './middleware/password-change-gate.js';
 import { auditPlugin } from './modules/audit/index.js';
 import { authPlugin } from './modules/auth/index.js';
+import { dashboardPlugin } from './modules/dashboard/index.js';
+import { staffPlugin } from './modules/staff/index.js';
+import { studentsPlugin } from './modules/students/index.js';
+import { roomsPlugin } from './modules/rooms/index.js';
+import { bedsPlugin } from './modules/beds/index.js';
+import { roomTypesPlugin } from './modules/room-types/index.js';
+import { hostelsPlugin } from './modules/hostels/index.js';
+import { allocationsPlugin } from './modules/allocations/index.js';
+import { uploadsPlugin } from './modules/uploads/index.js';
 import { infrastructurePlugin } from './modules/infrastructure/index.js';
 import { configPluginWrapped } from './plugins/config.js';
 import { cookiePluginWrapped } from './plugins/cookie.js';
@@ -112,6 +122,17 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
     enforcePasswordChangeGate(request);
   });
 
+  app.addHook('onSend', async (request, reply) => {
+    refreshSessionCookieIfPresent(
+      request.server.config,
+      request.cookies,
+      Boolean(request.sessionContext),
+      (name, value, options) => {
+        reply.setCookie(name, value, options);
+      },
+    );
+  });
+
   const apiVersion = readPackageVersion();
 
   app.setErrorHandler((error, request, reply) => {
@@ -191,6 +212,15 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
       await v1.register(authPlugin);
       await v1.register(infrastructurePlugin);
       await v1.register(auditPlugin);
+      await v1.register(dashboardPlugin);
+      await v1.register(uploadsPlugin);
+      await v1.register(staffPlugin);
+      await v1.register(studentsPlugin);
+      await v1.register(roomsPlugin);
+      await v1.register(bedsPlugin);
+      await v1.register(roomTypesPlugin);
+      await v1.register(hostelsPlugin);
+      await v1.register(allocationsPlugin);
     },
     { prefix: '/api/v1' },
   );
