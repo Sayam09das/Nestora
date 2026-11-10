@@ -235,12 +235,19 @@ export const adminNavGroups: AdminNavGroup[] = [
         ],
       },
       {
-        kind: 'link',
+        kind: 'collapsible',
         id: 'announcements',
-        href: '/admin/announcements',
         label: 'Announcements',
+        description: 'Notices & circulars',
         icon: Megaphone,
         isActive: pathStarts('/admin/announcements'),
+        children: [
+          {
+            href: '/admin/announcements',
+            label: 'Announcement studio',
+            isActive: (p) => p === '/admin/announcements' || p.startsWith('/admin/announcements/'),
+          },
+        ],
       },
     ],
   },
