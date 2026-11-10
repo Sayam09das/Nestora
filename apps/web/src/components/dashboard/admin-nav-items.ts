@@ -182,12 +182,19 @@ export const adminNavGroups: AdminNavGroup[] = [
         ],
       },
       {
-        kind: 'link',
+        kind: 'collapsible',
         id: 'attendance',
-        href: '/admin/attendance',
         label: 'Attendance',
+        description: 'Night roll call',
         icon: ClipboardCheck,
         isActive: pathStarts('/admin/attendance'),
+        children: [
+          {
+            href: '/admin/attendance',
+            label: 'Mark Attendance',
+            isActive: (p) => p === '/admin/attendance',
+          },
+        ],
       },
       {
         kind: 'link',
