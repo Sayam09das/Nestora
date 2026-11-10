@@ -292,12 +292,19 @@ export const adminNavGroups: AdminNavGroup[] = [
         ],
       },
       {
-        kind: 'link',
+        kind: 'collapsible',
         id: 'roles',
-        href: '/admin/roles',
         label: 'Roles & Permissions',
+        description: 'Access control',
         icon: Shield,
         isActive: pathStarts('/admin/roles'),
+        children: [
+          {
+            href: '/admin/roles',
+            label: 'Access architecture',
+            isActive: (p) => p === '/admin/roles' || p.startsWith('/admin/roles/'),
+          },
+        ],
       },
       {
         kind: 'link',
