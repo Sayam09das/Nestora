@@ -19,13 +19,19 @@ export type StudentDirectoryFilters = {
   pageSize: number;
 };
 
-export function useStudentDirectory(filters: StudentDirectoryFilters) {
+type UseStudentDirectoryOptions = {
+  pollIntervalMs?: number;
+};
+
+export function useStudentDirectory(filters: StudentDirectoryFilters, options?: UseStudentDirectoryOptions) {
+  const pollIntervalMs = options?.pollIntervalMs ?? 60_000;
   const [summary, setSummary] = useState<StudentDirectorySummary | null>(null);
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [loadingList, setLoadingList] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
   const loadSummary = useCallback(async () => {
     const result = await fetchStudentDirectorySummary();
@@ -37,8 +43,10 @@ export function useStudentDirectory(filters: StudentDirectoryFilters) {
     setLoadingSummary(false);
   }, []);
 
-  const loadList = useCallback(async () => {
-    setLoadingList(true);
+  const loadList = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) {
+      setLoadingList(true);
+    }
     setError(null);
     const status =
       filters.status !== 'All Status' ? (filters.status as StudentStatus) : undefined;
@@ -54,25 +62,32 @@ export function useStudentDirectory(filters: StudentDirectoryFilters) {
     if (result.students) {
       setStudents(result.students);
       setTotal(result.total ?? result.students.length);
+      setLastSyncedAt(new Date().toISOString());
     } else if (result.error) {
       setError(result.error);
       setStudents([]);
       setTotal(0);
     }
-    setLoadingList(false);
+    if (!opts?.silent) {
+      setLoadingList(false);
+    }
   }, [filters]);
 
   useEffect(() => {
     void loadSummary();
     const interval = setInterval(() => {
       void loadSummary();
-    }, 60_000);
+    }, pollIntervalMs);
     return () => clearInterval(interval);
-  }, [loadSummary]);
+  }, [loadSummary, pollIntervalMs]);
 
   useEffect(() => {
     void loadList();
-  }, [loadList]);
+    const interval = setInterval(() => {
+      void loadList({ silent: true });
+    }, pollIntervalMs);
+    return () => clearInterval(interval);
+  }, [loadList, pollIntervalMs]);
 
   const refresh = useCallback(() => {
     void loadSummary();
@@ -87,5 +102,6 @@ export function useStudentDirectory(filters: StudentDirectoryFilters) {
     loadingList,
     error,
     refresh,
+    lastSyncedAt,
   };
 }

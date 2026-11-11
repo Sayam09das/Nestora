@@ -72,6 +72,10 @@ export function useBedsDirectory(filters: BedDirectoryFilters) {
 
   useEffect(() => {
     void loadList();
+    const interval = setInterval(() => {
+      void loadList();
+    }, 60_000);
+    return () => clearInterval(interval);
   }, [loadList]);
 
   const refresh = useCallback(() => {
