@@ -4,6 +4,7 @@ import { requireAuth } from '../../middleware/authenticate.js';
 import { assertRole } from '../../middleware/authorize.js';
 import { getAdminDashboardOverview } from './dashboard.service.js';
 import { getOperationalDashboardOverview } from './operational-dashboard.service.js';
+import { getStudentDashboardOverview } from './student-dashboard.service.js';
 
 export async function getAdminDashboardOverviewHandler(
   request: FastifyRequest,
@@ -44,4 +45,15 @@ export async function getStaffDashboardOverviewHandler(
     'HOSTEL_STAFF',
   );
   reply.send(successResponse({ overview }, 'Staff dashboard overview.'));
+}
+
+export async function getStudentDashboardOverviewHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'STUDENT');
+
+  const overview = await getStudentDashboardOverview(request.server.prisma, user.id);
+  reply.send(successResponse({ overview }, 'Student dashboard overview.'));
 }
