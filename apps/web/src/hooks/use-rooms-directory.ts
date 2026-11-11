@@ -21,7 +21,10 @@ export type RoomDirectoryFilters = {
   pageSize: number;
 };
 
-export function useRoomsDirectory(filters: RoomDirectoryFilters) {
+type UseRoomsDirectoryOptions = { pollIntervalMs?: number };
+
+export function useRoomsDirectory(filters: RoomDirectoryFilters, options?: UseRoomsDirectoryOptions) {
+  const pollIntervalMs = options?.pollIntervalMs ?? 60_000;
   const [summary, setSummary] = useState<RoomDirectorySummary | null>(null);
   const [rooms, setRooms] = useState<RoomRecord[]>([]);
   const [total, setTotal] = useState(0);
@@ -39,8 +42,10 @@ export function useRoomsDirectory(filters: RoomDirectoryFilters) {
     setLoadingSummary(false);
   }, []);
 
-  const loadList = useCallback(async () => {
-    setLoadingList(true);
+  const loadList = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) {
+      setLoadingList(true);
+    }
     setError(null);
     const result = await fetchRoomDirectoryList({
       page: filters.page,
@@ -61,20 +66,26 @@ export function useRoomsDirectory(filters: RoomDirectoryFilters) {
       setRooms([]);
       setTotal(0);
     }
-    setLoadingList(false);
+    if (!opts?.silent) {
+      setLoadingList(false);
+    }
   }, [filters]);
 
   useEffect(() => {
     void loadSummary();
     const interval = setInterval(() => {
       void loadSummary();
-    }, 60_000);
+    }, pollIntervalMs);
     return () => clearInterval(interval);
-  }, [loadSummary]);
+  }, [loadSummary, pollIntervalMs]);
 
   useEffect(() => {
     void loadList();
-  }, [loadList]);
+    const interval = setInterval(() => {
+      void loadList({ silent: true });
+    }, pollIntervalMs);
+    return () => clearInterval(interval);
+  }, [loadList, pollIntervalMs]);
 
   const refresh = useCallback(() => {
     void loadSummary();

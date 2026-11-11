@@ -10,7 +10,7 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { OperationalDashboardSession } from '@/hooks/use-operational-dashboard-overview';
 import type { OperationalRole } from '@/hooks/use-operational-dashboard-overview';
@@ -34,7 +34,13 @@ type OperationalDashboardHomeProps = {
 export function OperationalDashboardHome({ role, session }: OperationalDashboardHomeProps) {
   const reduceMotion = useReducedMotion();
   const { displayName, overview, loading, error, refresh } = session;
-  const greeting = useMemo(() => getGreeting(), []);
+  const [greeting, setGreeting] = useState(() => getGreeting());
+
+  useEffect(() => {
+    setGreeting(getGreeting());
+    const id = setInterval(() => setGreeting(getGreeting()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const roleLabel = role === 'HOSTEL_WARDEN' ? 'Hostel Warden' : 'Hostel Staff';
   const scopeLabel =
@@ -162,8 +168,19 @@ export function OperationalDashboardHome({ role, session }: OperationalDashboard
         </p>
       ) : (
         <p className="text-xs text-muted-foreground" role="note">
-          Counts are scoped to your assigned hostel(s) and refresh every minute. Workflow pages (leave, complaints,
-          attendance) will link from here in the next milestone.
+          Counts are scoped to your assigned hostel(s) and refresh every minute.
+          {overview?.generatedAt ? (
+            <>
+              {' '}
+              Metrics synced{' '}
+              {new Date(overview.generatedAt).toLocaleTimeString(undefined, {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+              .
+            </>
+          ) : null}{' '}
+          Workflow pages (tickets, duties, residents) open from the sidebar.
         </p>
       )}
     </div>
