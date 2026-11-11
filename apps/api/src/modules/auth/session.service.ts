@@ -79,9 +79,13 @@ export async function validateAndLoadSession(
     return null;
   }
 
+  const absoluteExpiry = sessionAbsoluteExpiry(env);
   await prisma.session.update({
     where: { id: session.id },
-    data: { lastActivityAt: now },
+    data: {
+      lastActivityAt: now,
+      expiresAt: absoluteExpiry,
+    },
   });
 
   const requiresMfa = Boolean(session.user.mfaEnabled) && session.mfaVerifiedAt === null;

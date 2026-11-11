@@ -84,7 +84,7 @@ export function createRootMetadata(): Metadata {
     icons: {
       icon: [{ url: brandAssets.icon, type: 'image/png' }],
       shortcut: [brandAssets.icon],
-      apple: [{ url: brandAssets.icon, type: 'image/png' }],
+      apple: [{ url: '/apple-icon.png', type: 'image/png' }],
     },
   };
 }

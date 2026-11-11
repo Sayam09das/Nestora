@@ -27,6 +27,7 @@ import { isAppError } from '../../common/errors/index.js';
 import type { Env } from '../../config/env.js';
 import { getSessionCookieName, requireAuth } from '../../middleware/authenticate.js';
 import { sessionCookieName } from './auth.constants.js';
+import { sessionCookieOptions } from './session-cookie.js';
 import { AuthFlowError } from './auth.errors.js';
 import * as authService from './auth.service.js';
 import { issueCsrfToken } from './csrf.service.js';
@@ -35,17 +36,6 @@ import {
   requireSessionContext,
   sessionContextToUser,
 } from './session.service.js';
-
-function sessionCookieOptions(env: Env) {
-  const isProd = env.NODE_ENV === 'production';
-  return {
-    path: '/' as const,
-    httpOnly: true,
-    secure: isProd,
-    sameSite: 'lax' as const,
-    maxAge: env.SESSION_TTL_HOURS * 3600,
-  };
-}
 
 export async function getCsrfToken(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const env = request.server.config;
@@ -165,6 +155,7 @@ export async function postLogin(request: FastifyRequest, reply: FastifyReply): P
           user: {
             email: result.user.email,
             role: result.user.role,
+            mustChangePassword: result.user.mustChangePassword,
             dashboardPath: dashboardPathForRole(result.user.role),
           },
         },
@@ -187,6 +178,7 @@ export async function postLogin(request: FastifyRequest, reply: FastifyReply): P
           lastName: result.user.lastName,
           isVerified: result.user.isVerified,
           mfaEnabled: result.user.mfaEnabled,
+          mustChangePassword: result.user.mustChangePassword,
           dashboardPath: dashboardPathForRole(result.user.role),
         },
       },
@@ -233,6 +225,7 @@ export async function getMe(request: FastifyRequest, reply: FastifyReply): Promi
           lastName: user.lastName,
           isVerified: user.isVerified,
           mfaEnabled: user.mfaEnabled,
+          mustChangePassword: user.mustChangePassword,
           assignedHostelIds: user.assignedHostelIds,
           dashboardPath: dashboardPathForRole(user.role),
         },
