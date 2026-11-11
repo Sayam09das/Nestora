@@ -35,7 +35,7 @@ export function useRoleAuthSession(): RoleAuthContextValue {
 
 type RoleAuthSessionProviderProps = {
   children: ReactNode;
-  allowedRoles: Array<'HOSTEL_WARDEN' | 'HOSTEL_STAFF'>;
+  allowedRoles: Array<'HOSTEL_WARDEN' | 'HOSTEL_STAFF' | 'STUDENT'>;
   homePath: string;
 };
 
@@ -49,7 +49,7 @@ export function RoleAuthSessionProvider({ children, allowedRoles, homePath }: Ro
   const applyProbe = useCallback(
     (next: { user: AuthUserPayload | null; unauthorized: boolean }) => {
       if (next.user) {
-        if (!allowedRoles.includes(next.user.role as 'HOSTEL_WARDEN' | 'HOSTEL_STAFF')) {
+        if (!allowedRoles.includes(next.user.role as 'HOSTEL_WARDEN' | 'HOSTEL_STAFF' | 'STUDENT')) {
           router.replace(dashboardPathForRole(next.user.role));
           return false;
         }

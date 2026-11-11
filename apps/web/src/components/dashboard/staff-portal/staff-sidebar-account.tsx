@@ -2,39 +2,19 @@
 
 import { LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 
 import { useStaffShell } from '@/components/dashboard/staff-portal/staff-shell-provider';
 import { Button } from '@/components/ui/button';
-import { fetchCurrentUser, logout } from '@/lib/api/auth';
+import { logout } from '@/lib/api/auth';
 import { cn } from '@/lib/utils';
 
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/35';
 
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0]?.[0] ?? ''}${parts[parts.length - 1]?.[0] ?? ''}`.toUpperCase();
-  }
-  return name.slice(0, 2).toUpperCase() || 'ST';
-}
-
 export function StaffSidebarAccount() {
   const router = useRouter();
-  const { sidebarCollapsed } = useStaffShell();
-  const [displayName, setDisplayName] = useState('Hostel Staff');
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchCurrentUser().then(({ user }) => {
-      if (cancelled || !user) return;
-      setDisplayName(`${user.firstName} ${user.lastName}`.trim() || 'Staff');
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { sidebarCollapsed, displayName, initials, roleLabel } = useStaffShell();
 
   const onLogout = useCallback(async () => {
     await logout();
@@ -52,12 +32,12 @@ export function StaffSidebarAccount() {
         className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/15 text-xs font-bold text-white"
         aria-hidden
       >
-        {getInitials(displayName)}
+        {initials}
       </span>
       {!sidebarCollapsed ? (
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-white">{displayName}</p>
-          <p className="truncate text-[10px] text-white/50">Hostel Staff</p>
+          <p className="truncate text-[10px] text-white/50">{roleLabel}</p>
         </div>
       ) : null}
       <Button
