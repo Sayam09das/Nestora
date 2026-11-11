@@ -3,6 +3,7 @@ import { requireRoles } from '../../middleware/authorize.js';
 import {
   getAdminDashboardOverviewHandler,
   getStaffDashboardOverviewHandler,
+  getStudentDashboardOverviewHandler,
   getWardenDashboardOverviewHandler,
 } from './dashboard.controller.js';
 
@@ -27,5 +28,12 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
       preHandler: [requireRoles('HOSTEL_STAFF')],
     },
     getStaffDashboardOverviewHandler,
+  );
+  app.get(
+    '/student/overview',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentDashboardOverviewHandler,
   );
 };
