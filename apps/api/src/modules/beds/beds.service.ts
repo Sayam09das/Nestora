@@ -2,6 +2,7 @@ import type { BedStatus, Prisma, PrismaClient } from '@nestora/database';
 import type { BedDirectoryListQuery } from '@nestora/validators';
 import { DEFAULT_PAGE, DEFAULT_PAGE_LIMIT } from '../../common/constants/limits.js';
 import { buildPaginationMeta, normalizePagination } from '../../common/helpers/index.js';
+import { prismaHostelNamesOnBed } from '../../common/helpers/warden-hostel-scope.js';
 import { formatFloorLabel } from '../rooms/rooms.service.js';
 
 export type BedUiStatus = 'Available' | 'Occupied' | 'Reserved' | 'Maintenance';
@@ -165,6 +166,134 @@ async function floorIdsForLabel(prisma: PrismaClient, label: string): Promise<st
   return floors.filter((f) => formatFloorLabel(f) === label).map((f) => f.id);
 }
 
+export async function getBedDirectorySummaryForHostels(
+  prisma: PrismaClient,
+  scopeHostelNames: string[],
+): Promise<BedDirectorySummary> {
+  if (scopeHostelNames.length === 0) {
+    return {
+      generatedAt: new Date().toISOString(),
+      totalBeds: 0,
+      occupied: 0,
+      available: 0,
+      reserved: 0,
+      maintenance: 0,
+      occupiedRatePercent: null,
+      byHostel: [],
+      facets: { hostels: [], blocks: [], floors: [], rooms: [] },
+    };
+  }
+
+  const bedScope = prismaHostelNamesOnBed(scopeHostelNames);
+
+  const [grouped, hostels, facetRows] = await Promise.all([
+    prisma.bed.groupBy({
+      by: ['status'],
+      where: bedScope,
+      _count: { _all: true },
+    }),
+    prisma.hostel.findMany({
+      where: { isActive: true, name: { in: scopeHostelNames, mode: 'insensitive' } },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
+    prisma.bed.findMany({
+      where: bedScope,
+      select: {
+        status: true,
+        room: {
+          select: {
+            roomNumber: true,
+            floor: {
+              select: {
+                floorNumber: true,
+                name: true,
+                block: {
+                  select: {
+                    name: true,
+                    building: { select: { hostel: { select: { name: true } } } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    }),
+  ]);
+
+  const counts = {
+    totalBeds: 0,
+    occupied: 0,
+    available: 0,
+    reserved: 0,
+    maintenance: 0,
+  };
+
+  for (const row of grouped) {
+    const n = row._count._all;
+    counts.totalBeds += n;
+    switch (row.status) {
+      case 'OCCUPIED':
+        counts.occupied += n;
+        break;
+      case 'AVAILABLE':
+        counts.available += n;
+        break;
+      case 'RESERVED':
+        counts.reserved += n;
+        break;
+      case 'MAINTENANCE':
+        counts.maintenance += n;
+        break;
+      default:
+        break;
+    }
+  }
+
+  const byHostel = await Promise.all(
+    hostels.map(async (hostel) => {
+      const base: Prisma.BedWhereInput = {
+        room: { floor: { block: { building: { hostelId: hostel.id } } } },
+      };
+      const [total, available, occupied] = await Promise.all([
+        prisma.bed.count({ where: base }),
+        prisma.bed.count({ where: { ...base, status: 'AVAILABLE' } }),
+        prisma.bed.count({ where: { ...base, status: 'OCCUPIED' } }),
+      ]);
+      return { hostel: hostel.name, total, available, occupied };
+    }),
+  );
+
+  const hostelNames = new Set<string>();
+  const blocks = new Set<string>();
+  const floors = new Set<string>();
+  const rooms = new Set<string>();
+
+  for (const row of facetRows) {
+    hostelNames.add(row.room.floor.block.building.hostel.name);
+    blocks.add(row.room.floor.block.name);
+    floors.add(formatFloorLabel(row.room.floor));
+    rooms.add(row.room.roomNumber);
+  }
+
+  const occupiedRatePercent =
+    counts.totalBeds > 0 ? Math.round((counts.occupied / counts.totalBeds) * 1000) / 10 : null;
+
+  return {
+    generatedAt: new Date().toISOString(),
+    ...counts,
+    occupiedRatePercent,
+    byHostel: byHostel.filter((h) => h.total > 0),
+    facets: {
+      hostels: [...scopeHostelNames].sort(),
+      blocks: [...blocks].sort(),
+      floors: [...floors].sort((a, b) => a.localeCompare(b, 'en', { numeric: true })),
+      rooms: [...rooms].sort((a, b) => a.localeCompare(b, 'en', { numeric: true })),
+    },
+  };
+}
+
 export async function getBedDirectorySummary(prisma: PrismaClient): Promise<BedDirectorySummary> {
   const [grouped, hostels, facetRows] = await Promise.all([
     prisma.bed.groupBy({
@@ -272,9 +401,13 @@ export async function getBedDirectorySummary(prisma: PrismaClient): Promise<BedD
   };
 }
 
+export type BedDirectoryListOptions = BedDirectoryListQuery & {
+  scopeHostelNames?: string[];
+};
+
 export async function listBedDirectory(
   prisma: PrismaClient,
-  query: BedDirectoryListQuery,
+  query: BedDirectoryListOptions,
 ): Promise<{
   beds: BedDirectoryRow[];
   pagination: ReturnType<typeof buildPaginationMeta>;
@@ -369,6 +502,10 @@ export async function listBedDirectory(
 
   if (query.status) {
     and.push({ status: mapUiStatusToDb(query.status) });
+  }
+
+  if (query.scopeHostelNames && query.scopeHostelNames.length > 0) {
+    and.push(prismaHostelNamesOnBed(query.scopeHostelNames));
   }
 
   const where: Prisma.BedWhereInput = and.length ? { AND: and } : {};

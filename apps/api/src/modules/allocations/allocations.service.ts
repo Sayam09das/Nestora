@@ -2,6 +2,7 @@ import type { GenderCategory, Prisma, PrismaClient } from '@nestora/database';
 import type { AllocationDirectoryListQuery } from '@nestora/validators';
 import { DEFAULT_PAGE, DEFAULT_PAGE_LIMIT } from '../../common/constants/limits.js';
 import { buildPaginationMeta, normalizePagination } from '../../common/helpers/index.js';
+import { hostelNameInScope, prismaHostelNamesOnBed } from '../../common/helpers/warden-hostel-scope.js';
 
 const ADMISSION_FULLY_APPROVED = 'FULLY_APPROVED';
 const CHANGE_PENDING = 'PENDING';
@@ -330,7 +331,7 @@ async function loadAllRows(prisma: PrismaClient): Promise<AllocationDirectoryRow
 
 function applyFilters(
   rows: AllocationDirectoryRow[],
-  query: AllocationDirectoryListQuery,
+  query: AllocationDirectoryListQuery & { scopeHostelNames?: string[] },
 ): AllocationDirectoryRow[] {
   let filtered = rows;
 
@@ -360,7 +361,74 @@ function applyFilters(
     });
   }
 
+  if (query.scopeHostelNames && query.scopeHostelNames.length > 0) {
+    filtered = filtered.filter((r) => {
+      const hostel = r.hostel ?? r.preferenceHostel;
+      return hostel ? hostelNameInScope(hostel, query.scopeHostelNames!) : false;
+    });
+  }
+
   return filtered;
+}
+
+export async function getAllocationDirectorySummaryForHostels(
+  prisma: PrismaClient,
+  scopeHostelNames: string[],
+): Promise<AllocationDirectorySummary> {
+  if (scopeHostelNames.length === 0) {
+    return {
+      generatedAt: new Date().toISOString(),
+      pendingQueue: 0,
+      allocatedToday: 0,
+      roomChangePending: 0,
+      eligibleUnallocated: 0,
+      bedsAvailable: 0,
+      totalBedCapacity: 0,
+      bedsAvailableSharePct: null,
+      queueByHostel: [],
+      facets: { hostels: [] },
+    };
+  }
+
+  const bedScope = prismaHostelNamesOnBed(scopeHostelNames);
+  const rows = (await loadAllRows(prisma)).filter((r) => {
+    const hostel = r.hostel ?? r.preferenceHostel;
+    return hostel ? hostelNameInScope(hostel, scopeHostelNames) : false;
+  });
+
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const pendingQueue = rows.filter((r) => r.status === 'Pending' || r.status === 'Change Requested').length;
+  const allocatedToday = rows.filter(
+    (r) => r.status === 'Allocated' && new Date(r.allocatedAt ?? r.submittedAt).getTime() >= dayAgo.getTime(),
+  ).length;
+  const roomChangePending = rows.filter((r) => r.type === 'Room Change' && r.status === 'Change Requested').length;
+
+  const [bedsAvailable, totalBedCapacity] = await Promise.all([
+    prisma.bed.count({ where: { AND: [bedScope, { status: 'AVAILABLE' }] } }),
+    prisma.bed.count({ where: bedScope }),
+  ]);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    pendingQueue,
+    allocatedToday,
+    roomChangePending,
+    eligibleUnallocated: rows.filter((r) => r.status === 'Pending').length,
+    bedsAvailable,
+    totalBedCapacity,
+    bedsAvailableSharePct:
+      totalBedCapacity > 0 ? Math.round((bedsAvailable / totalBedCapacity) * 1000) / 10 : null,
+    queueByHostel: scopeHostelNames.map((hostel) => ({
+      hostel,
+      pending: rows.filter(
+        (r) =>
+          (r.status === 'Pending' || r.status === 'Change Requested') &&
+          hostelNameInScope(r.preferenceHostel, [hostel]),
+      ).length,
+      availableBeds: 0,
+    })),
+    facets: { hostels: [...scopeHostelNames].sort() },
+  };
 }
 
 export async function getAllocationDirectorySummary(
@@ -453,9 +521,13 @@ export async function listAllocationQueue(prisma: PrismaClient): Promise<Allocat
   return rows.filter((r) => r.status === 'Pending' || r.status === 'Change Requested');
 }
 
+export type AllocationDirectoryListOptions = AllocationDirectoryListQuery & {
+  scopeHostelNames?: string[];
+};
+
 export async function listAllocationDirectory(
   prisma: PrismaClient,
-  query: AllocationDirectoryListQuery,
+  query: AllocationDirectoryListOptions,
 ): Promise<{
   allocations: AllocationDirectoryRow[];
   pagination: ReturnType<typeof buildPaginationMeta>;
