@@ -112,6 +112,37 @@ const allocationInclude = {
   },
 };
 
+function studentAllocatedToHostelsWhere(hostelNames: string[]): Prisma.StudentWhereInput {
+  if (hostelNames.length === 0) {
+    return { id: { equals: '00000000-0000-0000-0000-000000000000' } };
+  }
+  const hostelNameFilter =
+    hostelNames.length === 1
+      ? { equals: hostelNames[0], mode: 'insensitive' as const }
+      : { in: hostelNames, mode: 'insensitive' as const };
+
+  return {
+    allocationRecords: {
+      some: {
+        status: 'ACTIVE',
+        bed: {
+          room: {
+            floor: {
+              block: {
+                building: {
+                  hostel: {
+                    name: hostelNameFilter,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
 function rowFromUser(
   u: Prisma.UserGetPayload<{
     include: {
@@ -140,6 +171,77 @@ function rowFromUser(
     room: roomNumber ?? '—',
     status: mapDirectoryStatus(u.status, u.isVerified),
     joinedDate: u.createdAt.toISOString().slice(0, 10),
+  };
+}
+
+export async function getStudentDirectorySummaryForHostels(
+  prisma: PrismaClient,
+  scopeHostelNames: string[],
+): Promise<StudentDirectorySummary> {
+  if (scopeHostelNames.length === 0) {
+    return {
+      generatedAt: new Date().toISOString(),
+      total: 0,
+      active: 0,
+      pending: 0,
+      inactive: 0,
+      activeRatePercent: null,
+      createdThisMonth: 0,
+      facets: {
+        hostels: [],
+        courses: [],
+        academicYears: [],
+      },
+    };
+  }
+
+  const base: Prisma.UserWhereInput = {
+    ...studentUserWhere(),
+    student: { is: studentAllocatedToHostelsWhere(scopeHostelNames) },
+  };
+  const monthStart = startOfUtcMonth(new Date());
+
+  const [total, active, pending, inactive, createdThisMonth, courseRows, yearRows] =
+    await Promise.all([
+      prisma.user.count({ where: base }),
+      prisma.user.count({ where: { ...base, status: 'ACTIVE' } }),
+      prisma.user.count({ where: { ...base, status: 'INACTIVE', isVerified: false } }),
+      prisma.user.count({
+        where: {
+          ...base,
+          OR: [{ status: 'SUSPENDED' }, { status: 'INACTIVE', isVerified: true }],
+        },
+      }),
+      prisma.user.count({ where: { ...base, createdAt: { gte: monthStart } } }),
+      prisma.student.findMany({
+        where: studentAllocatedToHostelsWhere(scopeHostelNames),
+        select: { course: true },
+        distinct: ['course'],
+        orderBy: { course: 'asc' },
+      }),
+      prisma.student.findMany({
+        where: studentAllocatedToHostelsWhere(scopeHostelNames),
+        select: { academicYear: true },
+        distinct: ['academicYear'],
+        orderBy: { academicYear: 'desc' },
+      }),
+    ]);
+
+  const activeRatePercent = total > 0 ? Math.round((active / total) * 1000) / 10 : null;
+
+  return {
+    generatedAt: new Date().toISOString(),
+    total,
+    active,
+    pending,
+    inactive,
+    activeRatePercent,
+    createdThisMonth,
+    facets: {
+      hostels: [...scopeHostelNames].sort((a, b) => a.localeCompare(b)),
+      courses: courseRows.map((c) => c.course).filter(Boolean),
+      academicYears: yearRows.map((y) => y.academicYear).filter(Boolean),
+    },
   };
 }
 
@@ -192,9 +294,13 @@ export async function getStudentDirectorySummary(
   };
 }
 
+export type StudentDirectoryListOptions = StudentDirectoryListQuery & {
+  scopeHostelNames?: string[];
+};
+
 export async function listStudentDirectory(
   prisma: PrismaClient,
-  query: StudentDirectoryListQuery,
+  query: StudentDirectoryListOptions,
 ): Promise<{
   students: StudentDirectoryRow[];
   pagination: ReturnType<typeof buildPaginationMeta>;
@@ -257,6 +363,10 @@ export async function listStudentDirectory(
   }
   if (Object.keys(studentFilters).length > 0) {
     and.push({ student: { is: studentFilters } });
+  }
+
+  if (query.scopeHostelNames && query.scopeHostelNames.length > 0) {
+    and.push({ student: { is: studentAllocatedToHostelsWhere(query.scopeHostelNames) } });
   }
 
   const where: Prisma.UserWhereInput = {

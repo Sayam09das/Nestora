@@ -84,7 +84,7 @@ function bedHostelWhere(hostelIds: string[]): Prisma.BedWhereInput {
   };
 }
 
-async function resolveHostelScope(
+export async function resolveHostelScope(
   prisma: PrismaClient,
   userId: string,
   role: OperationalRole,

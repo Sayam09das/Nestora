@@ -16,7 +16,20 @@ function withAdminAuth() {
 
 const adminOnly = withAdminAuth();
 
+function withAdminOrWardenAuth() {
+  return {
+    preHandler: [
+      async (request: FastifyRequest) => {
+        requireAuth(request);
+      },
+      requireRoles('UNIVERSITY_ADMINISTRATOR', 'HOSTEL_WARDEN', 'HOSTEL_STAFF'),
+    ],
+  };
+}
+
+const adminOrWarden = withAdminOrWardenAuth();
+
 export const roomsRoutes: FastifyPluginAsync = async (app) => {
-  app.get('/directory/summary', adminOnly, getRoomDirectorySummary);
-  app.get('/directory', adminOnly, listRoomDirectoryHandler);
+  app.get('/directory/summary', adminOrWarden, getRoomDirectorySummary);
+  app.get('/directory', adminOrWarden, listRoomDirectoryHandler);
 };
