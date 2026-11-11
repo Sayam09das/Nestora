@@ -2,8 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMemo } from 'react';
 
-import { staffNavGroups, type StaffNavLink } from '@/components/dashboard/staff-portal/staff-nav-items';
+import {
+  filterStaffNavGroups,
+  staffNavGroups,
+  type StaffNavLink,
+} from '@/components/dashboard/staff-portal/staff-nav-items';
+import { useStaffShell } from '@/components/dashboard/staff-portal/staff-shell-provider';
 import { cn } from '@/lib/utils';
 
 const focusRing =
@@ -53,9 +59,12 @@ function StaffNavItem({ item, collapsed, onNavigate }: { item: StaffNavLink; col
 }
 
 export function StaffSidebarNav({ collapsed, onNavigate }: Props) {
+  const { navPermissions } = useStaffShell();
+  const groups = useMemo(() => filterStaffNavGroups(staffNavGroups, navPermissions), [navPermissions]);
+
   return (
     <nav className="space-y-6" aria-label="Staff portal">
-      {staffNavGroups.map((group) => (
+      {groups.map((group) => (
         <div key={group.id}>
           {!collapsed ? (
             <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">{group.label}</p>

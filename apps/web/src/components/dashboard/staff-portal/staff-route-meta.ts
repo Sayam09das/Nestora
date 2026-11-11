@@ -5,15 +5,27 @@ export type StaffRouteMeta = { title: string; breadcrumbs: StaffBreadcrumb[] };
 const dashboardCrumb: StaffBreadcrumb = { label: 'Dashboard', href: '/staff' };
 
 const SEGMENT_LABELS: Record<string, string> = {
+  tasks: 'My Assigned Tasks',
+  schedule: 'My Schedule',
+  attendance: 'Attendance & Shifts',
+  visitors: 'Visitor & Security Log',
+  maintenance: 'Maintenance Tasks',
+  housekeeping: 'Housekeeping Tasks',
+  mess: 'Mess Operations',
+  inventory: 'Inventory & Supplies',
+  announcements: 'Announcements',
+  messages: 'Messages',
+  report: 'Report an Issue',
+  profile: 'My Profile',
+  settings: 'Settings',
   tickets: 'My tickets',
   duties: 'Duties & shifts',
   residents: 'Residents',
-  tasks: 'Task log',
 };
 
 export function getStaffRouteMeta(pathname: string): StaffRouteMeta {
   if (pathname === '/staff' || !pathname.startsWith('/staff')) {
-    return { title: 'Dashboard', breadcrumbs: [dashboardCrumb] };
+    return { title: 'Overview', breadcrumbs: [dashboardCrumb, { label: 'Overview', href: '/staff' }] };
   }
 
   const segments = pathname.replace(/^\/staff\/?/, '').split('/').filter(Boolean);
@@ -26,6 +38,6 @@ export function getStaffRouteMeta(pathname: string): StaffRouteMeta {
     crumbs.push({ label, href: acc });
   }
 
-  const title = crumbs[crumbs.length - 1]?.label ?? 'Dashboard';
+  const title = crumbs[crumbs.length - 1]?.label ?? 'Overview';
   return { title, breadcrumbs: crumbs };
 }
