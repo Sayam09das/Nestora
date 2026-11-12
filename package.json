@@ -34,10 +34,10 @@
   "devDependencies": {
     "@aws-sdk/s3-presigned-post": "^3.1164.0",
     "@aws-sdk/s3-request-presigner": "^3.1164.0",
-    "@biomejs/biome": "^2.0.6",
+    "@biomejs/biome": "^2.6.6",
     "files-sdk": "^3.1.2",
     "turbo": "^2.5.4",
-    "typescript": "^5.8.3"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "@neon/config": "^1.13.0",
