@@ -19,10 +19,13 @@ type Props = { rows: AuditLogRow[]; hidden?: boolean };
 
 export function AdminAuditLogsRegistry({ rows, hidden }: Props) {
   const reduceMotion = useReducedMotion();
-  if (hidden) return null;
-
   return (
-    <section data-aud-reveal data-aud-flip className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <section
+      data-aud-reveal
+      data-aud-flip
+      className={cn('overflow-hidden rounded-2xl border bg-card shadow-sm', hidden && 'hidden')}
+      aria-hidden={hidden}
+    >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[56rem] text-left text-sm">
           <thead>

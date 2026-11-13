@@ -3,10 +3,14 @@
 import { useReducedMotion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
+import { AdminRoomAssignSheet } from '@/components/dashboard/rooms/admin-room-assign-sheet';
+import { AdminRoomEditSheet } from '@/components/dashboard/rooms/admin-room-edit-sheet';
 import { AdminRoomsDirectory } from '@/components/dashboard/rooms/admin-rooms-directory';
 import { AdminRoomsFiltersBar } from '@/components/dashboard/rooms/admin-rooms-filters-bar';
 import { AdminRoomsPageHeader } from '@/components/dashboard/rooms/admin-rooms-page-header';
+import { AdminRoomsSharingDistribution } from '@/components/dashboard/rooms/admin-rooms-sharing-distribution';
 import { AdminRoomsStatsStrip } from '@/components/dashboard/rooms/admin-rooms-stats-strip';
 import type { RoomRecord } from '@/components/dashboard/rooms/admin-rooms-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
@@ -22,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useRoomsDirectory } from '@/hooks/use-rooms-directory';
+import { deleteInfrastructureRoom, patchInfrastructureRoom } from '@/lib/api/rooms';
 
 export function AdminRoomsPage() {
   const reduceMotion = useReducedMotion();
@@ -37,6 +42,9 @@ export function AdminRoomsPage() {
   const [pageSize, setPageSize] = useState<number>(6);
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<RoomRecord | null>(null);
+  const [assignTarget, setAssignTarget] = useState<RoomRecord | null>(null);
+  const [editTarget, setEditTarget] = useState<RoomRecord | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const filters = useMemo(
     () => ({
@@ -110,6 +118,9 @@ export function AdminRoomsPage() {
 
       <AdminRoomsPageHeader summary={summary} loading={loadingSummary} />
       <AdminRoomsStatsStrip summary={summary} loading={loadingSummary} />
+      <div data-rooms-reveal>
+        <AdminRoomsSharingDistribution summary={summary} loading={loadingSummary} />
+      </div>
 
       <AdminRoomsFiltersBar
         search={search}
@@ -165,6 +176,19 @@ export function AdminRoomsPage() {
           pageRows={pageRows}
           filteredCount={total}
           totalRooms={summary?.totalRooms ?? 0}
+          onAssign={setAssignTarget}
+          onChangeStatus={setEditTarget}
+          onMarkMaintenance={(room) => {
+            void (async () => {
+              const result = await patchInfrastructureRoom(room.id, { status: 'UNDER_MAINTENANCE' });
+              if (result.error) {
+                toast.error(result.error);
+                return;
+              }
+              toast.success(`${room.roomNumber} marked for maintenance.`);
+              refresh();
+            })();
+          }}
           onDelete={setDeleteTarget}
           pageSize={pageSize}
           onPageSizeChange={(size) => {
@@ -179,22 +203,59 @@ export function AdminRoomsPage() {
         />
       )}
 
-      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+      <AdminRoomAssignSheet
+        room={assignTarget}
+        open={Boolean(assignTarget)}
+        onOpenChange={(open) => !open && setAssignTarget(null)}
+        onAssigned={refresh}
+      />
+
+      {editTarget ? (
+        <AdminRoomEditSheet
+          room={editTarget}
+          open={Boolean(editTarget)}
+          onOpenChange={(open) => !open && setEditTarget(null)}
+          onSaved={async () => {
+            setEditTarget(null);
+            refresh();
+          }}
+        />
+      ) : null}
+
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && !deleting && setDeleteTarget(null)}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete room record?</AlertDialogTitle>
             <AlertDialogDescription>
               This removes room <strong>{deleteTarget?.roomNumber}</strong> ({deleteTarget?.roomId}) from the directory.
-              Assigned students must be moved first in production.
+              All beds must be vacant (no occupied or reserved beds).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl" disabled={deleting}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               className="rounded-xl bg-destructive text-white hover:bg-destructive/90"
-              onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                if (!deleteTarget) return;
+                void (async () => {
+                  setDeleting(true);
+                  const result = await deleteInfrastructureRoom(deleteTarget.id);
+                  setDeleting(false);
+                  if (result.error) {
+                    toast.error(result.error);
+                    return;
+                  }
+                  toast.success(`Room ${deleteTarget.roomNumber} deleted.`);
+                  setDeleteTarget(null);
+                  refresh();
+                })();
+              }}
             >
-              Delete
+              {deleting ? 'Deleting…' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

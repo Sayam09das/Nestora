@@ -14,10 +14,13 @@ type Props = { rows: RoleProfile[]; hidden?: boolean };
 
 export function AdminRolesRegistry({ rows, hidden }: Props) {
   const reduceMotion = useReducedMotion();
-  if (hidden) return null;
-
   return (
-    <section data-role-reveal data-role-flip className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <section
+      data-role-reveal
+      data-role-flip
+      className={cn('overflow-hidden rounded-2xl border bg-card shadow-sm', hidden && 'hidden')}
+      aria-hidden={hidden}
+    >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[52rem] text-left text-sm">
           <thead>

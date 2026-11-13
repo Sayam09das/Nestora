@@ -4,25 +4,63 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { FilePen, Layers, Lock, Shield, Timer } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
-import { SETTINGS_STATS } from '@/components/dashboard/settings/admin-settings-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { SettingsDeskSummary } from '@/lib/api/settings';
+import { liveMetricNumber, liveMetricText } from '@/lib/api/live-metric';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
 
-export function AdminSettingsStatsStrip() {
+type Props = { summary?: SettingsDeskSummary | null; loading?: boolean };
+
+export function AdminSettingsStatsStrip({ summary, loading }: Props) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
 
-  const cards = useMemo(
-    () => [
-      { key: 'pan', label: 'Config panels', value: SETTINGS_STATS.panels, hint: 'Modular domains', icon: Layers, accent: 'var(--nestora-forest)' },
-      { key: 'draft', label: 'Open drafts', value: SETTINGS_STATS.pendingDrafts, hint: 'Needs review', icon: FilePen, accent: 'var(--nestora-gold)' },
-      { key: 'lock', label: 'Locked controls', value: SETTINGS_STATS.criticalLocks, hint: 'FR-121', icon: Lock, accent: '#dc2626' },
-      { key: 'env', label: 'Policy tier', value: 'Tier 1', hint: 'University admin', icon: Shield, accent: '#7c3aed' },
-      { key: 'pub', label: 'Last publish', value: `${SETTINGS_STATS.lastPublishHours}h`, hint: 'Versioned config', icon: Timer, accent: 'var(--nestora-sage)' },
-    ],
-    [],
-  );
+  const cards = useMemo(() => {
+    const s = summary;
+    return [
+      {
+        key: 'pan',
+        label: 'Config panels',
+        value: liveMetricNumber(s?.panels, loading),
+        hint: 'Modular domains',
+        icon: Layers,
+        accent: 'var(--nestora-forest)',
+      },
+      {
+        key: 'draft',
+        label: 'Open drafts',
+        value: liveMetricNumber(s?.pendingDrafts, loading),
+        hint: 'Needs review',
+        icon: FilePen,
+        accent: 'var(--nestora-gold)',
+      },
+      {
+        key: 'lock',
+        label: 'Locked controls',
+        value: liveMetricNumber(s?.criticalLocks, loading),
+        hint: 'FR-121',
+        icon: Lock,
+        accent: '#dc2626',
+      },
+      {
+        key: 'env',
+        label: 'Policy tier',
+        value: s?.policyTier ?? 'Tier 1',
+        hint: 'University admin',
+        icon: Shield,
+        accent: '#7c3aed',
+      },
+      {
+        key: 'pub',
+        label: 'Last publish',
+        value: `${liveMetricNumber(s?.lastPublishHours, loading)}h`,
+        hint: 'Live audit trail',
+        icon: Timer,
+        accent: 'var(--nestora-sage)',
+      },
+    ];
+  }, [loading, summary]);
 
   useGSAP(
     () => {

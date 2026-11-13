@@ -25,6 +25,18 @@ export type BedDirectorySummary = {
   };
 };
 
+export async function fetchBedDirectoryById(bedId: string): Promise<{
+  bed?: BedRecord;
+  error?: string;
+}> {
+  const response = await apiFetch(`/api/v1/beds/directory/${encodeURIComponent(bedId)}`);
+  const parsed = await parseApiResponse<{ bed: BedRecord }>(response);
+  if (!parsed.ok) {
+    return { error: parsed.message };
+  }
+  return { bed: parsed.data.bed };
+}
+
 export async function fetchBedDirectorySummary(): Promise<{
   summary?: BedDirectorySummary;
   error?: string;

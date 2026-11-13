@@ -53,10 +53,14 @@ export function AdminAuditLogsTimeline({ logs, selectedId, onSelect, listKey, hi
     { scope: listRef, dependencies: [listKey, hidden, reduceMotion] },
   );
 
-  if (hidden) return null;
-
   return (
-    <div ref={listRef} data-aud-reveal className="relative space-y-3 pl-4 sm:pl-6">
+    <div
+      ref={listRef}
+      data-aud-reveal
+      data-aud-flip
+      className={cn('relative space-y-3 pl-4 sm:pl-6', hidden && 'hidden')}
+      aria-hidden={hidden}
+    >
       <div className="absolute bottom-2 left-[7px] top-2 w-px bg-border sm:left-[11px]" aria-hidden />
       {logs.length === 0 ? (
         <p className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">No audit entries match filters.</p>

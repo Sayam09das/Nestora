@@ -17,11 +17,11 @@ import { useRef } from 'react';
 
 import {
   formatStaffJoinedDate,
-  getStaffInitials,
   STAFF_DIRECTORY_STATS,
   type StaffRecord,
   type StaffStatus,
 } from '@/components/dashboard/staff/admin-staff-data';
+import { StaffDirectoryAvatar } from '@/components/dashboard/staff/staff-directory-avatar';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -360,7 +360,7 @@ export function AdminStaffDirectory({
                                 whileHover={reduceMotion ? undefined : { scale: 1.04 }}
                                 transition={{ type: 'spring', stiffness: 420, damping: 24 }}
                               >
-                                {getStaffInitials(row.name)}
+                                <StaffDirectoryAvatar name={row.name} photoUrl={row.profilePhotoUrl} size="sm" />
                               </motion.span>
                               <span className="min-w-0">
                                 <span className="block font-semibold text-foreground">{row.name}</span>
@@ -411,9 +411,12 @@ export function AdminStaffDirectory({
                         onCheckedChange={(v) => onToggleRow(row.id, v === true)}
                         aria-label={`Select ${row.name}`}
                       />
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[var(--nestora-sage-muted)] bg-muted/40 text-xs font-bold text-[var(--nestora-forest)]">
-                        {getStaffInitials(row.name)}
-                      </span>
+                      <StaffDirectoryAvatar
+                        name={row.name}
+                        photoUrl={row.profilePhotoUrl}
+                        size="md"
+                        className="bg-muted/40"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <div>

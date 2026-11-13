@@ -3,19 +3,17 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, Fingerprint } from 'lucide-react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 
 import {
   FR_HINTS,
   categorizeAction,
   formatAuditWhen,
   formatState,
-  getAuditLogById,
   severityFor,
 } from '@/components/dashboard/audit-logs/admin-audit-logs-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
-import { type AuditLogRow, fetchAuditLogs } from '@/lib/api/audit';
+import { type AuditLogRow } from '@/lib/api/audit';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -23,39 +21,15 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-type Props = { id: string; initialLog?: AuditLogRow };
+type Props = { log: AuditLogRow };
 
-export function AdminAuditLogsDetailPage({ id, initialLog }: Props) {
+export function AdminAuditLogsDetailPage({ log }: Props) {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
-  const [log, setLog] = useState<AuditLogRow | undefined>(initialLog);
-  const [loading, setLoading] = useState(!initialLog);
-
-  useEffect(() => {
-    if (initialLog) return;
-    let cancelled = false;
-    (async () => {
-      const sample = getAuditLogById(id);
-      if (sample) {
-        setLog(sample);
-        setLoading(false);
-        return;
-      }
-      const result = await fetchAuditLogs({ page: 1, limit: 100 });
-      const hit = result.logs.find((l) => l.id === id);
-      if (!cancelled) {
-        setLog(hit);
-        setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [id, initialLog]);
 
   useGSAP(
     () => {
-      if (reduceMotion || !rootRef.current || !log) return;
+      if (reduceMotion || !rootRef.current) return;
       gsap.from(rootRef.current.querySelectorAll('[data-aud-detail]'), {
         opacity: 0,
         y: 10,
@@ -64,16 +38,8 @@ export function AdminAuditLogsDetailPage({ id, initialLog }: Props) {
         clearProps: 'opacity,transform',
       });
     },
-    { scope: rootRef, dependencies: [reduceMotion, log?.id] },
+    { scope: rootRef, dependencies: [reduceMotion, log.id] },
   );
-
-  if (loading) {
-    return <p className="text-sm text-muted-foreground">Loading audit entry…</p>;
-  }
-
-  if (!log) {
-    notFound();
-  }
 
   const fr = FR_HINTS[log.actionName];
 

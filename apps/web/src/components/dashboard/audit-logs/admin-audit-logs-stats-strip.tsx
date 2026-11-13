@@ -4,25 +4,56 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Eye, FileArchive, Lock, ShieldCheck, Timer } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
-import { AUDIT_STATS } from '@/components/dashboard/audit-logs/admin-audit-logs-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { AuditDeskSummary } from '@/lib/api/audit';
+import { liveMetricNumber, liveMetricText } from '@/lib/api/live-metric';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
 
-export function AdminAuditLogsStatsStrip() {
+type Props = { summary?: AuditDeskSummary | null; loading?: boolean };
+
+export function AdminAuditLogsStatsStrip({ summary, loading }: Props) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
 
-  const cards = useMemo(
-    () => [
+  const cards = useMemo(() => {
+    const s = summary;
+    return [
       { key: 'imm', label: 'Tamper-proof', value: 'WORM', hint: 'FR-140+', icon: Lock, accent: 'var(--nestora-forest)' },
-      { key: '24h', label: 'Last 24 hours', value: AUDIT_STATS.entries24h, hint: 'All modules', icon: Timer, accent: 'var(--nestora-sage)' },
-      { key: 'sens', label: 'Sensitive views', value: AUDIT_STATS.sensitiveViews, hint: 'FR-144', icon: Eye, accent: '#dc2626' },
-      { key: 'exp', label: 'Exports', value: AUDIT_STATS.exportsWeek, hint: 'This week', icon: FileArchive, accent: 'var(--nestora-gold)' },
-      { key: 'ver', label: 'Chain verify', value: 'OK', hint: 'Hash checks', icon: ShieldCheck, accent: '#0284c7' },
-    ],
-    [],
-  );
+      {
+        key: '24h',
+        label: 'Last 24 hours',
+        value: liveMetricNumber(s?.entries24h, loading),
+        hint: 'All modules',
+        icon: Timer,
+        accent: 'var(--nestora-sage)',
+      },
+      {
+        key: 'sens',
+        label: 'Sensitive views',
+        value: liveMetricNumber(s?.sensitiveViews24h, loading),
+        hint: 'FR-144',
+        icon: Eye,
+        accent: '#dc2626',
+      },
+      {
+        key: 'exp',
+        label: 'Exports',
+        value: liveMetricNumber(s?.exportsWeek, loading),
+        hint: 'This week',
+        icon: FileArchive,
+        accent: 'var(--nestora-gold)',
+      },
+      {
+        key: 'ver',
+        label: 'Chain verify',
+        value: liveMetricText(s?.chainVerify, loading, '—'),
+        hint: 'Hash checks',
+        icon: ShieldCheck,
+        accent: '#0284c7',
+      },
+    ];
+  }, [loading, summary]);
 
   useGSAP(
     () => {

@@ -58,10 +58,10 @@ export type BedRecord = {
 
 export const BED_INVENTORY_STATS = {
   totalBeds: 540,
-  occupied: 412,
-  available: 98,
-  reserved: 20,
-  maintenance: 10,
+  occupied: 0,
+  available: 540,
+  reserved: 0,
+  maintenance: 0,
 } as const;
 
 export const HOSTEL_BED_AVAILABILITY = [

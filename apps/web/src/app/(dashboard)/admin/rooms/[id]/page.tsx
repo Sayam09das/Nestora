@@ -1,7 +1,4 @@
-import { notFound } from 'next/navigation';
-
-import { AdminRoomsDetailPage } from '@/components/dashboard/rooms/admin-rooms-detail-page';
-import { getRoomById } from '@/components/dashboard/rooms/admin-rooms-data';
+import { AdminRoomDetailPage } from '@/components/dashboard/rooms/admin-room-detail-page';
 import { createPrivatePageMetadata } from '@/lib/seo/metadata';
 
 type PageProps = {
@@ -10,17 +7,10 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params;
-  const room = getRoomById(id);
-  const title = room ? `Room ${room.roomNumber}` : 'Room details';
-  const path = `/admin/rooms/${id}`;
-  return createPrivatePageMetadata(title, `${title} — Nestora room management.`, path);
+  return createPrivatePageMetadata('Room details', 'Hostel room occupancy, residents, and facilities.', `/admin/rooms/${id}`);
 }
 
 export default async function AdminRoomDetailRoute({ params }: PageProps) {
   const { id } = await params;
-  const room = getRoomById(id);
-  if (!room) {
-    notFound();
-  }
-  return <AdminRoomsDetailPage room={room} />;
+  return <AdminRoomDetailPage roomId={id} />;
 }

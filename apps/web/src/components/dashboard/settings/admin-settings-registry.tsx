@@ -18,10 +18,13 @@ type Props = { rows: SettingsPanel[]; hidden?: boolean };
 
 export function AdminSettingsRegistry({ rows, hidden }: Props) {
   const reduceMotion = useReducedMotion();
-  if (hidden) return null;
-
   return (
-    <section data-set-reveal data-set-flip className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <section
+      data-set-reveal
+      data-set-flip
+      className={cn('overflow-hidden rounded-2xl border bg-card shadow-sm', hidden && 'hidden')}
+      aria-hidden={hidden}
+    >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[52rem] text-left text-sm">
           <thead>

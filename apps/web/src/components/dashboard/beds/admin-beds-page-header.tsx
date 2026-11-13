@@ -32,13 +32,20 @@ export function AdminBedsPageHeader({ onAddBed, summary, loading = false }: Admi
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
 
-  const { totalBeds, occupancyPct, occupiedW, reservedW, maintenanceW, availableW } = useMemo(() => {
+  const { totalBeds, occupancyPct, occupiedW, reservedW, maintenanceW, availableW, liveLabel } = useMemo(() => {
+    const liveLabel =
+      summary?.generatedAt && !loading
+        ? new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit' }).format(
+            new Date(summary.generatedAt),
+          )
+        : null;
     const t = summary?.totalBeds ?? 0;
     const occupied = summary?.occupied ?? 0;
     const available = summary?.available ?? 0;
     const reserved = summary?.reserved ?? 0;
     const maintenance = summary?.maintenance ?? 0;
     return {
+      liveLabel,
       totalBeds: t,
       occupancyPct: summary?.occupiedRatePercent ?? (t > 0 ? Math.round((occupied / t) * 1000) / 10 : 0),
       occupiedW: t > 0 ? (occupied / t) * 100 : 0,
@@ -46,7 +53,7 @@ export function AdminBedsPageHeader({ onAddBed, summary, loading = false }: Admi
       maintenanceW: t > 0 ? (maintenance / t) * 100 : 0,
       availableW: t > 0 ? (available / t) * 100 : 0,
     };
-  }, [summary]);
+  }, [summary, loading]);
 
   useGSAP(
     () => {
@@ -109,6 +116,12 @@ export function AdminBedsPageHeader({ onAddBed, summary, loading = false }: Admi
               beds ·{' '}
               <span className="font-medium text-[var(--nestora-forest)]">{loading ? '—' : `${occupancyPct}%`}</span>{' '}
               occupied
+              {liveLabel ? (
+                <>
+                  {' '}
+                  · <span className="text-[var(--nestora-sage)]">Live {liveLabel}</span>
+                </>
+              ) : null}
             </p>
           </div>
         </div>

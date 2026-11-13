@@ -93,7 +93,7 @@ export function AdminFeesDetailPage({ account }: { account: LedgerAccount }) {
           </Button>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Last payment <time dateTime={account.lastPayment}>{formatFeeWhen(account.lastPayment)}</time>
+          Last payment <time dateTime={account.lastPayment ?? undefined}>{formatFeeWhen(account.lastPayment)}</time>
         </p>
       </header>
 

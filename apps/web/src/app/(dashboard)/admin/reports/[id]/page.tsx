@@ -1,6 +1,4 @@
-import { notFound } from 'next/navigation';
-
-import { AdminReportsDetailPage } from '@/components/dashboard/reports/admin-reports-detail-page';
+import { AdminReportsDetailRoute } from '@/components/dashboard/reports/admin-reports-detail-route';
 import { getReportById } from '@/components/dashboard/reports/admin-reports-data';
 import { createPrivatePageMetadata } from '@/lib/seo/metadata';
 
@@ -15,9 +13,5 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function AdminReportDetailRoute({ params }: PageProps) {
   const { id } = await params;
-  const record = getReportById(id);
-  if (!record) {
-    notFound();
-  }
-  return <AdminReportsDetailPage report={record} />;
+  return <AdminReportsDetailRoute reportId={id} />;
 }

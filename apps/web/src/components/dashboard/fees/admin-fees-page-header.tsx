@@ -2,9 +2,10 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { CircleDollarSign, LayoutGrid, Receipt, Rows3 } from 'lucide-react';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 
-import { FEES_STATS, formatInr } from '@/components/dashboard/fees/admin-fees-data';
+import { formatInr } from '@/components/dashboard/fees/admin-fees-data';
+import type { FinanceDeskSummary } from '@/lib/api/finance';
 import { Flip, gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -17,11 +18,27 @@ type Props = {
   view: 'desk' | 'registry';
   onViewChange: (v: 'desk' | 'registry') => void;
   flipRootRef: React.RefObject<HTMLDivElement | null>;
+  summary: FinanceDeskSummary | null;
+  loading?: boolean;
 };
 
-export function AdminFeesPageHeader({ onRecordPayment, view, onViewChange, flipRootRef }: Props) {
+export function AdminFeesPageHeader({
+  onRecordPayment,
+  view,
+  onViewChange,
+  flipRootRef,
+  summary,
+  loading = false,
+}: Props) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
+
+  const liveLabel = useMemo(() => {
+    if (!summary?.generatedAt || loading) return null;
+    return new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit' }).format(
+      new Date(summary.generatedAt),
+    );
+  }, [summary?.generatedAt, loading]);
 
   useGSAP(
     () => {
@@ -64,6 +81,11 @@ export function AdminFeesPageHeader({ onRecordPayment, view, onViewChange, flipR
           <p data-fee-hero className="flex items-center gap-2 text-xs text-muted-foreground">
             <CircleDollarSign className="size-3.5 text-[var(--nestora-sage)]" aria-hidden />
             Operations / Fees & payments
+            {liveLabel ? (
+              <span className="rounded-full border border-[color-mix(in_oklch,var(--nestora-sage)_35%,var(--border))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--nestora-forest)]">
+                Live · {liveLabel}
+              </span>
+            ) : null}
           </p>
           <h1 data-fee-hero className="text-2xl font-semibold text-[var(--nestora-forest)]">
             Finance desk
@@ -103,10 +125,13 @@ export function AdminFeesPageHeader({ onRecordPayment, view, onViewChange, flipR
         </div>
         <motion.aside data-fee-hero className="rounded-xl border bg-[color-mix(in_oklch,var(--nestora-cream)_12%,var(--card))] p-4">
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--nestora-sage)]">Outstanding</p>
-          <p className="mt-2 text-2xl font-semibold tabular-nums text-[var(--nestora-forest)]">{formatInr(FEES_STATS.outstandingTotal)}</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums text-[var(--nestora-forest)]">
+            {loading && !summary ? '…' : formatInr(summary?.outstandingTotal ?? 0)}
+          </p>
           <p className="text-xs text-muted-foreground">across active semesters</p>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            {FEES_STATS.pendingApprovals} pending approvals · {FEES_STATS.remindersQueued} reminders queued
+            {summary?.pendingApprovals ?? (loading ? '…' : 0)} pending approvals ·{' '}
+            {summary?.remindersQueued ?? (loading ? '…' : 0)} reminders queued
           </p>
         </motion.aside>
       </div>

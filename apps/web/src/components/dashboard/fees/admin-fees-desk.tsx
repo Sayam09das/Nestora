@@ -5,13 +5,7 @@ import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRef } from 'react';
 
-import {
-  SAMPLE_SCHEDULES,
-  STATUS_META,
-  formatInr,
-  formatFeeWhen,
-  type LedgerAccount,
-} from '@/components/dashboard/fees/admin-fees-data';
+import { STATUS_META, formatInr, formatFeeWhen, type LedgerAccount } from '@/components/dashboard/fees/admin-fees-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -25,6 +19,7 @@ type Props = {
   onSelect: (id: string) => void;
   listKey: string;
   hidden?: boolean;
+  activeSchedules?: number | null;
 };
 
 function Sparkline({ values }: { values: number[] }) {
@@ -49,7 +44,7 @@ const statusTone: Record<LedgerAccount['status'], string> = {
   Cleared: 'bg-[color-mix(in_oklch,var(--nestora-forest)_12%,var(--muted))] text-[var(--nestora-forest)]',
 };
 
-export function AdminFeesDesk({ accounts, selectedId, onSelect, listKey, hidden }: Props) {
+export function AdminFeesDesk({ accounts, selectedId, onSelect, listKey, hidden, activeSchedules }: Props) {
   const reduceMotion = useReducedMotion();
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -72,23 +67,14 @@ export function AdminFeesDesk({ accounts, selectedId, onSelect, listKey, hidden 
 
   return (
     <div className="space-y-4">
-      <section data-fee-reveal className="grid gap-3 sm:grid-cols-3">
-        {SAMPLE_SCHEDULES.map((sched) => (
-          <article
-            key={sched.id}
-            className="rounded-xl border border-dashed bg-[color-mix(in_oklch,var(--nestora-cream)_10%,var(--card))] p-3"
-          >
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Schedule</p>
-            <p className="mt-1 text-sm font-medium text-[var(--nestora-forest)]">{sched.title}</p>
-            <p className="text-[11px] text-muted-foreground">
-              {sched.semester} · from {sched.effectiveFrom}
-            </p>
-            <Badge variant="outline" className="mt-2 rounded-full text-[10px]">
-              {sched.status}
-            </Badge>
-          </article>
-        ))}
-      </section>
+      {activeSchedules != null ? (
+        <section data-fee-reveal className="rounded-xl border bg-[color-mix(in_oklch,var(--nestora-cream)_10%,var(--card))] px-4 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Fee schedules</p>
+          <p className="mt-1 text-sm font-medium text-[var(--nestora-forest)]">
+            {activeSchedules} active schedule{activeSchedules === 1 ? '' : 's'} in database
+          </p>
+        </section>
+      ) : null}
 
       <div ref={gridRef} data-fee-flip className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         {accounts.map((acct) => {
@@ -130,7 +116,7 @@ export function AdminFeesDesk({ accounts, selectedId, onSelect, listKey, hidden 
                 </div>
                 <p className="mt-3 text-[11px] text-muted-foreground">
                   Paid {formatInr(acct.paid)} of {formatInr(acct.assessed)} · last payment{' '}
-                  <time dateTime={acct.lastPayment}>{formatFeeWhen(acct.lastPayment)}</time>
+                  <time dateTime={acct.lastPayment ?? undefined}>{formatFeeWhen(acct.lastPayment)}</time>
                 </p>
               </button>
               <div className="border-t px-4 py-2 sm:px-5">

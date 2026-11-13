@@ -20,7 +20,10 @@ export type BedDirectoryFilters = {
   pageSize: number;
 };
 
-export function useBedsDirectory(filters: BedDirectoryFilters) {
+type UseBedsDirectoryOptions = { pollIntervalMs?: number };
+
+export function useBedsDirectory(filters: BedDirectoryFilters, options?: UseBedsDirectoryOptions) {
+  const pollIntervalMs = options?.pollIntervalMs ?? 20_000;
   const [summary, setSummary] = useState<BedDirectorySummary | null>(null);
   const [beds, setBeds] = useState<BedRecord[]>([]);
   const [total, setTotal] = useState(0);
@@ -32,14 +35,17 @@ export function useBedsDirectory(filters: BedDirectoryFilters) {
     const result = await fetchBedDirectorySummary();
     if (result.summary) {
       setSummary(result.summary);
+      setError(null);
     } else if (result.error) {
       setError(result.error);
     }
     setLoadingSummary(false);
   }, []);
 
-  const loadList = useCallback(async () => {
-    setLoadingList(true);
+  const loadList = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) {
+      setLoadingList(true);
+    }
     setError(null);
     const result = await fetchBedDirectoryList({
       page: filters.page,
@@ -59,24 +65,35 @@ export function useBedsDirectory(filters: BedDirectoryFilters) {
       setBeds([]);
       setTotal(0);
     }
-    setLoadingList(false);
+    if (!opts?.silent) {
+      setLoadingList(false);
+    }
   }, [filters]);
 
   useEffect(() => {
     void loadSummary();
     const interval = setInterval(() => {
       void loadSummary();
-    }, 60_000);
+    }, pollIntervalMs);
     return () => clearInterval(interval);
-  }, [loadSummary]);
+  }, [loadSummary, pollIntervalMs]);
 
   useEffect(() => {
     void loadList();
     const interval = setInterval(() => {
-      void loadList();
-    }, 60_000);
+      void loadList({ silent: true });
+    }, pollIntervalMs);
     return () => clearInterval(interval);
-  }, [loadList]);
+  }, [loadList, pollIntervalMs]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      void loadSummary();
+      void loadList({ silent: true });
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [loadList, loadSummary]);
 
   const refresh = useCallback(() => {
     void loadSummary();

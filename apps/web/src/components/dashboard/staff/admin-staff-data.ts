@@ -11,6 +11,7 @@ export type StaffRecord = {
   hostel: string;
   status: StaffStatus;
   joinedDate: string;
+  profilePhotoUrl?: string | null;
 };
 
 export const STAFF_DIRECTORY_STATS = {

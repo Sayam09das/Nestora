@@ -58,7 +58,7 @@ export function AdminFeesRegistry({ rows, hidden }: Props) {
                 </td>
                 <td className="px-4 py-3 text-right font-medium tabular-nums">{formatInr(row.outstanding)}</td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
-                  <time dateTime={row.lastPayment}>{formatFeeWhen(row.lastPayment)}</time>
+                  <time dateTime={row.lastPayment ?? undefined}>{formatFeeWhen(row.lastPayment)}</time>
                 </td>
               </motion.tr>
             ))}

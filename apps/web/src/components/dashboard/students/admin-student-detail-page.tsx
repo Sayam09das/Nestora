@@ -19,11 +19,8 @@ import {
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import {
-  formatJoinedDate,
-  getStudentInitials,
-  type StudentStatus,
-} from '@/components/dashboard/students/admin-students-data';
+import { formatJoinedDate, getStudentInitials, type StudentStatus } from '@/components/dashboard/students/admin-students-data';
+import { StudentDirectoryAvatar } from '@/components/dashboard/students/student-directory-avatar';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -155,13 +152,12 @@ export function AdminStudentDetailPage({ userId }: AdminStudentDetailPageProps) 
           aria-hidden
         />
         <div className="relative grid gap-6 p-5 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:p-6">
-          <motion.span
-            className="flex size-20 items-center justify-center rounded-2xl border-2 border-white/80 bg-[linear-gradient(145deg,var(--nestora-sage),var(--nestora-forest))] text-2xl font-bold tracking-tight text-white shadow-lg sm:size-24"
-            whileHover={reduceMotion ? undefined : { scale: 1.03 }}
-            transition={{ type: 'spring', stiffness: 520, damping: 26 }}
-          >
-            {initials}
-          </motion.span>
+          <StudentDirectoryAvatar
+            name={displayName}
+            photoUrl={profile.account.profilePhotoUrl}
+            size="lg"
+            className="border-2 border-white/80 shadow-lg"
+          />
 
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--nestora-sage)]">Resident profile</p>

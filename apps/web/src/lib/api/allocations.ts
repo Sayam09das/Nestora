@@ -18,6 +18,20 @@ export type AllocationDirectorySummary = {
   };
 };
 
+export async function fetchAllocationDirectoryById(allocationId: string): Promise<{
+  allocation?: AllocationRecord;
+  error?: string;
+}> {
+  const response = await apiFetch(
+    `/api/v1/allocations/directory/${encodeURIComponent(allocationId)}`,
+  );
+  const parsed = await parseApiResponse<{ allocation: AllocationRecord }>(response);
+  if (!parsed.ok) {
+    return { error: parsed.message };
+  }
+  return { allocation: parsed.data.allocation };
+}
+
 export async function fetchAllocationDirectorySummary(): Promise<{
   summary?: AllocationDirectorySummary;
   error?: string;
@@ -60,6 +74,23 @@ export async function fetchAllocationDirectoryList(
     allocations: body.data.allocations,
     total: body.meta?.pagination?.total_records,
   };
+}
+
+export async function assignStudentToBed(payload: {
+  studentUserId: string;
+  bedId: string;
+  startDate?: string;
+}): Promise<{ error?: string }> {
+  const response = await apiFetch('/api/v1/allocations/assign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const parsed = await parseApiResponse<Record<string, unknown>>(response);
+  if (!parsed.ok) {
+    return { error: parsed.message };
+  }
+  return {};
 }
 
 export async function fetchAllocationQueue(): Promise<{ queue?: AllocationRecord[]; error?: string }> {

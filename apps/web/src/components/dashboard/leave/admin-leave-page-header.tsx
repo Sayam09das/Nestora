@@ -2,10 +2,10 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { CalendarRange, Download, Plane } from 'lucide-react';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 
-import { LEAVE_STATS } from '@/components/dashboard/leave/admin-leave-data';
 import { Flip, gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { LeaveDeskSummary } from '@/lib/api/leaves';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -14,12 +14,23 @@ const focusRing =
 
 type Props = {
   onReview: () => void;
+  onGatePassLog: () => void;
   lens: 'queue' | 'directory';
   onLensChange: (v: 'queue' | 'directory') => void;
   flipRootRef: React.RefObject<HTMLDivElement | null>;
+  summary: LeaveDeskSummary | null;
+  loading?: boolean;
 };
 
-export function AdminLeavePageHeader({ onReview, lens, onLensChange, flipRootRef }: Props) {
+export function AdminLeavePageHeader({
+  onReview,
+  onGatePassLog,
+  lens,
+  onLensChange,
+  flipRootRef,
+  summary,
+  loading = false,
+}: Props) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
 
@@ -39,18 +50,39 @@ export function AdminLeavePageHeader({ onReview, lens, onLensChange, flipRootRef
   );
 
   const setLens = (next: 'queue' | 'directory') => {
-    if (next === lens || reduceMotion || !flipRootRef.current) {
+    if (next === lens) return;
+    if (reduceMotion || !flipRootRef.current) {
       onLensChange(next);
       return;
     }
-    const state = Flip.getState(flipRootRef.current.querySelectorAll('[data-leave-flip]'));
+    const targets = flipRootRef.current.querySelectorAll('[data-leave-flip]');
+    if (targets.length < 2) {
+      onLensChange(next);
+      return;
+    }
+    const state = Flip.getState(targets);
     onLensChange(next);
     requestAnimationFrame(() => {
-      Flip.from(state, { duration: 0.45, ease: 'power2.inOut', scale: true, stagger: 0.03, absolute: true });
+      Flip.from(state, {
+        duration: 0.45,
+        ease: 'power2.inOut',
+        scale: true,
+        stagger: 0.03,
+        absolute: true,
+        onComplete: () => {
+          gsap.set(targets, { clearProps: 'all' });
+        },
+      });
     });
   };
 
-  const onCampusPct = Math.round((1 - LEAVE_STATS.onLeaveNow / 420) * 100);
+  const onCampusPct = summary?.onCampusPercent ?? (loading ? null : 100);
+  const onLeaveNow = summary?.onLeaveNow ?? 0;
+  const pendingReview = summary?.pendingReview ?? 0;
+  const liveStamp = useMemo(() => {
+    if (!summary?.generatedAt) return null;
+    return new Intl.DateTimeFormat('en-IN', { timeStyle: 'short' }).format(new Date(summary.generatedAt));
+  }, [summary?.generatedAt]);
 
   return (
     <header
@@ -63,9 +95,14 @@ export function AdminLeavePageHeader({ onReview, lens, onLensChange, flipRootRef
       />
       <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr,14rem]">
         <div className="space-y-3">
-          <p data-leave-hero className="flex items-center gap-2 text-xs text-muted-foreground">
+          <p data-leave-hero className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <Plane className="size-3.5 text-[var(--nestora-sage)]" aria-hidden />
             Dashboard / Leave requests
+            {liveStamp ? (
+              <span className="rounded-full border border-[color-mix(in_oklch,var(--nestora-sage)_30%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-sage)_8%,var(--card))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--nestora-sage)]">
+                Live · {liveStamp}
+              </span>
+            ) : null}
           </p>
           <h1 data-leave-hero className="text-2xl font-semibold text-[var(--nestora-forest)]">
             Leave & outing desk
@@ -74,12 +111,12 @@ export function AdminLeavePageHeader({ onReview, lens, onLensChange, flipRootRef
             Approve temporary leave, retain bed allocation while residents are away, and catch late returns before
             attendance flags them (FR-038 – FR-044).
           </p>
-          <div data-leave-hero className="flex flex-wrap items-center gap-2 pt-1">
+          <div className="flex flex-wrap items-center gap-2 pt-1">
             <Button type="button" onClick={onReview} className={cn('rounded-xl bg-[var(--nestora-forest)] text-white', focusRing)}>
               <CalendarRange className="size-4" aria-hidden />
               Review next
             </Button>
-            <Button type="button" variant="outline" className={cn('rounded-xl', focusRing)}>
+            <Button type="button" variant="outline" onClick={onGatePassLog} className={cn('rounded-xl', focusRing)}>
               <Download className="size-4" aria-hidden />
               Gate pass log
             </Button>
@@ -113,12 +150,17 @@ export function AdminLeavePageHeader({ onReview, lens, onLensChange, flipRootRef
           className="rounded-xl border border-[color-mix(in_oklch,var(--nestora-sage)_22%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-cream)_12%,var(--card))] p-4"
         >
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--nestora-sage)]">On campus now</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums text-[var(--nestora-forest)]">{onCampusPct}%</p>
-          <p className="text-xs text-muted-foreground">{LEAVE_STATS.onLeaveNow} residents on approved leave</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums text-[var(--nestora-forest)]">
+            {onCampusPct == null ? '…' : `${onCampusPct}%`}
+          </p>
+          <p className="text-xs text-muted-foreground">{onLeaveNow} residents on approved leave</p>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e7e7dc]">
-            <div className="h-full rounded-full bg-[#6d9773]" style={{ width: `${onCampusPct}%` }} />
+            <div
+              className="h-full rounded-full bg-[#6d9773] transition-[width] duration-500"
+              style={{ width: `${onCampusPct ?? 0}%` }}
+            />
           </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">{LEAVE_STATS.pendingReview} awaiting warden review</p>
+          <p className="mt-2 text-[11px] text-muted-foreground">{pendingReview} awaiting warden review</p>
         </motion.aside>
       </div>
     </header>

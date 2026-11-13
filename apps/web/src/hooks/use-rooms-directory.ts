@@ -24,7 +24,7 @@ export type RoomDirectoryFilters = {
 type UseRoomsDirectoryOptions = { pollIntervalMs?: number };
 
 export function useRoomsDirectory(filters: RoomDirectoryFilters, options?: UseRoomsDirectoryOptions) {
-  const pollIntervalMs = options?.pollIntervalMs ?? 60_000;
+  const pollIntervalMs = options?.pollIntervalMs ?? 20_000;
   const [summary, setSummary] = useState<RoomDirectorySummary | null>(null);
   const [rooms, setRooms] = useState<RoomRecord[]>([]);
   const [total, setTotal] = useState(0);

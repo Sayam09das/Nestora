@@ -22,7 +22,15 @@ export function AdminBedsStatsStrip({ summary, loading = false }: AdminBedsStats
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
 
-  const { stats, occupancyPct, stackWidth, byHostel } = useMemo(() => {
+  const { stats, occupancyPct, stackWidth, byHostel, liveLabel } = useMemo(() => {
+    const liveLabel =
+      summary?.generatedAt && !loading
+        ? `Updated ${new Intl.DateTimeFormat('en-IN', {
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+          }).format(new Date(summary.generatedAt))}`
+        : 'Syncing…';
     const total = summary?.totalBeds ?? 0;
     const pct = (n: number) => (total > 0 ? Math.round((n / total) * 1000) / 10 : 0);
     const occupied = summary?.occupied ?? 0;
@@ -32,6 +40,7 @@ export function AdminBedsStatsStrip({ summary, loading = false }: AdminBedsStats
     const occRate = summary?.occupiedRatePercent ?? (total > 0 ? pct(occupied) : 0);
 
     return {
+      liveLabel,
       occupancyPct: occRate,
       byHostel: summary?.byHostel ?? [],
       stats: [
@@ -103,7 +112,7 @@ export function AdminBedsStatsStrip({ summary, loading = false }: AdminBedsStats
         available: total > 0 ? (available / total) * 100 : 0,
       },
     };
-  }, [summary]);
+  }, [summary, loading]);
 
   useGSAP(
     () => {
@@ -145,6 +154,8 @@ export function AdminBedsStatsStrip({ summary, loading = false }: AdminBedsStats
           <span className="font-semibold tabular-nums text-[var(--nestora-forest)]">
             {loading ? '—' : `${occupancyPct}%`}
           </span>
+          <span className="mx-2 text-border">·</span>
+          <span className="font-medium text-[var(--nestora-sage)]">{liveLabel}</span>
         </p>
       </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { Clock3, TrendingUp, UserCheck, UserCog, UserX } from 'lucide-react';
+import { Building2, Clock3, Shield, TrendingUp, UserCheck, UserCog, UserX, Users } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
@@ -196,6 +196,36 @@ export function AdminStaffStatsStrip({ summary, loading = false }: AdminStaffSta
           );
         })}
       </ul>
+
+      {summary?.workforce ? (
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {[
+            { label: 'Total wardens', value: summary.workforce.wardens, icon: UserCog },
+            {
+              label: 'Operational staff',
+              value:
+                summary.workforce.security +
+                summary.workforce.administrative +
+                summary.workforce.housekeeping +
+                summary.workforce.maintenance +
+                summary.workforce.otherStaff,
+              icon: Users,
+            },
+            { label: 'Security personnel', value: summary.workforce.security, icon: Shield },
+            { label: 'Administrative', value: summary.workforce.administrative, icon: Building2 },
+            { label: 'Housekeeping', value: summary.workforce.housekeeping, icon: Users },
+            { label: 'Maintenance', value: summary.workforce.maintenance, icon: Building2 },
+          ].map((item) => (
+            <li key={item.label}>
+              <div className="flex h-full flex-col rounded-xl border border-[color-mix(in_oklch,var(--nestora-sage)_15%,var(--border))] bg-card px-3 py-3 shadow-sm">
+                <item.icon className="size-4 text-[var(--nestora-sage)]" aria-hidden />
+                <p className="mt-2 text-xl font-semibold tabular-nums text-[var(--nestora-forest)]">{item.value}</p>
+                <p className="text-[11px] font-medium text-muted-foreground">{item.label}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </section>
   );
 }

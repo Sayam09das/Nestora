@@ -3,17 +3,13 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, Download } from 'lucide-react';
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { AdminReportsExportDrawer } from '@/components/dashboard/reports/admin-reports-export-drawer';
 import { AdminReportsPreviewPanel } from '@/components/dashboard/reports/admin-reports-preview-panel';
-import {
-  CATEGORY_META,
-  SAMPLE_TABLE_ROWS,
-  formatReportWhen,
-  type ReportTemplate,
-} from '@/components/dashboard/reports/admin-reports-data';
+import type { ReportDeskPreview } from '@/lib/api/reports';
+import { CATEGORY_META, formatReportWhen, type ReportTemplate } from '@/components/dashboard/reports/admin-reports-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,13 +18,22 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-export function AdminReportsDetailPage({ report }: { report: ReportTemplate }) {
+export function AdminReportsDetailPage({
+  report,
+  preview,
+}: {
+  report: ReportTemplate;
+  preview?: ReportDeskPreview | null;
+}) {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const meta = CATEGORY_META[report.category];
   const Icon = meta.icon;
-  const rows = SAMPLE_TABLE_ROWS[report.id] ?? [];
+  const rows = useMemo(() => {
+    if (!preview?.chart?.data?.length) return [];
+    return preview.chart.data as Array<Record<string, string | number>>;
+  }, [preview]);
 
   useGSAP(
     () => {
@@ -89,7 +94,7 @@ export function AdminReportsDetailPage({ report }: { report: ReportTemplate }) {
       </header>
 
       <div data-rpt-detail>
-        <AdminReportsPreviewPanel report={report} />
+        <AdminReportsPreviewPanel report={report} preview={preview} />
       </div>
 
       {rows.length > 0 ? (
@@ -100,7 +105,7 @@ export function AdminReportsDetailPage({ report }: { report: ReportTemplate }) {
           className="overflow-hidden rounded-2xl border bg-card shadow-sm"
         >
           <div className="border-b px-5 py-4">
-            <h2 className="text-sm font-semibold text-[var(--nestora-forest)]">Detail table (sample)</h2>
+            <h2 className="text-sm font-semibold text-[var(--nestora-forest)]">Detail table</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -129,7 +134,7 @@ export function AdminReportsDetailPage({ report }: { report: ReportTemplate }) {
         </motion.section>
       ) : null}
 
-      <AdminReportsExportDrawer open={drawerOpen} onOpenChange={setDrawerOpen} preselectId={report.id} />
+      <AdminReportsExportDrawer open={drawerOpen} onOpenChange={setDrawerOpen} preselectId={report.id} templates={[report]} />
     </div>
   );
 }

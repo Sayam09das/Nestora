@@ -26,16 +26,23 @@ export function AdminAllocationPageHeader({
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
 
-  const { bedsAvailable, pendingQueue, fillPct } = useMemo(() => {
+  const { bedsAvailable, pendingQueue, fillPct, liveLabel } = useMemo(() => {
     const beds = summary?.bedsAvailable ?? 0;
     const total = summary?.totalBedCapacity ?? 0;
     const share = summary?.bedsAvailableSharePct ?? (total > 0 ? (beds / total) * 100 : 0);
+    const liveLabel =
+      summary?.generatedAt && !loading
+        ? new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit' }).format(
+            new Date(summary.generatedAt),
+          )
+        : null;
     return {
       bedsAvailable: beds,
       pendingQueue: summary?.pendingQueue ?? 0,
       fillPct: Math.round(share),
+      liveLabel,
     };
-  }, [summary]);
+  }, [summary, loading]);
 
   useGSAP(
     () => {
@@ -81,6 +88,12 @@ export function AdminAllocationPageHeader({
           <p data-alloc-hero className="max-w-2xl text-sm text-muted-foreground">
             Assign fully approved students to individual beds, review room-change requests, and prevent duplicate
             allocations. One bed holds at most one active resident (BR-002).
+            {liveLabel ? (
+              <>
+                {' '}
+                · <span className="font-medium text-[var(--nestora-sage)]">Live {liveLabel}</span>
+              </>
+            ) : null}
           </p>
           <div data-alloc-hero className="flex flex-wrap gap-2 pt-1">
             <Button type="button" onClick={onAllocate} className={cn('rounded-xl bg-[var(--nestora-forest)] text-white', focusRing)}>

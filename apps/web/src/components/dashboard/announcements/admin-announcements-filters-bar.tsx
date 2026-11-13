@@ -4,11 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { RotateCcw, Search } from 'lucide-react';
 import { useMemo } from 'react';
 
-import {
-  NOTICE_CATEGORY_FILTERS,
-  NOTICE_SCOPE_FILTERS,
-  NOTICE_STATUS_FILTERS,
-} from '@/components/dashboard/announcements/admin-announcements-data';
+import { NOTICE_CATEGORY_FILTERS, NOTICE_STATUS_FILTERS } from '@/components/dashboard/announcements/admin-announcements-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -26,9 +22,11 @@ type Props = {
   statusFilter: string;
   onStatusFilterChange: (v: string) => void;
   onReset: () => void;
+  scopeOptions?: readonly string[];
 };
 
 export function AdminAnnouncementsFiltersBar(props: Props) {
+  const scopeOptions = props.scopeOptions ?? ['All Scopes'];
   const reduceMotion = useReducedMotion();
   const active = useMemo(() => {
     let n = 0;
@@ -77,7 +75,7 @@ export function AdminAnnouncementsFiltersBar(props: Props) {
           ))}
         </select>
         <select value={props.scopeFilter} onChange={(e) => props.onScopeFilterChange(e.target.value)} className={selectClass}>
-          {NOTICE_SCOPE_FILTERS.map((s) => (
+          {scopeOptions.map((s) => (
             <option key={s} value={s}>
               {s}
             </option>

@@ -7,6 +7,15 @@ import type {
 import { apiFetch, apiFetchMutating } from '@/lib/api/client';
 import { parseApiResponse } from '@/lib/api/parse-response';
 
+export type StaffDirectoryWorkforceBreakdown = {
+  wardens: number;
+  security: number;
+  administrative: number;
+  housekeeping: number;
+  maintenance: number;
+  otherStaff: number;
+};
+
 export type StaffDirectorySummary = {
   generatedAt: string;
   total: number;
@@ -15,6 +24,7 @@ export type StaffDirectorySummary = {
   inactive: number;
   activeRatePercent: number | null;
   createdThisMonth: number;
+  workforce?: StaffDirectoryWorkforceBreakdown;
   facets: {
     roles: string[];
     departments: string[];
@@ -33,6 +43,7 @@ type DirectoryRowPayload = {
   hostel: string;
   status: StaffStatus;
   joinedDate: string;
+  profilePhotoUrl?: string | null;
 };
 
 function toStaffRecord(row: DirectoryRowPayload): StaffRecord {

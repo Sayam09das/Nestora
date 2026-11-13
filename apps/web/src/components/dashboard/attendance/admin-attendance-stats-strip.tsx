@@ -4,25 +4,67 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { AlertTriangle, ClipboardCheck, Moon, UserCheck, UserX } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
-import { ATTENDANCE_STATS } from '@/components/dashboard/attendance/admin-attendance-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { NightAttendanceSummary } from '@/lib/api/attendance';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
 
-export function AdminAttendanceStatsStrip() {
+type Props = {
+  summary: NightAttendanceSummary | null;
+  loading?: boolean;
+};
+
+export function AdminAttendanceStatsStrip({ summary, loading = false }: Props) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
 
   const cards = useMemo(
     () => [
-      { key: 'rate', label: 'Tonight’s rate', value: `${ATTENDANCE_STATS.todayRatePct}%`, hint: `${ATTENDANCE_STATS.residentsTotal} residents`, icon: ClipboardCheck, accent: 'var(--nestora-forest)' },
-      { key: 'present', label: 'Present', value: ATTENDANCE_STATS.presentToday, hint: 'Checked in roster', icon: UserCheck, accent: '#6d9773' },
-      { key: 'absent', label: 'Absent', value: ATTENDANCE_STATS.absentToday, hint: `${ATTENDANCE_STATS.unexplainedAbsent} unexplained`, icon: UserX, accent: 'var(--destructive)' },
-      { key: 'leave', label: 'On leave', value: ATTENDANCE_STATS.onLeaveToday, hint: 'Auto from approved leave', icon: Moon, accent: 'var(--nestora-sage)' },
-      { key: 'disputes', label: 'Disputes open', value: ATTENDANCE_STATS.openDisputes, hint: 'Student discrepancy reports', icon: AlertTriangle, accent: 'var(--nestora-gold)' },
+      {
+        key: 'rate',
+        label: 'Tonight’s rate',
+        value: summary?.todayRatePct != null ? `${summary.todayRatePct}%` : loading ? '…' : '—',
+        hint: `${summary?.residentsTotal ?? (loading ? '…' : 0)} residents`,
+        icon: ClipboardCheck,
+        accent: 'var(--nestora-forest)',
+      },
+      {
+        key: 'present',
+        label: 'Present',
+        value: summary?.presentToday ?? (loading ? '…' : 0),
+        hint: 'Checked in roster',
+        icon: UserCheck,
+        accent: '#6d9773',
+      },
+      {
+        key: 'absent',
+        label: 'Absent',
+        value: summary?.absentToday ?? (loading ? '…' : 0),
+        hint: `${summary?.unexplainedAbsent ?? 0} unexplained`,
+        icon: UserX,
+        accent: 'var(--destructive)',
+      },
+      {
+        key: 'leave',
+        label: 'On leave',
+        value: summary?.onLeaveToday ?? (loading ? '…' : 0),
+        hint: 'Auto from approved leave',
+        icon: Moon,
+        accent: 'var(--nestora-sage)',
+      },
+      {
+        key: 'disputes',
+        label: 'Disputes open',
+        value: summary?.openDisputes ?? (loading ? '…' : 0),
+        hint: 'Student discrepancy reports',
+        icon: AlertTriangle,
+        accent: 'var(--nestora-gold)',
+      },
     ],
-    [],
+    [summary, loading],
   );
+
+  const progressWidth = summary?.todayRatePct ?? 0;
 
   useGSAP(
     () => {
@@ -78,8 +120,8 @@ export function AdminAttendanceStatsStrip() {
         aria-hidden
       >
         <div
-          className="h-full rounded-full bg-[linear-gradient(90deg,#6d9773,var(--nestora-forest))]"
-          style={{ width: `${ATTENDANCE_STATS.todayRatePct}%` }}
+          className="h-full rounded-full bg-[linear-gradient(90deg,#6d9773,var(--nestora-forest))] transition-[width] duration-500"
+          style={{ width: `${progressWidth}%` }}
         />
       </motion.div>
     </section>

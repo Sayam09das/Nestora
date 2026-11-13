@@ -4,26 +4,64 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Building2, KeyRound, ShieldCheck, UserCheck, Users } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
-import { ROLES_STATS, SAMPLE_ROLES } from '@/components/dashboard/roles/admin-roles-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { RolesDeskSummary } from '@/lib/api/roles-desk';
+import { liveMetricNumber, liveMetricText } from '@/lib/api/live-metric';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
 
-export function AdminRolesStatsStrip() {
+type Props = { summary?: RolesDeskSummary | null; loading?: boolean };
+
+export function AdminRolesStatsStrip({ summary, loading }: Props) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
-  const totalUsers = SAMPLE_ROLES.reduce((n, r) => n + r.activeUsers, 0);
 
-  const cards = useMemo(
-    () => [
-      { key: 'roles', label: 'Core roles', value: ROLES_STATS.roles, hint: 'FR-002 landing', icon: ShieldCheck, accent: 'var(--nestora-forest)' },
-      { key: 'users', label: 'Active accounts', value: totalUsers.toLocaleString('en-IN'), hint: 'All roles', icon: Users, accent: 'var(--nestora-sage)' },
-      { key: 'scope', label: 'Hostel scopes', value: ROLES_STATS.hostelsScoped, hint: 'FR-139 filter', icon: Building2, accent: '#0284c7' },
-      { key: 'grants', label: 'Custom grants', value: ROLES_STATS.customGrants, hint: 'Exceptions log', icon: KeyRound, accent: 'var(--nestora-gold)' },
-      { key: 'rev', label: 'Pending reviews', value: ROLES_STATS.pendingReviews, hint: 'FR-140 audit', icon: UserCheck, accent: '#7c3aed' },
-    ],
-    [totalUsers],
-  );
+  const cards = useMemo(() => {
+    const s = summary;
+    const active = liveMetricNumber(s?.activeAccounts, loading);
+    return [
+      {
+        key: 'roles',
+        label: 'Core roles',
+        value: liveMetricNumber(s?.roles, loading),
+        hint: 'FR-002 landing',
+        icon: ShieldCheck,
+        accent: 'var(--nestora-forest)',
+      },
+      {
+        key: 'users',
+        label: 'Active accounts',
+        value: typeof active === 'number' ? active.toLocaleString('en-IN') : active,
+        hint: 'All roles',
+        icon: Users,
+        accent: 'var(--nestora-sage)',
+      },
+      {
+        key: 'scope',
+        label: 'Hostel scopes',
+        value: liveMetricNumber(s?.hostelsScoped, loading),
+        hint: 'FR-139 filter',
+        icon: Building2,
+        accent: '#0284c7',
+      },
+      {
+        key: 'grants',
+        label: 'Custom grants',
+        value: liveMetricNumber(s?.customGrants, loading),
+        hint: 'Hostel assignments',
+        icon: KeyRound,
+        accent: 'var(--nestora-gold)',
+      },
+      {
+        key: 'rev',
+        label: 'Pending reviews',
+        value: liveMetricNumber(s?.pendingReviews, loading),
+        hint: 'FR-140 audit',
+        icon: UserCheck,
+        accent: '#7c3aed',
+      },
+    ];
+  }, [loading, summary]);
 
   useGSAP(
     () => {

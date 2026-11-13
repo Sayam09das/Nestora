@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
-  SAMPLE_COMPLAINTS,
-  STAFF_BY_CATEGORY,
+  CATEGORY_META,
   type ComplaintPriority,
   type ComplaintTicket,
 } from '@/components/dashboard/complaints/admin-complaints-data';
+import { assignComplaintTicket } from '@/lib/api/complaints';
+import { fetchStaffDirectoryList } from '@/lib/api/staff';
+import type { StaffRecord } from '@/components/dashboard/staff/admin-staff-data';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -21,18 +23,28 @@ const PRIORITIES: ComplaintPriority[] = ['Low', 'Medium', 'High', 'Critical'];
 type Props = {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  onAssigned?: (ticketId: string, staffName: string, priority: ComplaintPriority) => void;
+  onAssigned?: (ticket: ComplaintTicket) => void;
   preselectTicketId?: string;
+  tickets: ComplaintTicket[];
 };
 
-export function AdminComplaintsAssignDrawer({ open, onOpenChange, onAssigned, preselectTicketId }: Props) {
+export function AdminComplaintsAssignDrawer({
+  open,
+  onOpenChange,
+  onAssigned,
+  preselectTicketId,
+  tickets,
+}: Props) {
   const [ticketId, setTicketId] = useState('');
-  const [staffId, setStaffId] = useState('');
+  const [staffUserId, setStaffUserId] = useState('');
   const [priority, setPriority] = useState<ComplaintPriority>('Medium');
+  const [staffPool, setStaffPool] = useState<StaffRecord[]>([]);
+  const [loadingStaff, setLoadingStaff] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const openTickets = useMemo(
-    () => SAMPLE_COMPLAINTS.filter((t) => t.status !== 'Resolved' && t.status !== 'Rejected'),
-    [],
+    () => tickets.filter((t) => t.status !== 'Resolved' && t.status !== 'Rejected'),
+    [tickets],
   );
 
   const ticket = openTickets.find((t) => t.id === ticketId);
@@ -40,7 +52,7 @@ export function AdminComplaintsAssignDrawer({ open, onOpenChange, onAssigned, pr
   useEffect(() => {
     if (!open) {
       setTicketId('');
-      setStaffId('');
+      setStaffUserId('');
       setPriority('Medium');
       return;
     }
@@ -49,26 +61,55 @@ export function AdminComplaintsAssignDrawer({ open, onOpenChange, onAssigned, pr
 
   useEffect(() => {
     if (!ticket) {
-      setStaffId('');
+      setStaffUserId('');
       return;
     }
     setPriority(ticket.finalPriority ?? ticket.suggestedPriority);
-    const suggested = STAFF_BY_CATEGORY[ticket.category][0];
-    setStaffId(suggested?.id ?? '');
   }, [ticket]);
 
-  const staffOptions = ticket ? STAFF_BY_CATEGORY[ticket.category] : [];
+  useEffect(() => {
+    if (!open || !ticket) {
+      setStaffPool([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingStaff(true);
+    void (async () => {
+      const result = await fetchStaffDirectoryList({ page: 1, limit: 100, status: 'Active' });
+      if (cancelled) return;
+      const deptHint = CATEGORY_META[ticket.category].department.toLowerCase();
+      const staff =
+        result.staff?.filter((s) => {
+          const dept = s.department.toLowerCase();
+          return dept.includes(deptHint) || dept.includes('maintenance') || dept.includes('housekeeping');
+        }) ?? [];
+      setStaffPool(staff.length ? staff : (result.staff ?? []));
+      setLoadingStaff(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, ticket]);
 
-  const save = () => {
-    if (!ticket || !staffId) {
+  const save = async () => {
+    if (!ticket || !staffUserId) {
       toast.error('Select a ticket and staff member (FR-067).');
       return;
     }
-    const staff = staffOptions.find((s) => s.id === staffId);
-    if (!staff) return;
-    onAssigned?.(ticket.id, staff.name, priority);
-    toast.success(`${ticket.ticketNumber} → ${staff.name} · ${priority} priority (sample).`);
-    onOpenChange(false);
+    setSaving(true);
+    const result = await assignComplaintTicket({
+      ticketId: ticket.id,
+      staffUserId,
+      priority,
+    });
+    setSaving(false);
+    if (result.ticket) {
+      onAssigned?.(result.ticket);
+      toast.success(`${ticket.ticketNumber} assigned with ${priority} priority.`);
+      onOpenChange(false);
+      return;
+    }
+    toast.error(result.error ?? 'Assignment failed.');
   };
 
   return (
@@ -96,6 +137,9 @@ export function AdminComplaintsAssignDrawer({ open, onOpenChange, onAssigned, pr
               ))}
             </select>
           </label>
+          {openTickets.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No open tickets. Run `pnpm neon:seed-complaints` if the board is empty.</p>
+          ) : null}
           {ticket ? (
             <div className="rounded-xl border border-[color-mix(in_oklch,var(--nestora-sage)_20%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-cream)_12%,var(--card))] p-3 text-xs text-muted-foreground">
               <p className="font-medium text-foreground">{ticket.category}</p>
@@ -123,15 +167,15 @@ export function AdminComplaintsAssignDrawer({ open, onOpenChange, onAssigned, pr
           <label className="block space-y-1">
             <span className="text-xs font-medium">Assign to staff</span>
             <select
-              value={staffId}
-              onChange={(e) => setStaffId(e.target.value)}
-              disabled={!ticket}
+              value={staffUserId}
+              onChange={(e) => setStaffUserId(e.target.value)}
+              disabled={!ticket || loadingStaff}
               className={cn('h-10 w-full rounded-xl border px-3 text-sm disabled:opacity-50', focusRing)}
             >
-              <option value="">Select staff</option>
-              {staffOptions.map((s) => (
+              <option value="">{loadingStaff ? 'Loading staff…' : 'Select staff'}</option>
+              {staffPool.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} · {s.shift}
+                  {s.name} · {s.department}
                 </option>
               ))}
             </select>
@@ -141,8 +185,13 @@ export function AdminComplaintsAssignDrawer({ open, onOpenChange, onAssigned, pr
           <Button type="button" variant="outline" className={cn('rounded-xl', focusRing)} onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" className={cn('rounded-xl bg-[var(--nestora-forest)] text-white', focusRing)} onClick={save}>
-            Confirm assignment
+          <Button
+            type="button"
+            disabled={saving || !ticket}
+            className={cn('rounded-xl bg-[var(--nestora-forest)] text-white', focusRing)}
+            onClick={() => void save()}
+          >
+            {saving ? 'Saving…' : 'Confirm assignment'}
           </Button>
         </SheetFooter>
       </SheetContent>

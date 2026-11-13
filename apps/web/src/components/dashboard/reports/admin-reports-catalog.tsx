@@ -59,10 +59,14 @@ export function AdminReportsCatalog({ reports, selectedId, onSelect, listKey, hi
     { scope: gridRef, dependencies: [listKey, hidden, reduceMotion] },
   );
 
-  if (hidden) return null;
-
   return (
-    <div ref={gridRef} data-rpt-reveal className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+    <div
+      ref={gridRef}
+      data-rpt-reveal
+      data-rpt-flip
+      className={cn('grid gap-4 lg:grid-cols-2 xl:grid-cols-3', hidden && 'hidden')}
+      aria-hidden={hidden}
+    >
       {reports.map((report) => {
         const meta = CATEGORY_META[report.category];
         const Icon = meta.icon;

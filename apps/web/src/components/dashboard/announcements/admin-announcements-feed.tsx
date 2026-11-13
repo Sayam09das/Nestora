@@ -45,10 +45,15 @@ export function AdminAnnouncementsFeed({ notices, listKey, hidden }: Props) {
     { scope: gridRef, dependencies: [listKey, hidden, reduceMotion] },
   );
 
-  if (hidden) return null;
-
   return (
-    <section ref={gridRef} data-ann-reveal aria-label="Notice feed">
+    <section
+      ref={gridRef}
+      data-ann-reveal
+      data-ann-flip
+      aria-label="Notice feed"
+      hidden={hidden}
+      className={cn(hidden && 'hidden')}
+    >
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {notices.map((notice) => (
           <li

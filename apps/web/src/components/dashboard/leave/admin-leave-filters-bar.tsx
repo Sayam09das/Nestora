@@ -4,11 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { RotateCcw, Search } from 'lucide-react';
 import { useMemo } from 'react';
 
-import {
-  LEAVE_CATEGORY_FILTERS,
-  LEAVE_HOSTEL_FILTERS,
-  LEAVE_STATUS_FILTERS,
-} from '@/components/dashboard/leave/admin-leave-data';
+import { LEAVE_CATEGORY_FILTERS, LEAVE_STATUS_FILTERS } from '@/components/dashboard/leave/admin-leave-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -26,9 +22,11 @@ type Props = {
   statusFilter: string;
   onStatusFilterChange: (v: string) => void;
   onReset: () => void;
+  hostelOptions?: readonly string[];
 };
 
 export function AdminLeaveFiltersBar(props: Props) {
+  const hostelOptions = props.hostelOptions ?? ['All Hostels'];
   const reduceMotion = useReducedMotion();
   const active = useMemo(() => {
     let n = 0;
@@ -70,7 +68,7 @@ export function AdminLeaveFiltersBar(props: Props) {
           />
         </label>
         <select value={props.hostelFilter} onChange={(e) => props.onHostelFilterChange(e.target.value)} className={selectClass}>
-          {LEAVE_HOSTEL_FILTERS.map((h) => (
+          {hostelOptions.map((h) => (
             <option key={h} value={h}>
               {h}
             </option>

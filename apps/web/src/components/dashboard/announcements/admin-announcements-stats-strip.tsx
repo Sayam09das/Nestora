@@ -4,24 +4,64 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { AlertTriangle, CalendarClock, CheckCircle2, Megaphone, Radio } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
-import { ANNOUNCEMENT_STATS } from '@/components/dashboard/announcements/admin-announcements-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { AnnouncementsDeskSummary } from '@/lib/api/announcements';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
 
-export function AdminAnnouncementsStatsStrip() {
+type Props = {
+  summary: AnnouncementsDeskSummary | null;
+  loading?: boolean;
+};
+
+export function AdminAnnouncementsStatsStrip({ summary, loading = false }: Props) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
 
   const cards = useMemo(
     () => [
-      { key: 'live', label: 'Live now', value: ANNOUNCEMENT_STATS.liveNow, hint: 'On student dashboards', icon: Radio, accent: 'var(--nestora-forest)' },
-      { key: 'sched', label: 'Scheduled', value: ANNOUNCEMENT_STATS.scheduled, hint: 'Auto-publish queued', icon: CalendarClock, accent: '#0284c7' },
-      { key: 'ack', label: 'Acks pending', value: ANNOUNCEMENT_STATS.ackPending, hint: 'FR-089 roster', icon: CheckCircle2, accent: 'var(--nestora-gold)' },
-      { key: 'rate', label: 'Read rate', value: `${ANNOUNCEMENT_STATS.avgReadRate}%`, hint: 'Mandatory notices', icon: Megaphone, accent: '#6d9773' },
-      { key: 'emg', label: 'Emergency live', value: ANNOUNCEMENT_STATS.emergencyActive, hint: 'Cannot be muted', icon: AlertTriangle, accent: '#dc2626' },
+      {
+        key: 'live',
+        label: 'Live now',
+        value: summary?.liveNow ?? (loading ? '…' : 0),
+        hint: 'On student dashboards',
+        icon: Radio,
+        accent: 'var(--nestora-forest)',
+      },
+      {
+        key: 'sched',
+        label: 'Scheduled',
+        value: summary?.scheduled ?? (loading ? '…' : 0),
+        hint: 'Auto-publish queued',
+        icon: CalendarClock,
+        accent: '#0284c7',
+      },
+      {
+        key: 'ack',
+        label: 'Acks pending',
+        value: summary?.ackPending ?? (loading ? '…' : 0),
+        hint: 'FR-089 roster',
+        icon: CheckCircle2,
+        accent: 'var(--nestora-gold)',
+      },
+      {
+        key: 'rate',
+        label: 'Read rate',
+        value: loading && !summary ? '…' : `${summary?.avgReadRate ?? 0}%`,
+        hint: 'Mandatory notices',
+        icon: Megaphone,
+        accent: '#6d9773',
+      },
+      {
+        key: 'emg',
+        label: 'Emergency live',
+        value: summary?.emergencyActive ?? (loading ? '…' : 0),
+        hint: 'Cannot be muted',
+        icon: AlertTriangle,
+        accent: '#dc2626',
+      },
     ],
-    [],
+    [summary, loading],
   );
 
   useGSAP(

@@ -9,9 +9,8 @@ import { toast } from 'sonner';
 import { AdminSettingsSaveDrawer } from '@/components/dashboard/settings/admin-settings-save-drawer';
 import {
   CATEGORY_META,
-  PANEL_FIELDS,
-  SAMPLE_CHANGE_LOG,
   formatSettingsWhen,
+  type SettingField,
   type SettingsPanel,
 } from '@/components/dashboard/settings/admin-settings-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
@@ -24,14 +23,23 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-export function AdminSettingsDetailPage({ panel }: { panel: SettingsPanel }) {
+export function AdminSettingsDetailPage({
+  panel,
+  fields: fieldsProp,
+  changeLog,
+}: {
+  panel: SettingsPanel;
+  fields?: SettingField[];
+  changeLog?: Array<{ when: string; actor: string; change: string }>;
+}) {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const meta = CATEGORY_META[panel.category];
   const Icon = meta.icon;
-  const fields = PANEL_FIELDS[panel.id] ?? [];
-  const history = SAMPLE_CHANGE_LOG[panel.id] ?? [];
+  const liveFields = fieldsProp !== undefined;
+  const fields = fieldsProp ?? [];
+  const history = changeLog ?? [];
 
   useGSAP(
     () => {
@@ -101,7 +109,7 @@ export function AdminSettingsDetailPage({ panel }: { panel: SettingsPanel }) {
         </div>
         <div className="divide-y">
           {fields.length === 0 ? (
-            <p className="p-5 text-sm text-muted-foreground">Sample field schema not loaded for this panel — wire API keys from system_configurations.</p>
+            <p className="p-5 text-sm text-muted-foreground">No configuration fields returned for this panel yet.</p>
           ) : (
             fields.map((field) => (
               <div key={field.key} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
@@ -117,12 +125,27 @@ export function AdminSettingsDetailPage({ panel }: { panel: SettingsPanel }) {
                         <span className="text-xs text-muted-foreground">Locked</span>
                       </>
                     ) : null}
-                    <Switch checked={Boolean(field.value)} disabled={field.type === 'locked'} aria-label={field.label} />
+                    <Switch
+                      checked={Boolean(field.value)}
+                      disabled={field.type === 'locked' || liveFields}
+                      aria-label={field.label}
+                    />
                   </span>
                 ) : field.type === 'number' ? (
-                  <Input type="number" defaultValue={Number(field.value)} className={cn('h-9 w-28 rounded-lg tabular-nums', focusRing)} aria-label={field.label} />
+                  <Input
+                    type="number"
+                    readOnly={liveFields}
+                    defaultValue={Number(field.value)}
+                    className={cn('h-9 w-28 rounded-lg tabular-nums', focusRing)}
+                    aria-label={field.label}
+                  />
                 ) : field.type === 'select' ? (
-                  <select defaultValue={String(field.value)} className={cn('h-9 rounded-lg border px-2 text-sm', focusRing)} aria-label={field.label}>
+                  <select
+                    disabled={liveFields}
+                    defaultValue={String(field.value)}
+                    className={cn('h-9 rounded-lg border px-2 text-sm', focusRing)}
+                    aria-label={field.label}
+                  >
                     {(field.options ?? []).map((o) => (
                       <option key={o} value={o}>
                         {o}
@@ -130,7 +153,12 @@ export function AdminSettingsDetailPage({ panel }: { panel: SettingsPanel }) {
                     ))}
                   </select>
                 ) : (
-                  <Input defaultValue={String(field.value)} className={cn('h-9 min-w-[12rem] rounded-lg', focusRing)} aria-label={field.label} />
+                  <Input
+                    readOnly={liveFields}
+                    defaultValue={String(field.value)}
+                    className={cn('h-9 min-w-[12rem] rounded-lg', focusRing)}
+                    aria-label={field.label}
+                  />
                 )}
               </div>
             ))
@@ -162,7 +190,7 @@ export function AdminSettingsDetailPage({ panel }: { panel: SettingsPanel }) {
         </motion.section>
       ) : null}
 
-      <AdminSettingsSaveDrawer open={drawerOpen} onOpenChange={setDrawerOpen} preselectId={panel.id} />
+      <AdminSettingsSaveDrawer open={drawerOpen} onOpenChange={setDrawerOpen} preselectId={panel.id} panels={[panel]} />
     </div>
   );
 }

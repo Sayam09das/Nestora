@@ -4,11 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { RotateCcw, Search } from 'lucide-react';
 import { useMemo } from 'react';
 
-import {
-  REPORT_CATEGORY_FILTERS,
-  REPORT_HOSTEL_FILTERS,
-  REPORT_PERIOD_FILTERS,
-} from '@/components/dashboard/reports/admin-reports-data';
+import { REPORT_CATEGORY_FILTERS, REPORT_PERIOD_FILTERS } from '@/components/dashboard/reports/admin-reports-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -26,6 +22,7 @@ type Props = {
   periodFilter: string;
   onPeriodFilterChange: (v: string) => void;
   onReset: () => void;
+  hostelOptions?: readonly string[];
 };
 
 export function AdminReportsFiltersBar(props: Props) {
@@ -63,7 +60,7 @@ export function AdminReportsFiltersBar(props: Props) {
           ))}
         </select>
         <select value={props.hostelFilter} onChange={(e) => props.onHostelFilterChange(e.target.value)} className={selectClass}>
-          {REPORT_HOSTEL_FILTERS.map((h) => (
+          {(props.hostelOptions ?? ['All Hostels']).map((h) => (
             <option key={h} value={h}>
               {h}
             </option>

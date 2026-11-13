@@ -15,6 +15,7 @@ import {
   slaRemainingHours,
   timelineForTicket,
   type ComplaintTicket,
+  type ComplaintTimelineEntry,
 } from '@/components/dashboard/complaints/admin-complaints-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +25,13 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-export function AdminComplaintsDetailPage({ ticket: initial }: { ticket: ComplaintTicket }) {
+export function AdminComplaintsDetailPage({
+  ticket: initial,
+  timeline: timelineProp,
+}: {
+  ticket: ComplaintTicket;
+  timeline?: ComplaintTimelineEntry[];
+}) {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const [ticket, setTicket] = useState(initial);
@@ -33,7 +40,7 @@ export function AdminComplaintsDetailPage({ ticket: initial }: { ticket: Complai
   const meta = CATEGORY_META[ticket.category];
   const Icon = meta.icon;
   const priority = effectivePriority(ticket);
-  const timeline = timelineForTicket(ticket.id);
+  const timeline = timelineProp ?? timelineForTicket(ticket.id);
   const slaLeft = slaRemainingHours(ticket);
 
   useGSAP(
@@ -196,15 +203,10 @@ export function AdminComplaintsDetailPage({ ticket: initial }: { ticket: Complai
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         preselectTicketId={ticket.id}
-        onAssigned={(id, staff, pri) => {
-          if (id === ticket.id) {
-            setTicket((t) => ({
-              ...t,
-              assignedStaff: staff,
-              finalPriority: pri,
-              status: 'Assigned',
-              updatedAt: new Date().toISOString(),
-            }));
+        tickets={[ticket]}
+        onAssigned={(updated) => {
+          if (updated.id === ticket.id) {
+            setTicket(updated);
           }
         }}
       />

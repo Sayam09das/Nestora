@@ -1,6 +1,7 @@
 'use client';
 
 import { useReducedMotion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 
 import { AdminComplaintsAssignDrawer } from '@/components/dashboard/complaints/admin-complaints-assign-drawer';
@@ -9,20 +10,15 @@ import { AdminComplaintsKanban } from '@/components/dashboard/complaints/admin-c
 import { AdminComplaintsList } from '@/components/dashboard/complaints/admin-complaints-list';
 import { AdminComplaintsPageHeader } from '@/components/dashboard/complaints/admin-complaints-page-header';
 import { AdminComplaintsStatsStrip } from '@/components/dashboard/complaints/admin-complaints-stats-strip';
-import {
-  SAMPLE_COMPLAINTS,
-  effectivePriority,
-  type ComplaintPriority,
-  type ComplaintTicket,
-} from '@/components/dashboard/complaints/admin-complaints-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import { Button } from '@/components/ui/button';
+import { useComplaintsDesk } from '@/hooks/use-complaints-desk';
 
 export function AdminComplaintsPage() {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
 
-  const [tickets, setTickets] = useState<ComplaintTicket[]>(SAMPLE_COMPLAINTS);
   const [view, setView] = useState<'board' | 'list'>('board');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -31,25 +27,26 @@ export function AdminComplaintsPage() {
   const [priorityFilter, setPriorityFilter] = useState('All Priorities');
   const [statusFilter, setStatusFilter] = useState('All Status');
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return tickets.filter((row) => {
-      if (hostelFilter !== 'All Hostels' && row.hostel !== hostelFilter) return false;
-      if (categoryFilter !== 'All Categories' && row.category !== categoryFilter) return false;
-      if (priorityFilter !== 'All Priorities' && effectivePriority(row) !== priorityFilter) return false;
-      if (statusFilter !== 'All Status' && row.status !== statusFilter) return false;
-      if (!q) return true;
-      return (
-        row.title.toLowerCase().includes(q) ||
-        row.ticketNumber.toLowerCase().includes(q) ||
-        row.studentName.toLowerCase().includes(q) ||
-        row.studentId.toLowerCase().includes(q) ||
-        row.location.toLowerCase().includes(q)
-      );
-    });
-  }, [tickets, search, hostelFilter, categoryFilter, priorityFilter, statusFilter]);
+  const filters = useMemo(
+    () => ({
+      q: search,
+      hostel: hostelFilter,
+      category: categoryFilter,
+      priority: priorityFilter,
+      status: statusFilter,
+    }),
+    [search, hostelFilter, categoryFilter, priorityFilter, statusFilter],
+  );
 
-  const listKey = `${search}|${hostelFilter}|${categoryFilter}|${priorityFilter}|${statusFilter}|${view}`;
+  const { summary, tickets, loadingSummary, loadingList, error, refresh, patchTicket } =
+    useComplaintsDesk(filters);
+
+  const facetHostels = useMemo(() => {
+    const hostels = summary?.facets.hostels ?? [];
+    return ['All Hostels', ...hostels] as const;
+  }, [summary?.facets.hostels]);
+
+  const listKey = `${search}|${hostelFilter}|${categoryFilter}|${priorityFilter}|${statusFilter}|${view}|${tickets.length}`;
 
   useGSAP(
     () => {
@@ -73,20 +70,9 @@ export function AdminComplaintsPage() {
     setStatusFilter('All Status');
   };
 
-  const onAssigned = (ticketId: string, staffName: string, priority: ComplaintPriority) => {
-    setTickets((prev) =>
-      prev.map((t) =>
-        t.id === ticketId
-          ? {
-              ...t,
-              assignedStaff: staffName,
-              finalPriority: priority,
-              status: t.status === 'Submitted' || t.status === 'Under Review' || t.status === 'Reopened' ? 'Assigned' : t.status,
-              updatedAt: new Date().toISOString(),
-            }
-          : t,
-      ),
-    );
+  const onAssigned = (ticket: import('@/components/dashboard/complaints/admin-complaints-data').ComplaintTicket) => {
+    patchTicket(ticket.id, ticket);
+    void refresh();
   };
 
   return (
@@ -96,8 +82,21 @@ export function AdminComplaintsPage() {
         view={view}
         onViewChange={setView}
         boardRef={boardRef}
+        summary={summary}
+        loading={loadingSummary}
       />
-      <AdminComplaintsStatsStrip />
+      {error ? (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"
+        >
+          <p className="text-destructive">{error}</p>
+          <Button type="button" size="sm" variant="outline" className="rounded-lg" onClick={refresh}>
+            Retry
+          </Button>
+        </div>
+      ) : null}
+      <AdminComplaintsStatsStrip summary={summary} loading={loadingSummary} />
       <AdminComplaintsFiltersBar
         search={search}
         onSearchChange={setSearch}
@@ -110,12 +109,27 @@ export function AdminComplaintsPage() {
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
         onReset={reset}
+        hostelOptions={facetHostels}
       />
       <div ref={boardRef}>
-        <AdminComplaintsKanban tickets={filtered} listKey={listKey} hidden={view !== 'board'} />
-        <AdminComplaintsList tickets={filtered} hidden={view !== 'list'} />
+        {loadingList && tickets.length === 0 ? (
+          <div className="flex min-h-[30vh] items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="size-5 animate-spin text-[var(--nestora-sage)]" aria-hidden />
+            Loading tickets…
+          </div>
+        ) : (
+          <>
+            <AdminComplaintsKanban tickets={tickets} listKey={listKey} hidden={view !== 'board'} />
+            <AdminComplaintsList tickets={tickets} hidden={view !== 'list'} />
+          </>
+        )}
       </div>
-      <AdminComplaintsAssignDrawer open={drawerOpen} onOpenChange={setDrawerOpen} onAssigned={onAssigned} />
+      <AdminComplaintsAssignDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        onAssigned={onAssigned}
+        tickets={tickets}
+      />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import { useReducedMotion } from 'framer-motion';
-import { useMemo, useRef, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { AdminRolesFiltersBar } from '@/components/dashboard/roles/admin-roles-filters-bar';
 import { AdminRolesGrantDrawer } from '@/components/dashboard/roles/admin-roles-grant-drawer';
@@ -10,8 +11,10 @@ import { AdminRolesMatrixPanel } from '@/components/dashboard/roles/admin-roles-
 import { AdminRolesPageHeader } from '@/components/dashboard/roles/admin-roles-page-header';
 import { AdminRolesRegistry } from '@/components/dashboard/roles/admin-roles-registry';
 import { AdminRolesStatsStrip } from '@/components/dashboard/roles/admin-roles-stats-strip';
-import { DEFAULT_ROLE_ID, SAMPLE_ROLES } from '@/components/dashboard/roles/admin-roles-data';
+import { DEFAULT_ROLE_ID } from '@/components/dashboard/roles/admin-roles-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import { Button } from '@/components/ui/button';
+import { useRolesDesk } from '@/hooks/use-roles-desk';
 
 export function AdminRolesPage() {
   const reduceMotion = useReducedMotion();
@@ -26,26 +29,29 @@ export function AdminRolesPage() {
   const [riskFilter, setRiskFilter] = useState('All risk');
   const [selectedId, setSelectedId] = useState(DEFAULT_ROLE_ID);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return SAMPLE_ROLES.filter((row) => {
-      if (tierFilter !== 'All tiers' && row.tier !== tierFilter) return false;
-      if (scopeFilter !== 'All scopes' && row.scope !== scopeFilter) return false;
-      if (riskFilter !== 'All risk' && row.risk !== riskFilter) return false;
-      if (!q) return true;
-      return (
-        row.title.toLowerCase().includes(q) ||
-        row.code.toLowerCase().includes(q) ||
-        row.description.toLowerCase().includes(q) ||
-        row.frRef.toLowerCase().includes(q)
-      );
-    });
-  }, [search, tierFilter, scopeFilter, riskFilter]);
+  const filters = useMemo(
+    () => ({
+      q: search,
+      tier: tierFilter,
+      scope: scopeFilter,
+      risk: riskFilter,
+    }),
+    [search, tierFilter, scopeFilter, riskFilter],
+  );
 
-  const selected =
-    filtered.find((r) => r.id === selectedId) ?? filtered[0] ?? SAMPLE_ROLES.find((r) => r.id === DEFAULT_ROLE_ID) ?? null;
+  const { summary, roles, loadingSummary, loadingList, error, refresh } = useRolesDesk(filters);
+
+  const selected = roles.find((r) => r.id === selectedId) ?? roles[0] ?? null;
   const effectiveSelectedId = selected?.id ?? selectedId;
-  const listKey = `${search}|${tierFilter}|${scopeFilter}|${riskFilter}|${view}`;
+
+  useEffect(() => {
+    if (!roles.length) return;
+    if (!roles.some((r) => r.id === selectedId)) {
+      setSelectedId(roles[0]?.id ?? DEFAULT_ROLE_ID);
+    }
+  }, [roles, selectedId]);
+
+  const listKey = `${search}|${tierFilter}|${scopeFilter}|${riskFilter}|${view}|${roles.length}`;
 
   useGSAP(
     () => {
@@ -68,10 +74,20 @@ export function AdminRolesPage() {
     setRiskFilter('All risk');
   };
 
+  const loading = loadingSummary && loadingList && !summary && roles.length === 0;
+
   return (
     <div ref={rootRef} className="space-y-6 pb-6">
-      <AdminRolesPageHeader onGrant={() => setDrawerOpen(true)} view={view} onViewChange={setView} flipRootRef={flipRootRef} />
-      <AdminRolesStatsStrip />
+      <AdminRolesPageHeader
+        onGrant={() => setDrawerOpen(true)}
+        view={view}
+        onViewChange={setView}
+        flipRootRef={flipRootRef}
+        summary={summary}
+        loading={loadingSummary}
+      />
+      <AdminRolesStatsStrip summary={summary} loading={loadingSummary} />
+      {error ? <ErrorBanner error={error} onRetry={refresh} /> : null}
       <AdminRolesFiltersBar
         search={search}
         onSearchChange={setSearch}
@@ -83,18 +99,36 @@ export function AdminRolesPage() {
         onRiskFilterChange={setRiskFilter}
         onReset={reset}
       />
-      <div ref={flipRootRef} className="space-y-6">
-        <AdminRolesHub
-          roles={filtered}
-          selectedId={effectiveSelectedId}
-          onSelect={setSelectedId}
-          listKey={listKey}
-          hidden={view !== 'hub'}
-        />
-        <AdminRolesRegistry rows={filtered} hidden={view !== 'registry'} />
-        {view === 'hub' ? <AdminRolesMatrixPanel role={selected} /> : null}
-      </div>
-      <AdminRolesGrantDrawer open={drawerOpen} onOpenChange={setDrawerOpen} preselectId={effectiveSelectedId} />
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border bg-card py-16 text-sm text-muted-foreground">
+          <Loader2 className="size-5 animate-spin text-[var(--nestora-sage)]" aria-hidden />
+          Loading access architecture…
+        </div>
+      ) : (
+        <div ref={flipRootRef} className="space-y-6">
+          <AdminRolesHub
+            roles={roles}
+            selectedId={effectiveSelectedId}
+            onSelect={setSelectedId}
+            listKey={listKey}
+            hidden={view !== 'hub'}
+          />
+          <AdminRolesRegistry rows={roles} hidden={view !== 'registry'} />
+          {view === 'hub' ? <AdminRolesMatrixPanel role={selected} /> : null}
+        </div>
+      )}
+      <AdminRolesGrantDrawer open={drawerOpen} onOpenChange={setDrawerOpen} preselectId={effectiveSelectedId} roles={roles} />
+    </div>
+  );
+}
+
+function ErrorBanner({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
+      <p className="text-destructive">{error}</p>
+      <Button type="button" size="sm" variant="outline" className="rounded-lg" onClick={onRetry}>
+        Retry
+      </Button>
     </div>
   );
 }

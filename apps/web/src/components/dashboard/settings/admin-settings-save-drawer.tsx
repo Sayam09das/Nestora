@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { SAMPLE_PANELS } from '@/components/dashboard/settings/admin-settings-data';
+import type { SettingsPanel } from '@/components/dashboard/settings/admin-settings-data';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -11,9 +11,15 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-type Props = { open: boolean; onOpenChange: (o: boolean) => void; preselectId?: string };
+type Props = {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  preselectId?: string;
+  panels?: SettingsPanel[];
+};
 
-export function AdminSettingsSaveDrawer({ open, onOpenChange, preselectId }: Props) {
+export function AdminSettingsSaveDrawer({ open, onOpenChange, preselectId, panels }: Props) {
+  const catalog = panels ?? [];
   const [panelId, setPanelId] = useState('');
   const [note, setNote] = useState('');
   const [env, setEnv] = useState<'staging' | 'production'>('staging');
@@ -53,7 +59,7 @@ export function AdminSettingsSaveDrawer({ open, onOpenChange, preselectId }: Pro
             <span className="text-xs font-medium">Panel</span>
             <select value={panelId} onChange={(e) => setPanelId(e.target.value)} className={cn('h-10 w-full rounded-xl border px-3 text-sm', focusRing)}>
               <option value="">Select panel</option>
-              {SAMPLE_PANELS.map((p) => (
+              {catalog.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.code} · {p.title}
                 </option>

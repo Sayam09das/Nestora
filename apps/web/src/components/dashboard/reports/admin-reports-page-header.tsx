@@ -2,9 +2,10 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { BarChart3, Download, LayoutGrid, Rows3 } from 'lucide-react';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 
-import { REPORTS_STATS } from '@/components/dashboard/reports/admin-reports-data';
+import type { ReportsDeskSummary } from '@/lib/api/reports';
+import { liveMetricNumber } from '@/lib/api/live-metric';
 import { Flip, gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -17,9 +18,11 @@ type Props = {
   view: 'catalog' | 'registry';
   onViewChange: (v: 'catalog' | 'registry') => void;
   flipRootRef: React.RefObject<HTMLDivElement | null>;
+  summary?: ReportsDeskSummary | null;
+  loading?: boolean;
 };
 
-export function AdminReportsPageHeader({ onExport, view, onViewChange, flipRootRef }: Props) {
+export function AdminReportsPageHeader({ onExport, view, onViewChange, flipRootRef, summary, loading }: Props) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
 
@@ -37,6 +40,16 @@ export function AdminReportsPageHeader({ onExport, view, onViewChange, flipRootR
     },
     { scope: headerRef, dependencies: [reduceMotion] },
   );
+
+  const avgRun = liveMetricNumber(summary?.avgRunSeconds, loading);
+  const exportsWeek = liveMetricNumber(summary?.exportsThisWeek, loading);
+  const freshnessLabel =
+    summary && summary.dataFreshnessMin <= 0 ? 'Live' : summary ? `${summary.dataFreshnessMin}m` : loading ? '—' : '—';
+
+  const liveStamp = useMemo(() => {
+    if (!summary?.generatedAt) return null;
+    return new Intl.DateTimeFormat('en-IN', { timeStyle: 'short' }).format(new Date(summary.generatedAt));
+  }, [summary?.generatedAt]);
 
   const setView = (next: 'catalog' | 'registry') => {
     if (next === view || reduceMotion || !flipRootRef.current) {
@@ -61,9 +74,14 @@ export function AdminReportsPageHeader({ onExport, view, onViewChange, flipRootR
       />
       <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr,14rem]">
         <div className="space-y-3">
-          <p data-rpt-hero className="flex items-center gap-2 text-xs text-muted-foreground">
+          <p data-rpt-hero className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <BarChart3 className="size-3.5 text-[var(--nestora-sage)]" aria-hidden />
             Insights / Reports & analytics
+            {liveStamp ? (
+              <span className="rounded-full border border-[color-mix(in_oklch,var(--nestora-sage)_30%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-sage)_8%,var(--card))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--nestora-sage)]">
+                Live · {liveStamp}
+              </span>
+            ) : null}
           </p>
           <h1 data-rpt-hero className="text-2xl font-semibold text-[var(--nestora-forest)]">
             Operations intelligence
@@ -103,10 +121,10 @@ export function AdminReportsPageHeader({ onExport, view, onViewChange, flipRootR
         </div>
         <motion.aside data-rpt-hero className="rounded-xl border bg-[color-mix(in_oklch,var(--nestora-cream)_12%,var(--card))] p-4">
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--nestora-sage)]">Pipeline health</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums text-[var(--nestora-forest)]">{REPORTS_STATS.avgRunSeconds}s</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums text-[var(--nestora-forest)]">{avgRun ?? '—'}s</p>
           <p className="text-xs text-muted-foreground">avg report runtime</p>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Data {REPORTS_STATS.dataFreshnessMin}m fresh · {REPORTS_STATS.exportsThisWeek} exports this week
+            Data {freshnessLabel} fresh · {exportsWeek ?? '—'} exports this week
           </p>
         </motion.aside>
       </div>
