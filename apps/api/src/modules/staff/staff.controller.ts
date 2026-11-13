@@ -1,4 +1,8 @@
-import { registerStaffBodySchema, staffDirectoryListQuerySchema } from '@nestora/validators';
+import {
+  registerStaffBodySchema,
+  staffDirectoryListQuerySchema,
+  updateStaffHostelAssignmentsBodySchema,
+} from '@nestora/validators';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { paginatedSuccessResponse, successResponse } from '../../common/api-response.js';
 import { requireAuth } from '../../middleware/authenticate.js';
@@ -51,6 +55,27 @@ export async function getAdminStaffProfileHandler(
     userId,
   );
   reply.send(successResponse({ profile }, 'Staff profile loaded.'));
+}
+
+export async function updateStaffHostelAssignmentsHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'UNIVERSITY_ADMINISTRATOR');
+
+  const { userId } = request.params as { userId: string };
+  const body = updateStaffHostelAssignmentsBodySchema.parse(request.body);
+  const profile = await service.updateStaffHostelAssignments(
+    request.server.prisma,
+    request.server.config,
+    user.id,
+    user.role,
+    userId,
+    body,
+    request.ip,
+  );
+  reply.send(successResponse({ profile }, 'Hostel assignments updated.'));
 }
 
 export async function listStaffDirectoryHandler(

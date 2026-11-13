@@ -1,31 +1,19 @@
 import { z } from 'zod';
 
-const reportCategorySchema = z.enum([
-  'Admissions',
-  'Occupancy',
-  'Attendance',
-  'Leave',
-  'Visitors',
-  'Complaints',
-  'Staff',
-  'Fees',
-  'Safety',
-]);
-
 export const reportsDeskListQuerySchema = z.object({
-  q: z.string().max(100).trim().optional(),
-  category: reportCategorySchema.optional(),
-  hostel: z.string().max(150).trim().optional(),
-  period: z.enum(['Last 7 days', 'Last 30 days', 'This term', 'Custom range']).optional(),
+  q: z.string().optional(),
+  category: z.string().optional(),
+  hostel: z.string().optional(),
+  period: z.string().optional(),
 });
 
-export const reportTemplateIdParamsSchema = z.object({
-  reportId: z.string().min(2).max(64),
+export const reportIdParamsSchema = z.object({
+  reportId: z.string().min(1),
 });
 
 export const reportPreviewQuerySchema = z.object({
-  hostel: z.string().max(150).trim().optional(),
-  period: z.enum(['Last 7 days', 'Last 30 days', 'This term', 'Custom range']).optional(),
+  hostel: z.string().optional(),
+  period: z.string().optional(),
 });
 
 export type ReportsDeskListQuery = z.infer<typeof reportsDeskListQuerySchema>;

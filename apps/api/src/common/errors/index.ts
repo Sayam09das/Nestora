@@ -6,6 +6,7 @@ export {
   InternalError,
   LockedError,
   NotFoundError,
+  ServiceUnavailableError,
   TooManyRequestsError,
   UnauthorizedError,
   UnprocessableEntityError,

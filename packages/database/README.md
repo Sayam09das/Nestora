@@ -4,7 +4,7 @@ PostgreSQL persistence for Nestora via [Prisma ORM](https://www.prisma.io/). The
 
 ## Environment
 
-Copy `.env.example` to `.env` and set **`DATABASE_URL`** and **`DIRECT_DATABASE_URL`** (same value for Neon **direct** host — no `-pooler` in the hostname). Do **not** use `channel_binding=require` in the URL.
+Copy `.env.example` to `.env`. For **Neon** dev/prod apps, set **`DATABASE_URL`** to the **pooled** host (`-pooler` in the hostname, `pgbouncer=true`). Set **`DIRECT_DATABASE_URL`** to the **direct** host for migrations. Do **not** use `channel_binding=require` in the URL.
 
 ### Neon looks empty (no tables)
 

@@ -1,8 +1,6 @@
 import { z } from 'zod';
 
-const isoDateString = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD');
+const isoDateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD');
 
 export const nightAttendanceSessionQuerySchema = z.object({
   date: isoDateString,

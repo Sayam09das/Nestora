@@ -1,11 +1,13 @@
-export { auditListQuerySchema, auditLogIdParamsSchema, type AuditListQuery } from './audit.validator.js';
+export { auditListQuerySchema, type AuditListQuery } from './audit.validator.js';
 export {
   registerStaffBodySchema,
   staffDirectoryListQuerySchema,
   staffDirectoryStatusSchema,
   staffDocumentKindSchema,
+  updateStaffHostelAssignmentsBodySchema,
   type RegisterStaffBody,
   type StaffDirectoryListQuery,
+  type UpdateStaffHostelAssignmentsBody,
 } from './staff.validator.js';
 export {
   registerStudentBodySchema,
@@ -39,9 +41,7 @@ export {
   allocationDirectoryListQuerySchema,
   allocationDirectoryStatusSchema,
   allocationDirectoryTypeSchema,
-  assignStudentToBedBodySchema,
   type AllocationDirectoryListQuery,
-  type AssignStudentToBedBody,
 } from './allocations.validator.js';
 export {
   clearNightAttendanceMarkBodySchema,
@@ -52,10 +52,20 @@ export {
   type UpsertNightAttendanceMarkBody,
 } from './attendance.validator.js';
 export {
-  financeDeskListQuerySchema,
-  financeLedgerIdParamsSchema,
-  type FinanceDeskListQuery,
-} from './finance.validator.js';
+  leaveDecisionBodySchema,
+  leaveDeskListQuerySchema,
+  leaveIdParamsSchema,
+  type LeaveDecisionBody,
+  type LeaveDeskListQuery,
+} from './leaves.validator.js';
+export {
+  registerVisitorBodySchema,
+  visitorDeskListQuerySchema,
+  visitorIdParamsSchema,
+  visitorRejectBodySchema,
+  type RegisterVisitorBody,
+  type VisitorDeskListQuery,
+} from './visitors.validator.js';
 export {
   assignComplaintTicketBodySchema,
   complaintTicketIdParamsSchema,
@@ -64,31 +74,41 @@ export {
   type ComplaintsDeskListQuery,
 } from './complaints.validator.js';
 export {
-  leaveApplicationIdParamsSchema,
-  leaveDeskListQuerySchema,
-  type LeaveDeskListQuery,
-} from './leaves.validator.js';
+  incidentActionBodySchema,
+  incidentIdParamsSchema,
+  incidentsDeskListQuerySchema,
+  patchIncidentSeverityBodySchema,
+  resolveIncidentBodySchema,
+  type IncidentActionBody,
+  type IncidentsDeskListQuery,
+  type PatchIncidentSeverityBody,
+  type ResolveIncidentBody,
+} from './incidents.validator.js';
 export {
   announcementIdParamsSchema,
   announcementsDeskListQuerySchema,
   type AnnouncementsDeskListQuery,
 } from './announcements.validator.js';
 export {
+  reportIdParamsSchema,
   reportPreviewQuerySchema,
-  reportTemplateIdParamsSchema,
   reportsDeskListQuerySchema,
   type ReportsDeskListQuery,
 } from './reports.validator.js';
 export {
+  dailyRegisterDeskQuerySchema,
+  type DailyRegisterDeskQuery,
+} from './daily-register.validator.js';
+export {
+  updateSelfProfileBodySchema,
+  type UpdateSelfProfileBody,
+} from './account.validator.js';
+export {
+  patchSettingsPanelBodySchema,
   settingsDeskListQuerySchema,
   settingsPanelIdParamsSchema,
   type SettingsDeskListQuery,
 } from './settings.validator.js';
-export {
-  roleIdParamsSchema,
-  rolesDeskListQuerySchema,
-  type RolesDeskListQuery,
-} from './roles.validator.js';
 export {
   activateAccountBodySchema,
   adminAuthActivityQuerySchema,

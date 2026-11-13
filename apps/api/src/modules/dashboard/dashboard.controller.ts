@@ -24,10 +24,12 @@ export async function getWardenDashboardOverviewHandler(
   const user = requireAuth(request);
   assertRole(user, 'HOSTEL_WARDEN');
 
+  const query = request.query as { hostelId?: string };
   const overview = await getOperationalDashboardOverview(
     request.server.prisma,
     user.id,
     'HOSTEL_WARDEN',
+    query.hostelId,
   );
   reply.send(successResponse({ overview }, 'Warden dashboard overview.'));
 }
