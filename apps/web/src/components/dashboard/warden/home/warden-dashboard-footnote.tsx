@@ -18,11 +18,12 @@ export function WardenDashboardFootnote({ liveMetrics, overview }: Props) {
     <p className="text-[11px] leading-relaxed text-muted-foreground" role="note">
       {liveMetrics && generated ? (
         <>
-          KPIs, attendance, and approval counts refresh from your assigned-hostel API (last updated {generated}).{' '}
+          Desk panels refresh from your assigned-hostel API every ~20 seconds (last updated {generated}). Tab focus and
+          returning to this page trigger an immediate sync.
         </>
-      ) : null}
-      Queues, issues, visitors, incidents, and admission rows use illustrative desk data until those modules are wired to
-      live endpoints (MOD-19 / FR-124).
+      ) : (
+        <>Connect to the API or pick an assigned hostel to load live KPIs and desk panels.</>
+      )}
     </p>
   );
 }

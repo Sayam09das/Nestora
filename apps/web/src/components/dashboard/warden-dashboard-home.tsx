@@ -6,7 +6,6 @@ import {
   createEmptyWardenSnapshot,
   mergeWardenSnapshotWithOverview,
 } from '@/components/dashboard/warden/home/warden-dashboard-data';
-import { WARDEN_ASSIGNED_HOSTELS } from '@/components/dashboard/warden/warden-topbar-data';
 import { WardenDashboardAdmissionsQueue } from '@/components/dashboard/warden/home/warden-dashboard-admissions-queue';
 import { WardenDashboardAttendancePanel } from '@/components/dashboard/warden/home/warden-dashboard-attendance-panel';
 import { WardenDashboardFootnote } from '@/components/dashboard/warden/home/warden-dashboard-footnote';
@@ -22,15 +21,21 @@ import { useWardenShell } from '@/components/dashboard/warden/warden-shell-provi
 import { useOperationalDashboardOverview } from '@/hooks/use-operational-dashboard-overview';
 
 export function WardenDashboardHome() {
-  const session = useOperationalDashboardOverview('HOSTEL_WARDEN');
-  const { selectedHostelId } = useWardenShell();
+  const { selectedHostelId, assignedHostels } = useWardenShell();
+
+  const scopedHostelId = useMemo(() => {
+    if (!selectedHostelId) return undefined;
+    if (assignedHostels.some((h) => h.id === selectedHostelId)) return selectedHostelId;
+    return undefined;
+  }, [assignedHostels, selectedHostelId]);
+
+  const session = useOperationalDashboardOverview('HOSTEL_WARDEN', { hostelId: scopedHostelId });
 
   const snapshot = useMemo(() => {
-    const label =
-      WARDEN_ASSIGNED_HOSTELS.find((h) => h.id === selectedHostelId)?.label ?? 'Assigned hostel';
+    const label = assignedHostels.find((h) => h.id === selectedHostelId)?.label ?? 'Assigned hostel';
     const base = createEmptyWardenSnapshot(label);
     return mergeWardenSnapshotWithOverview(base, session.overview);
-  }, [selectedHostelId, session.overview]);
+  }, [assignedHostels, selectedHostelId, session.overview]);
 
   return (
     <div className="space-y-6 pb-4 lg:space-y-8">

@@ -38,6 +38,10 @@ export function useStaffRegistrationFacets() {
 
   useEffect(() => {
     void load();
+    const interval = window.setInterval(() => {
+      void load();
+    }, 20_000);
+    return () => window.clearInterval(interval);
   }, [load]);
 
   return { hostelOptions, managerOptions, loading, error, refresh: load };

@@ -9,7 +9,15 @@ import type { SettingField, SettingsPanel } from '@/components/dashboard/setting
 import { fetchSettingsPanelDetail } from '@/lib/api/settings';
 import { Button } from '@/components/ui/button';
 
-export function AdminSettingsDetailRoute({ panelId }: { panelId: string }) {
+export function AdminSettingsDetailRoute({
+  panelId,
+  listHref = '/admin/settings',
+  hostel,
+}: {
+  panelId: string;
+  listHref?: string;
+  hostel?: string;
+}) {
   const [panel, setPanel] = useState<SettingsPanel | null>(null);
   const [fields, setFields] = useState<SettingField[]>([]);
   const [changeLog, setChangeLog] = useState<Array<{ when: string; actor: string; change: string }>>([]);
@@ -20,7 +28,7 @@ export function AdminSettingsDetailRoute({ panelId }: { panelId: string }) {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const result = await fetchSettingsPanelDetail(panelId);
+      const result = await fetchSettingsPanelDetail(panelId, { hostel });
       if (cancelled) return;
       if (result.detail) {
         setPanel(result.detail.panel);
@@ -35,7 +43,7 @@ export function AdminSettingsDetailRoute({ panelId }: { panelId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [panelId]);
+  }, [panelId, hostel]);
 
   if (loading) {
     return (
@@ -50,10 +58,10 @@ export function AdminSettingsDetailRoute({ panelId }: { panelId: string }) {
     return (
       <div className="space-y-4 py-8 text-center">
         <p className="text-sm text-destructive">{error ?? 'Panel not found.'}</p>
-        <Button nativeButton={false} variant="outline" className="rounded-xl" render={<Link href="/admin/settings">Back to settings</Link>} />
+        <Button nativeButton={false} variant="outline" className="rounded-xl" render={<Link href={listHref}>Back to settings</Link>} />
       </div>
     );
   }
 
-  return <AdminSettingsDetailPage panel={panel} fields={fields} changeLog={changeLog} />;
+  return <AdminSettingsDetailPage panel={panel} fields={fields} changeLog={changeLog} listHref={listHref} />;
 }

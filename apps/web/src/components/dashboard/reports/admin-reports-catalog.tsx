@@ -23,6 +23,7 @@ type Props = {
   onSelect: (id: string) => void;
   listKey: string;
   hidden?: boolean;
+  detailBasePath?: string;
 };
 
 function Sparkline({ values }: { values: number[] }) {
@@ -40,7 +41,14 @@ function Sparkline({ values }: { values: number[] }) {
   );
 }
 
-export function AdminReportsCatalog({ reports, selectedId, onSelect, listKey, hidden }: Props) {
+export function AdminReportsCatalog({
+  reports,
+  selectedId,
+  onSelect,
+  listKey,
+  hidden,
+  detailBasePath = '/admin/reports',
+}: Props) {
   const reduceMotion = useReducedMotion();
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -105,7 +113,7 @@ export function AdminReportsCatalog({ reports, selectedId, onSelect, listKey, hi
             </button>
             <motion.div className="border-t px-4 py-2">
               <Link
-                href={`/admin/reports/${report.id}`}
+                href={`${detailBasePath}/${report.id}`}
                 className={cn('inline-flex items-center gap-1 text-xs font-semibold text-[var(--nestora-forest)]', focusRing)}
               >
                 Open full report

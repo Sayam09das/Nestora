@@ -26,6 +26,7 @@ import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getApiBaseUrl } from '@/lib/api/client';
+import { AdminStaffHostelAssignments } from '@/components/dashboard/staff/admin-staff-hostel-assignments';
 import { type AdminStaffProfile, fetchAdminStaffProfile } from '@/lib/api/staff';
 import { downloadStaffDocument } from '@/lib/api/uploads';
 import { cn } from '@/lib/utils';
@@ -112,7 +113,24 @@ export function AdminStaffDetailPage({ userId }: AdminStaffDetailPageProps) {
 
   useEffect(() => {
     void load();
-  }, [load]);
+    const interval = window.setInterval(() => {
+      void fetchAdminStaffProfile(userId).then((result) => {
+        if (result.profile) {
+          setProfile(result.profile);
+        }
+      });
+    }, 20_000);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void load();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [load, userId]);
 
   const displayName = profile
     ? `${profile.account.firstName} ${profile.account.lastName}`.trim()
@@ -192,8 +210,17 @@ export function AdminStaffDetailPage({ userId }: AdminStaffDetailPageProps) {
 
   const staff = profile.staff;
   const documents = staff?.documents ?? [];
+  const assignmentNames = new Set<string>();
+  for (const row of profile.wardenInCharge ?? []) {
+    assignmentNames.add(row.hostelName);
+  }
+  for (const row of profile.assignments ?? []) {
+    assignmentNames.add(row.hostelName);
+  }
   const location =
-    profile.wardenOf ?? profile.assignment?.hostelName ?? 'Central Office';
+    assignmentNames.size > 0
+      ? [...assignmentNames].sort((a, b) => a.localeCompare(b)).join(' · ')
+      : 'Central Office';
 
   return (
     <div ref={rootRef} className="space-y-6 pb-8">
@@ -313,10 +340,10 @@ export function AdminStaffDetailPage({ userId }: AdminStaffDetailPageProps) {
             <h2 className="text-sm font-semibold">Assignment</h2>
           </div>
           <p className="text-2xl font-semibold tracking-tight">{location}</p>
-          {profile.wardenOf ? (
-            <p className="mt-2 text-sm text-white/75">Warden in charge</p>
-          ) : profile.assignment ? (
-            <p className="mt-2 text-xs text-white/60">Since {formatJoinedDate(profile.assignment.assignedAt)}</p>
+          {(profile.assignments?.length ?? 0) > 0 ? (
+            <p className="mt-2 text-xs text-white/60">
+              {profile.assignments!.length} assigned hostel{profile.assignments!.length === 1 ? '' : 's'}
+            </p>
           ) : (
             <p className="mt-2 text-sm text-white/75">No hostel assignment on file.</p>
           )}
@@ -394,6 +421,10 @@ export function AdminStaffDetailPage({ userId }: AdminStaffDetailPageProps) {
           </p>
         </article>
       </section>
+
+      {profile.account.systemRole === 'HOSTEL_WARDEN' || profile.account.systemRole === 'HOSTEL_STAFF' ? (
+        <AdminStaffHostelAssignments userId={userId} profile={profile} onUpdated={setProfile} />
+      ) : null}
 
       <article
         data-staff-profile-bento

@@ -29,6 +29,7 @@ type Props = {
   onStatusFilterChange: (v: string) => void;
   onReset: () => void;
   hostelOptions: readonly string[];
+  showHostelFilter?: boolean;
 };
 
 export function AdminComplaintsFiltersBar(props: Props) {
@@ -36,7 +37,7 @@ export function AdminComplaintsFiltersBar(props: Props) {
   const active = useMemo(() => {
     let n = 0;
     if (props.search.trim()) n++;
-    if (props.hostelFilter !== 'All Hostels') n++;
+    if (props.showHostelFilter !== false && props.hostelFilter !== 'All Hostels') n++;
     if (props.categoryFilter !== 'All Categories') n++;
     if (props.priorityFilter !== 'All Priorities') n++;
     if (props.statusFilter !== 'All Status') n++;
@@ -64,7 +65,14 @@ export function AdminComplaintsFiltersBar(props: Props) {
           </Button>
         </div>
       </div>
-      <div className="mt-4 grid gap-3 lg:grid-cols-[1fr,auto,auto,auto,auto]">
+      <div
+        className={cn(
+          'mt-4 grid gap-3',
+          props.showHostelFilter !== false
+            ? 'lg:grid-cols-[1fr,auto,auto,auto,auto]'
+            : 'lg:grid-cols-[1fr,auto,auto,auto]',
+        )}
+      >
         <label className="relative block">
           <span className="sr-only">Search tickets</span>
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
@@ -75,13 +83,15 @@ export function AdminComplaintsFiltersBar(props: Props) {
             className={cn('h-10 rounded-xl pl-9', focusRing)}
           />
         </label>
-        <select value={props.hostelFilter} onChange={(e) => props.onHostelFilterChange(e.target.value)} className={selectClass}>
-          {props.hostelOptions.map((h) => (
-            <option key={h} value={h}>
-              {h}
-            </option>
-          ))}
-        </select>
+        {props.showHostelFilter !== false ? (
+          <select value={props.hostelFilter} onChange={(e) => props.onHostelFilterChange(e.target.value)} className={selectClass}>
+            {props.hostelOptions.map((h) => (
+              <option key={h} value={h}>
+                {h}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <select value={props.categoryFilter} onChange={(e) => props.onCategoryFilterChange(e.target.value)} className={selectClass}>
           {COMPLAINT_CATEGORY_FILTERS.map((c) => (
             <option key={c} value={c}>

@@ -22,9 +22,21 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-type Props = { panel: SettingsPanel | null; fields?: SettingField[]; loading?: boolean };
+type Props = {
+  panel: SettingsPanel | null;
+  fields?: SettingField[];
+  loading?: boolean;
+  detailBasePath?: string;
+  onPersistField?: (key: string, value: boolean) => Promise<void>;
+};
 
-export function AdminSettingsTunePanel({ panel, fields: fieldsProp }: Props) {
+export function AdminSettingsTunePanel({
+  panel,
+  fields: fieldsProp,
+  loading,
+  detailBasePath = '/admin/settings',
+  onPersistField,
+}: Props) {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const liveFields = Boolean(fieldsProp?.length);
@@ -85,9 +97,12 @@ export function AdminSettingsTunePanel({ panel, fields: fieldsProp }: Props) {
             {panel.status} · updated {formatSettingsWhen(panel.lastModified)}
           </p>
         </div>
-        <Button nativeButton={false} size="sm" className={cn('rounded-xl', focusRing)} render={<Link href={`/admin/settings/${panel.id}`} />}>
-          Full editor
-        </Button>
+        <Button
+          nativeButton={false}
+          size="sm"
+          className={cn('rounded-xl', focusRing)}
+          render={<Link href={`${detailBasePath}/${panel.id}`}>Full editor</Link>}
+        />
       </header>
       <div className="space-y-4 p-4 sm:p-5">
         {fields.length === 0 ? (
@@ -108,6 +123,13 @@ export function AdminSettingsTunePanel({ panel, fields: fieldsProp }: Props) {
                     checked={Boolean(valueFor(field.key, field.value))}
                     disabled={field.type === 'locked'}
                     onCheckedChange={(v) => {
+                      if (liveFields && field.wardenEditable && onPersistField) {
+                        void onPersistField(field.key, v).then(() => {
+                          setLocal((s) => ({ ...s, [field.key]: v }));
+                          toast.success('Preference saved.');
+                        });
+                        return;
+                      }
                       if (liveFields && field.type !== 'locked') {
                         toast.message('Use Review & publish to apply policy changes.');
                         return;

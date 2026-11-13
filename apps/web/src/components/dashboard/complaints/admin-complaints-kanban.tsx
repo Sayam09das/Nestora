@@ -34,6 +34,7 @@ type Props = {
   tickets: ComplaintTicket[];
   listKey: string;
   hidden?: boolean;
+  detailBasePath?: string;
 };
 
 function initials(name: string) {
@@ -45,7 +46,7 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export function AdminComplaintsKanban({ tickets, listKey, hidden }: Props) {
+export function AdminComplaintsKanban({ tickets, listKey, hidden, detailBasePath = '/admin/complaints' }: Props) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -110,7 +111,7 @@ export function AdminComplaintsKanban({ tickets, listKey, hidden }: Props) {
               <ul className="min-h-[12rem] space-y-2.5 rounded-2xl border border-dashed border-[color-mix(in_oklch,var(--nestora-sage)_16%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-cream)_8%,var(--background))] p-2">
                 <AnimatePresence initial={false}>
                   {rows.map((ticket) => (
-                    <ComplaintKanbanCard key={ticket.id} ticket={ticket} />
+                    <ComplaintKanbanCard key={ticket.id} ticket={ticket} detailBasePath={detailBasePath} />
                   ))}
                 </AnimatePresence>
                 {rows.length === 0 ? (
@@ -125,7 +126,13 @@ export function AdminComplaintsKanban({ tickets, listKey, hidden }: Props) {
   );
 }
 
-function ComplaintKanbanCard({ ticket }: { ticket: ComplaintTicket }) {
+function ComplaintKanbanCard({
+  ticket,
+  detailBasePath,
+}: {
+  ticket: ComplaintTicket;
+  detailBasePath: string;
+}) {
   const reduceMotion = useReducedMotion();
   const meta = CATEGORY_META[ticket.category];
   const Icon = meta.icon;
@@ -143,7 +150,7 @@ function ComplaintKanbanCard({ ticket }: { ticket: ComplaintTicket }) {
       className="list-none"
     >
       <Link
-        href={`/admin/complaints/${ticket.id}`}
+        href={`${detailBasePath}/${ticket.id}`}
         className={cn(
           'group block cursor-pointer rounded-xl border border-[color-mix(in_oklch,var(--nestora-sage)_20%,var(--border))] bg-card p-3 shadow-sm transition-shadow hover:shadow-md',
           focusRing,

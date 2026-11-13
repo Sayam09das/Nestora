@@ -15,12 +15,14 @@ export type SettingsDeskFilters = {
   category: string;
   scope: string;
   status: string;
+  hostel?: string;
 };
 
-type Options = { pollIntervalMs?: number };
+type Options = { pollIntervalMs?: number; summaryHostel?: string };
 
 export function useSettingsDesk(filters: SettingsDeskFilters, selectedId: string, options?: Options) {
   const pollIntervalMs = options?.pollIntervalMs ?? 20_000;
+  const summaryHostel = options?.summaryHostel;
   const [summary, setSummary] = useState<SettingsDeskSummary | null>(null);
   const [panels, setPanels] = useState<SettingsPanel[]>([]);
   const [tuneFields, setTuneFields] = useState<SettingField[]>([]);
@@ -31,7 +33,7 @@ export function useSettingsDesk(filters: SettingsDeskFilters, selectedId: string
 
   const loadSummary = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoadingSummary(true);
-    const result = await fetchSettingsDeskSummary();
+    const result = await fetchSettingsDeskSummary(summaryHostel);
     if (result.summary) {
       setSummary(result.summary);
       setError(null);
@@ -39,7 +41,7 @@ export function useSettingsDesk(filters: SettingsDeskFilters, selectedId: string
       setError(result.error);
     }
     if (!opts?.silent) setLoadingSummary(false);
-  }, []);
+  }, [summaryHostel]);
 
   const loadList = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -49,6 +51,7 @@ export function useSettingsDesk(filters: SettingsDeskFilters, selectedId: string
         category: filters.category,
         scope: filters.scope,
         status: filters.status,
+        hostel: filters.hostel ?? summaryHostel,
       });
       if (result.panels) {
         setPanels(result.panels);
@@ -59,14 +62,14 @@ export function useSettingsDesk(filters: SettingsDeskFilters, selectedId: string
       }
       if (!opts?.silent) setLoadingList(false);
     },
-    [filters],
+    [filters, summaryHostel],
   );
 
   const loadTune = useCallback(
     async (opts?: { silent?: boolean }) => {
       if (!selectedId) return;
       if (!opts?.silent) setLoadingTune(true);
-      const result = await fetchSettingsPanelDetail(selectedId);
+      const result = await fetchSettingsPanelDetail(selectedId, { hostel: filters.hostel ?? summaryHostel });
       if (result.detail) {
         setTuneFields(result.detail.fields);
         setError(null);
@@ -76,7 +79,7 @@ export function useSettingsDesk(filters: SettingsDeskFilters, selectedId: string
       }
       if (!opts?.silent) setLoadingTune(false);
     },
-    [selectedId],
+    [selectedId, filters.hostel, summaryHostel],
   );
 
   useEffect(() => {
@@ -98,13 +101,20 @@ export function useSettingsDesk(filters: SettingsDeskFilters, selectedId: string
   }, [loadTune, pollIntervalMs]);
 
   useEffect(() => {
-    const onFocus = () => {
+    const refresh = () => {
       void loadSummary({ silent: true });
       void loadList({ silent: true });
       void loadTune({ silent: true });
     };
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
+    window.addEventListener('focus', refresh);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [loadList, loadSummary, loadTune]);
 
   const refresh = useCallback(() => {

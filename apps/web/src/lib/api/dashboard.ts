@@ -73,9 +73,13 @@ export async function fetchAdminDashboardOverview(): Promise<{
   return { overview: parsed.data.overview };
 }
 
+export type OperationalDashboardHostel = { id: string; name: string };
+
 export type OperationalDashboardOverview = {
   generatedAt: string;
   role: 'HOSTEL_WARDEN' | 'HOSTEL_STAFF';
+  hostels: OperationalDashboardHostel[];
+  focusHostelId: string | null;
   scope: {
     hostelNames: string[];
     unassigned: boolean;
@@ -102,16 +106,62 @@ export type OperationalDashboardOverview = {
   approvals: {
     pendingAdmissions: number;
     leaveRequests: number;
+    pendingOutings: number;
     complaints: number;
+    maintenancePipeline: number;
     totalPending: number;
+  };
+  panels: {
+    admissionsQueue: Array<{
+      id: string;
+      name: string;
+      registrationNo: string;
+      course: string;
+      submittedAt: string;
+    }>;
+    openIssues: Array<{
+      id: string;
+      issue: string;
+      room: string;
+      priority: 'High' | 'Medium' | 'Low';
+      status: 'Open' | 'Assigned' | 'In progress';
+    }>;
+    visitorsToday: {
+      total: number;
+      checkedOut: number;
+      inside: number;
+      recent: Array<{
+        id: string;
+        name: string;
+        visiting: string;
+        room: string;
+        time: string;
+      }>;
+    };
+    activeIncidents: {
+      count: number;
+      items: Array<{
+        id: string;
+        title: string;
+        severity: 'Critical' | 'High' | 'Medium';
+        status: 'Open' | 'Acknowledged' | 'In progress';
+        reportedAt: string;
+      }>;
+    };
   };
 };
 
-export async function fetchWardenDashboardOverview(): Promise<{
+export async function fetchWardenDashboardOverview(options?: {
+  hostelId?: string;
+}): Promise<{
   overview?: OperationalDashboardOverview;
   error?: string;
 }> {
-  const response = await apiFetch('/api/v1/dashboard/warden/overview');
+  const query =
+    options?.hostelId?.trim()
+      ? `?hostelId=${encodeURIComponent(options.hostelId.trim())}`
+      : '';
+  const response = await apiFetch(`/api/v1/dashboard/warden/overview${query}`);
   const parsed = await parseApiResponse<{ overview: OperationalDashboardOverview }>(response);
   if (!parsed.ok) return { error: parsed.message };
   return { overview: parsed.data.overview };

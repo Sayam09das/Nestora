@@ -45,6 +45,14 @@ export function getApiBaseUrl(): string {
   return baseUrl;
 }
 
+/** Empty browser baseUrl is valid (Next.js rewrites /api/v1 to the API). */
+export function isApiConfigured(): boolean {
+  if (typeof window !== 'undefined') {
+    return true;
+  }
+  return Boolean(process.env.NEXT_PUBLIC_API_URL?.trim());
+}
+
 export type ApiFetchOptions = RequestInit & {
   /** When true, include cookies (session). Default true. */
   withCredentials?: boolean;

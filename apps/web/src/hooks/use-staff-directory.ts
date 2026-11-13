@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { StaffRecord, StaffStatus } from '@/components/dashboard/staff/admin-staff-data';
 import {
@@ -8,6 +8,8 @@ import {
   fetchStaffDirectoryList,
   fetchStaffDirectorySummary,
 } from '@/lib/api/staff';
+
+const LIVE_POLL_MS = 20_000;
 
 export type StaffDirectoryFilters = {
   q: string;
@@ -27,58 +29,78 @@ export function useStaffDirectory(filters: StaffDirectoryFilters) {
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [loadingList, setLoadingList] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
 
-  const loadSummary = useCallback(async () => {
-    const result = await fetchStaffDirectorySummary(filters.variant);
+  const loadSummary = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoadingSummary(true);
+    }
+    const result = await fetchStaffDirectorySummary(filtersRef.current.variant);
     if (result.summary) {
       setSummary(result.summary);
-    } else if (result.error) {
+    } else if (result.error && !silent) {
       setError(result.error);
     }
     setLoadingSummary(false);
-  }, [filters.variant]);
+  }, []);
 
-  const loadList = useCallback(async () => {
-    setLoadingList(true);
+  const loadList = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoadingList(true);
+    }
     setError(null);
-    const status =
-      filters.status !== 'All Status' ? (filters.status as StaffStatus) : undefined;
+    const f = filtersRef.current;
+    const status = f.status !== 'All Status' ? (f.status as StaffStatus) : undefined;
     const result = await fetchStaffDirectoryList({
-      page: filters.page,
-      limit: filters.pageSize,
-      q: filters.q,
+      page: f.page,
+      limit: f.pageSize,
+      q: f.q,
       status,
-      role: filters.role,
-      department: filters.department,
-      hostel: filters.hostel,
-      variant: filters.variant,
+      role: f.role,
+      department: f.department,
+      hostel: f.hostel,
+      variant: f.variant,
     });
     if (result.staff) {
       setStaff(result.staff);
       setTotal(result.total ?? result.staff.length);
     } else if (result.error) {
       setError(result.error);
-      setStaff([]);
-      setTotal(0);
+      if (!silent) {
+        setStaff([]);
+        setTotal(0);
+      }
     }
     setLoadingList(false);
-  }, [filters]);
+  }, []);
 
   useEffect(() => {
-    void loadSummary();
-    const interval = setInterval(() => {
-      void loadSummary();
-    }, 60_000);
-    return () => clearInterval(interval);
-  }, [loadSummary]);
+    void loadSummary(false);
+    void loadList(false);
+  }, [loadList, loadSummary, filters]);
 
   useEffect(() => {
-    void loadList();
-  }, [loadList]);
+    const interval = window.setInterval(() => {
+      void loadSummary(true);
+      void loadList(true);
+    }, LIVE_POLL_MS);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void loadSummary(true);
+        void loadList(true);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [loadList, loadSummary]);
 
   const refresh = useCallback(() => {
-    void loadSummary();
-    void loadList();
+    void loadSummary(false);
+    void loadList(false);
   }, [loadList, loadSummary]);
 
   return {

@@ -61,6 +61,16 @@ export function useNightAttendance(sessionDate: string, options?: UseNightAttend
     return () => window.removeEventListener('focus', onFocus);
   }, [load]);
 
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void load({ silent: true });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [load]);
+
   const refresh = useCallback(() => {
     setLoading(true);
     void load();

@@ -15,7 +15,13 @@ import { fetchComplaintDeskTicket } from '@/lib/api/complaints';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-export function AdminComplaintsDetailRoute({ ticketId }: { ticketId: string }) {
+export function AdminComplaintsDetailRoute({
+  ticketId,
+  listHref = '/admin/complaints',
+}: {
+  ticketId: string;
+  listHref?: string;
+}) {
   const [ticket, setTicket] = useState<ComplaintTicket | null>(null);
   const [timeline, setTimeline] = useState<ComplaintTimelineEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +63,7 @@ export function AdminComplaintsDetailRoute({ ticketId }: { ticketId: string }) {
           nativeButton={false}
           variant="outline"
           className="rounded-xl"
-          render={<Link href="/admin/complaints" className={focusRing} />}
+          render={<Link href={listHref} className={focusRing} />}
         >
           <ArrowLeft className="size-4" aria-hidden />
           Back to command center
@@ -66,5 +72,5 @@ export function AdminComplaintsDetailRoute({ ticketId }: { ticketId: string }) {
     );
   }
 
-  return <AdminComplaintsDetailPage ticket={ticket} timeline={timeline} />;
+  return <AdminComplaintsDetailPage ticket={ticket} timeline={timeline} listHref={listHref} />;
 }

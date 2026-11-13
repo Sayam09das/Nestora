@@ -75,18 +75,34 @@ export function WardenDashboardIssuesPanel({ snapshot }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {snapshot.issues.map((row) => (
-              <TableRow key={row.id}>
-                <TableCell className="font-medium text-foreground">{row.issue}</TableCell>
-                <TableCell className="tabular-nums text-muted-foreground">{row.room}</TableCell>
-                <TableCell>
-                  <Badge variant={priorityVariant(row.priority)} className="text-[10px] font-semibold uppercase">
-                    {row.priority}
-                  </Badge>
+            {snapshot.issues.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">
+                  No open complaints in this hostel.
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">{row.status}</TableCell>
               </TableRow>
-            ))}
+            ) : (
+              snapshot.issues.map((row) => (
+                <TableRow key={row.id} className="cursor-pointer hover:bg-muted/40">
+                  <TableCell className="font-medium text-foreground">
+                    <Link href={`/warden/complaints/${row.id}`} className={cn('hover:text-[var(--nestora-forest)]', focusRing)}>
+                      {row.issue}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="tabular-nums text-muted-foreground">{row.room}</TableCell>
+                  <TableCell>
+                    <Badge variant={priorityVariant(row.priority)} className="text-[10px] font-semibold uppercase">
+                      {row.priority}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    <Link href={`/warden/complaints/${row.id}`} className={cn('block', focusRing)}>
+                      {row.status}
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

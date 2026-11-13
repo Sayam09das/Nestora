@@ -22,7 +22,7 @@ import { AuthSkiperLink } from '@/components/auth/auth-skiper-link';
 import { nestoraAdminCtaClasses } from '@/components/marketing/cta-styles';
 import { gsap, SplitText, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { NESTORA_BRAND_NAME } from '@/components/marketing/navbar';
-import { getApiBaseUrl } from '@/lib/api/client';
+import { isApiConfigured } from '@/lib/api/client';
 import { loginWithPassword, postLoginRedirect } from '@/lib/api/auth';
 import { cn } from '@/lib/utils';
 import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
@@ -118,7 +118,7 @@ export function AdminLoginScreen() {
     event.preventDefault();
     setError(null);
 
-    if (!getApiBaseUrl()) {
+    if (!isApiConfigured()) {
       setError('API URL is not configured. Set NEXT_PUBLIC_API_URL in apps/web/.env.local.');
       return;
     }

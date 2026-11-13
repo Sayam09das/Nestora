@@ -14,6 +14,8 @@ import { WARDEN_HOSTEL_STORAGE_KEY } from '@/components/dashboard/warden/warden-
 
 const STORAGE_KEY = 'nestora-warden-sidebar-collapsed';
 
+export type WardenAssignedHostel = { id: string; label: string };
+
 type WardenShellContextValue = {
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
@@ -23,6 +25,8 @@ type WardenShellContextValue = {
   toggleMobileNav: () => void;
   selectedHostelId: string;
   setSelectedHostelId: (id: string) => void;
+  assignedHostels: WardenAssignedHostel[];
+  setAssignedHostels: (hostels: WardenAssignedHostel[]) => void;
 };
 
 const WardenShellContext = createContext<WardenShellContextValue | null>(null);
@@ -30,7 +34,8 @@ const WardenShellContext = createContext<WardenShellContextValue | null>(null);
 export function WardenShellProvider({ children }: { children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsedState] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [selectedHostelId, setSelectedHostelIdState] = useState('boys-a');
+  const [selectedHostelId, setSelectedHostelIdState] = useState('');
+  const [assignedHostels, setAssignedHostelsState] = useState<WardenAssignedHostel[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -82,6 +87,10 @@ export function WardenShellProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const setAssignedHostels = useCallback((hostels: WardenAssignedHostel[]) => {
+    setAssignedHostelsState(hostels);
+  }, []);
+
   const value = useMemo(
     () => ({
       sidebarCollapsed: hydrated ? sidebarCollapsed : false,
@@ -90,8 +99,10 @@ export function WardenShellProvider({ children }: { children: ReactNode }) {
       mobileNavOpen,
       setMobileNavOpen: setMobileNavOpenStable,
       toggleMobileNav,
-      selectedHostelId: hydrated ? selectedHostelId : 'boys-a',
+      selectedHostelId: hydrated ? selectedHostelId : '',
       setSelectedHostelId,
+      assignedHostels,
+      setAssignedHostels,
     }),
     [
       hydrated,
@@ -103,6 +114,8 @@ export function WardenShellProvider({ children }: { children: ReactNode }) {
       toggleMobileNav,
       selectedHostelId,
       setSelectedHostelId,
+      assignedHostels,
+      setAssignedHostels,
     ],
   );
 

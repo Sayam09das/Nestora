@@ -28,9 +28,11 @@ const focusRing =
 export function AdminComplaintsDetailPage({
   ticket: initial,
   timeline: timelineProp,
+  listHref = '/admin/complaints',
 }: {
   ticket: ComplaintTicket;
   timeline?: ComplaintTimelineEntry[];
+  listHref?: string;
 }) {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -65,7 +67,7 @@ export function AdminComplaintsDetailPage({
           variant="outline"
           size="sm"
           className="rounded-xl"
-          render={<Link href="/admin/complaints" className={focusRing} />}
+          render={<Link href={listHref} className={focusRing} />}
         >
           <ArrowLeft className="size-4" aria-hidden />
           Complaints

@@ -21,6 +21,14 @@ const motionEase = [0.22, 1, 0.36, 1] as const;
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
+const VERIFICATION_HREF = '/warden/students?tab=verification';
+
+function formatSubmittedAt(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+}
+
 type Props = { snapshot: WardenDashboardSnapshot };
 
 export function WardenDashboardAdmissionsQueue({ snapshot }: Props) {
@@ -71,7 +79,7 @@ export function WardenDashboardAdmissionsQueue({ snapshot }: Props) {
                   <TableCell className="font-medium">{row.name}</TableCell>
                   <TableCell className="text-muted-foreground">{row.registrationNo}</TableCell>
                   <TableCell className="hidden text-muted-foreground sm:table-cell">{row.course}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{row.submittedAt}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{formatSubmittedAt(row.submittedAt)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -83,7 +91,7 @@ export function WardenDashboardAdmissionsQueue({ snapshot }: Props) {
         nativeButton={false}
         render={
           <Link
-            href="/warden/students"
+            href={VERIFICATION_HREF}
             className={cn('mt-4 inline-flex w-full items-center justify-center gap-2 sm:w-auto', focusRing)}
           />
         }

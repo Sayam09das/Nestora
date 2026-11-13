@@ -62,9 +62,13 @@ type Props = { userId: string };
 export function WardenStudentDetailPage({ userId }: Props) {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
-  const { selectedHostelId } = useWardenShell();
+  const { selectedHostelId, assignedHostels } = useWardenShell();
   const { overview } = useOperationalDashboardOverview('HOSTEL_WARDEN');
-  const hostelName = getWardenHostelDisplayName(selectedHostelId, overview?.scope.hostelNames ?? []);
+  const hostelName = getWardenHostelDisplayName(
+    selectedHostelId,
+    overview?.scope.hostelNames ?? [],
+    assignedHostels,
+  );
 
   const [profile, setProfile] = useState<AdminStudentProfile | null>(null);
   const [loading, setLoading] = useState(true);

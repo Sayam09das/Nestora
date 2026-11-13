@@ -16,10 +16,11 @@ export type LeaveDeskFilters = {
   status: string;
 };
 
-type UseLeaveDeskOptions = { pollIntervalMs?: number };
+type UseLeaveDeskOptions = { pollIntervalMs?: number; summaryHostel?: string };
 
 export function useLeaveDesk(filters: LeaveDeskFilters, options?: UseLeaveDeskOptions) {
   const pollIntervalMs = options?.pollIntervalMs ?? 20_000;
+  const summaryHostel = options?.summaryHostel;
   const [summary, setSummary] = useState<LeaveDeskSummary | null>(null);
   const [applications, setApplications] = useState<LeaveRecord[]>([]);
   const [loadingSummary, setLoadingSummary] = useState(true);
@@ -28,7 +29,7 @@ export function useLeaveDesk(filters: LeaveDeskFilters, options?: UseLeaveDeskOp
 
   const loadSummary = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoadingSummary(true);
-    const result = await fetchLeaveDeskSummary();
+    const result = await fetchLeaveDeskSummary(summaryHostel);
     if (result.summary) {
       setSummary(result.summary);
       setError(null);
@@ -36,7 +37,7 @@ export function useLeaveDesk(filters: LeaveDeskFilters, options?: UseLeaveDeskOp
       setError(result.error);
     }
     if (!opts?.silent) setLoadingSummary(false);
-  }, []);
+  }, [summaryHostel]);
 
   const loadList = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -78,6 +79,17 @@ export function useLeaveDesk(filters: LeaveDeskFilters, options?: UseLeaveDeskOp
     };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
+  }, [loadList, loadSummary]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void loadSummary({ silent: true });
+        void loadList({ silent: true });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [loadList, loadSummary]);
 
   const refresh = useCallback(() => {

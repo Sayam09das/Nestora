@@ -52,19 +52,25 @@ export function WardenDashboardIncidentsPanel({ snapshot }: Props) {
           </li>
         ) : (
           incidents.items.map((item) => (
-            <li
-              key={item.id}
-              className="rounded-xl border border-border/70 bg-card/95 px-3 py-3"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                <Badge variant={severityVariant(item.severity)} className="text-[10px] font-semibold uppercase">
-                  {item.severity}
-                </Badge>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {item.status} · Reported {item.reportedAt}
-              </p>
+            <li key={item.id}>
+              <Link
+                href={`/warden/incidents/${item.id}`}
+                className={cn(
+                  'block rounded-xl border border-border/70 bg-card/95 px-3 py-3',
+                  'transition-[border-color,box-shadow] hover:border-[color-mix(in_oklch,var(--nestora-sage)_35%,var(--border))] hover:shadow-sm',
+                  focusRing,
+                )}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                  <Badge variant={severityVariant(item.severity)} className="text-[10px] font-semibold uppercase">
+                    {item.severity}
+                  </Badge>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {item.status} · Reported {item.reportedAt}
+                </p>
+              </Link>
             </li>
           ))
         )}

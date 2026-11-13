@@ -23,6 +23,8 @@ type Props = {
   onStatusFilterChange: (v: string) => void;
   onReset: () => void;
   scopeOptions?: readonly string[];
+  showScopeFilter?: boolean;
+  showCategoryFilter?: boolean;
 };
 
 export function AdminAnnouncementsFiltersBar(props: Props) {
@@ -31,8 +33,8 @@ export function AdminAnnouncementsFiltersBar(props: Props) {
   const active = useMemo(() => {
     let n = 0;
     if (props.search.trim()) n++;
-    if (props.categoryFilter !== 'All Categories') n++;
-    if (props.scopeFilter !== 'All Scopes') n++;
+    if (props.showCategoryFilter !== false && props.categoryFilter !== 'All Categories') n++;
+    if (props.showScopeFilter !== false && props.scopeFilter !== 'All Scopes') n++;
     if (props.statusFilter !== 'All Status') n++;
     return n;
   }, [props]);
@@ -56,7 +58,16 @@ export function AdminAnnouncementsFiltersBar(props: Props) {
           </Button>
         </div>
       </div>
-      <div className="mt-4 grid gap-3 lg:grid-cols-[1fr,auto,auto,auto]">
+      <div
+        className={cn(
+          'mt-4 grid gap-3',
+          props.showCategoryFilter === false && props.showScopeFilter === false
+            ? 'lg:grid-cols-[1fr,auto]'
+            : props.showCategoryFilter === false || props.showScopeFilter === false
+              ? 'lg:grid-cols-[1fr,auto,auto]'
+              : 'lg:grid-cols-[1fr,auto,auto,auto]',
+        )}
+      >
         <label className="relative block">
           <span className="sr-only">Search notices</span>
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
@@ -67,20 +78,24 @@ export function AdminAnnouncementsFiltersBar(props: Props) {
             className={cn('h-10 rounded-xl pl-9', focusRing)}
           />
         </label>
-        <select value={props.categoryFilter} onChange={(e) => props.onCategoryFilterChange(e.target.value)} className={selectClass}>
-          {NOTICE_CATEGORY_FILTERS.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-        <select value={props.scopeFilter} onChange={(e) => props.onScopeFilterChange(e.target.value)} className={selectClass}>
-          {scopeOptions.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+        {props.showCategoryFilter !== false ? (
+          <select value={props.categoryFilter} onChange={(e) => props.onCategoryFilterChange(e.target.value)} className={selectClass}>
+            {NOTICE_CATEGORY_FILTERS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        ) : null}
+        {props.showScopeFilter !== false ? (
+          <select value={props.scopeFilter} onChange={(e) => props.onScopeFilterChange(e.target.value)} className={selectClass}>
+            {scopeOptions.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <select value={props.statusFilter} onChange={(e) => props.onStatusFilterChange(e.target.value)} className={selectClass}>
           {NOTICE_STATUS_FILTERS.map((s) => (
             <option key={s} value={s}>

@@ -23,9 +23,10 @@ type Props = {
   notices: AnnouncementRecord[];
   listKey: string;
   hidden?: boolean;
+  detailBasePath?: string;
 };
 
-export function AdminAnnouncementsFeed({ notices, listKey, hidden }: Props) {
+export function AdminAnnouncementsFeed({ notices, listKey, hidden, detailBasePath = '/admin/announcements' }: Props) {
   const reduceMotion = useReducedMotion();
   const gridRef = useRef<HTMLElement>(null);
 
@@ -61,7 +62,7 @@ export function AdminAnnouncementsFeed({ notices, listKey, hidden }: Props) {
             data-ann-flip
             className={cn(notice.pinned && 'sm:col-span-2 xl:col-span-1')}
           >
-            <AnnouncementCard notice={notice} featured={notice.pinned} />
+            <AnnouncementCard notice={notice} featured={notice.pinned} detailBasePath={detailBasePath} />
           </li>
         ))}
       </ul>
@@ -70,7 +71,15 @@ export function AdminAnnouncementsFeed({ notices, listKey, hidden }: Props) {
   );
 }
 
-function AnnouncementCard({ notice, featured }: { notice: AnnouncementRecord; featured?: boolean }) {
+function AnnouncementCard({
+  notice,
+  featured,
+  detailBasePath,
+}: {
+  notice: AnnouncementRecord;
+  featured?: boolean;
+  detailBasePath: string;
+}) {
   const reduceMotion = useReducedMotion();
   const meta = CATEGORY_META[notice.category];
   const Icon = meta.icon;
@@ -89,7 +98,7 @@ function AnnouncementCard({ notice, featured }: { notice: AnnouncementRecord; fe
       )}
     >
       <div className="h-1.5 w-full" style={{ background: meta.accent }} aria-hidden />
-      <Link href={`/admin/announcements/${notice.id}`} className={cn('flex h-full flex-col p-4 sm:p-5', focusRing)}>
+      <Link href={`${detailBasePath}/${notice.id}`} className={cn('flex h-full flex-col p-4 sm:p-5', focusRing)}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
             <span

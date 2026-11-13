@@ -258,10 +258,10 @@ export function mergeWardenSnapshotWithOverview(
 
   const pending = {
     leave: overview.approvals.leaveRequests,
-    outings: base.pending.outings,
+    outings: overview.approvals.pendingOutings,
     admissions: overview.approvals.pendingAdmissions,
-    complaints: overview.approvals.complaints || overview.operations.openComplaints,
-    maintenance: base.pending.maintenance,
+    complaints: overview.approvals.complaints,
+    maintenance: overview.approvals.maintenancePipeline,
     total: 0,
   };
   pending.total = pendingTotal(pending);
@@ -272,6 +272,8 @@ export function mergeWardenSnapshotWithOverview(
       : overview.scope.hostelNames.length === 1
         ? overview.scope.hostelNames[0]!
         : overview.scope.hostelNames.join(' · ');
+
+  const panels = overview.panels;
 
   return {
     ...base,
@@ -306,5 +308,20 @@ export function mergeWardenSnapshotWithOverview(
       sentiment: attendanceSentiment(attPercent),
     },
     pending,
+    admissionsQueue: panels?.admissionsQueue ?? [],
+    issues: panels?.openIssues ?? [],
+    visitors: panels?.visitorsToday ?? base.visitors,
+    incidents: panels?.activeIncidents
+      ? {
+          activeCount: panels.activeIncidents.count,
+          items: panels.activeIncidents.items.map((item) => ({
+            id: item.id,
+            title: item.title,
+            severity: item.severity,
+            status: item.status,
+            reportedAt: item.reportedAt,
+          })),
+        }
+      : { activeCount: 0, items: [] },
   };
 }

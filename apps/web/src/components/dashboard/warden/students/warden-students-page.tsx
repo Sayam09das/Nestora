@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { ClipboardList, Users } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import { WardenStudentsDirectory } from '@/components/dashboard/warden/students/warden-students-directory';
@@ -30,13 +31,23 @@ const focusRing =
 
 export function WardenStudentsPage() {
   const reduceMotion = useReducedMotion();
-  const { selectedHostelId } = useWardenShell();
-  const { overview, refresh: refreshOverview } = useOperationalDashboardOverview('HOSTEL_WARDEN');
+  const searchParams = useSearchParams();
+  const { selectedHostelId, assignedHostels } = useWardenShell();
+  const scopedHostelId = assignedHostels.some((h) => h.id === selectedHostelId) ? selectedHostelId : undefined;
+  const { overview, refresh: refreshOverview } = useOperationalDashboardOverview('HOSTEL_WARDEN', {
+    hostelId: scopedHostelId,
+  });
   const scopeHostelNames = overview?.scope.hostelNames ?? [];
-  const hostelApiFilter = getWardenHostelApiFilter(selectedHostelId, scopeHostelNames);
-  const hostelDisplay = getWardenHostelDisplayName(selectedHostelId, scopeHostelNames);
+  const hostelDisplay = getWardenHostelDisplayName(selectedHostelId, scopeHostelNames, assignedHostels);
+  const hostelApiFilter = getWardenHostelApiFilter(selectedHostelId, scopeHostelNames, assignedHostels);
 
-  const [tab, setTab] = useState<DeskTab>('residents');
+  const initialTab: DeskTab = searchParams.get('tab') === 'verification' ? 'verification' : 'residents';
+  const [tab, setTab] = useState<DeskTab>(initialTab);
+
+  useEffect(() => {
+    const next: DeskTab = searchParams.get('tab') === 'verification' ? 'verification' : 'residents';
+    setTab(next);
+  }, [searchParams]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [courseFilter, setCourseFilter] = useState('All Courses');
@@ -54,7 +65,7 @@ export function WardenStudentsPage() {
     () => ({
       q: search,
       status: tab === 'verification' ? 'Pending' : statusFilter,
-      hostel: hostelApiFilter || 'All Hostels',
+      hostel: hostelApiFilter || hostelDisplay || 'All Hostels',
       course: courseFilter,
       academicYear: yearFilter,
       page,
@@ -63,12 +74,13 @@ export function WardenStudentsPage() {
     [search, statusFilter, hostelApiFilter, courseFilter, yearFilter, page, pageSize, tab],
   );
 
-  const { summary, students, total, loadingList, error, refresh, lastSyncedAt } = useStudentDirectory(filters, {
-    pollIntervalMs: 60_000,
-  });
-  const { stats: hostelStats, loading: loadingHostelStats } = useWardenHostelStudentStats(
-    hostelApiFilter || 'All Hostels',
-  );
+  const { summary, students, total, loadingList, error, refresh, lastSyncedAt } = useStudentDirectory(filters);
+  const {
+    stats: hostelStats,
+    loading: loadingHostelStats,
+    lastSyncedAt: statsSyncedAt,
+    refresh: refreshStats,
+  } = useWardenHostelStudentStats(hostelApiFilter || hostelDisplay);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -93,8 +105,8 @@ export function WardenStudentsPage() {
     <div className="space-y-6 pb-8">
       <WardenStudentsHeader
         hostelName={hostelDisplay}
-        totalResidents={hostelStats?.total ?? total}
-        pendingVerification={hostelStats?.pending ?? (tab === 'verification' ? total : pendingInView)}
+        totalResidents={hostelStats?.active ?? overview?.residents.activeAllocations ?? total}
+        pendingVerification={hostelStats?.pending ?? overview?.approvals.pendingAdmissions ?? (tab === 'verification' ? total : pendingInView)}
       />
 
       <WardenStudentsStatsStrip hostelName={hostelDisplay} stats={hostelStats} loading={loadingHostelStats} />
@@ -137,14 +149,18 @@ export function WardenStudentsPage() {
             onClick={() => {
               refreshOverview();
               refresh();
+              refreshStats();
             }}
           >
             Retry
           </Button>
-        ) : lastSyncedAt ? (
+        ) : lastSyncedAt || statsSyncedAt ? (
           <span className="ml-auto text-xs text-muted-foreground tabular-nums">
             Synced{' '}
-            {new Date(lastSyncedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+            {new Date(lastSyncedAt ?? statsSyncedAt ?? Date.now()).toLocaleTimeString(undefined, {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
           </span>
         ) : null}
       </div>
@@ -215,8 +231,8 @@ export function WardenStudentsPage() {
       <WardenStudentsQuickLinks onOpenVerification={() => switchTab('verification')} />
 
       <p className="text-[11px] text-muted-foreground" role="note">
-        Data is limited to <strong className="font-semibold text-foreground">{hostelDisplay}</strong>. Wardens cannot
-        access other hostels or university-wide admin student tools (FR-124 scope).
+        Live directory for <strong className="font-semibold text-foreground">{hostelDisplay}</strong> — refreshes every
+        20 seconds. Wardens cannot access other hostels or university-wide admin student tools (FR-124 scope).
       </p>
     </div>
   );

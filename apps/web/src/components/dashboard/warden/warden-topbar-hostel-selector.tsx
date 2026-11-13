@@ -4,7 +4,6 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Building2, Check, ChevronDown } from 'lucide-react';
 
 import { useWardenShell } from '@/components/dashboard/warden/warden-shell-provider';
-import { WARDEN_ASSIGNED_HOSTELS } from '@/components/dashboard/warden/warden-topbar-data';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,8 +22,12 @@ type Props = { className?: string; compact?: boolean; iconOnly?: boolean };
 
 export function WardenTopbarHostelSelector({ className, compact, iconOnly }: Props) {
   const reduceMotion = useReducedMotion();
-  const { selectedHostelId, setSelectedHostelId } = useWardenShell();
-  const active = WARDEN_ASSIGNED_HOSTELS.find((h) => h.id === selectedHostelId) ?? WARDEN_ASSIGNED_HOSTELS[0]!;
+  const { selectedHostelId, setSelectedHostelId, assignedHostels } = useWardenShell();
+  const active =
+    assignedHostels.find((h) => h.id === selectedHostelId) ??
+    assignedHostels[0] ?? { id: '', label: 'Assigned hostel' };
+
+  const shortLabel = active.label.replace(/\s+Hostel\b/i, '').trim() || active.label;
 
   return (
     <DropdownMenu>
@@ -49,7 +52,7 @@ export function WardenTopbarHostelSelector({ className, compact, iconOnly }: Pro
         {!iconOnly ? (
           <>
             <span className="min-w-0 flex-1 truncate text-caption font-semibold text-foreground">
-              {compact ? active.shortLabel : active.label}
+              {compact ? shortLabel : active.label}
             </span>
             <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
           </>
@@ -61,7 +64,7 @@ export function WardenTopbarHostelSelector({ className, compact, iconOnly }: Pro
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          {WARDEN_ASSIGNED_HOSTELS.map((hostel) => {
+          {assignedHostels.map((hostel) => {
             const selected = hostel.id === selectedHostelId;
             return (
               <DropdownMenuItem key={hostel.id} className="rounded-lg" onClick={() => setSelectedHostelId(hostel.id)}>
@@ -73,9 +76,6 @@ export function WardenTopbarHostelSelector({ className, compact, iconOnly }: Pro
                         <Check className="size-3.5 text-[var(--nestora-sage)]" aria-hidden />
                       </motion.span>
                     ) : null}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {hostel.rooms} rooms · {hostel.occupancy} occupied
                   </span>
                 </span>
               </DropdownMenuItem>

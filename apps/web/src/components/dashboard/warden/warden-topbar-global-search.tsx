@@ -1,11 +1,13 @@
 'use client';
 
+import { BedDouble, MessageSquareWarning, UserRound } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { filterWardenNavGroups, flattenWardenNavLinks, wardenNavGroups } from '@/components/dashboard/warden/warden-nav-items';
 import { createDefaultWardenPermissions } from '@/components/dashboard/warden/warden-nav-permissions';
-import { SAMPLE_WARDEN_SEARCH_HITS } from '@/components/dashboard/warden/warden-topbar-data';
+import { useWardenTopbarLiveContext } from '@/components/dashboard/warden/warden-topbar-live-provider';
+import type { WardenTopbarSearchHit } from '@/hooks/use-warden-topbar-live';
 import {
   CommandDialog,
   CommandEmpty,
@@ -16,55 +18,83 @@ import {
   CommandSeparator,
 } from '@/components/ui/command';
 
+const categoryIcon = {
+  Students: UserRound,
+  Rooms: BedDouble,
+  Complaints: MessageSquareWarning,
+} as const;
+
 type Props = { open: boolean; onOpenChange: (open: boolean) => void };
 
 export function WardenTopbarGlobalSearch({ open, onOpenChange }: Props) {
   const router = useRouter();
+  const { search } = useWardenTopbarLiveContext();
   const [query, setQuery] = useState('');
+  const [hits, setHits] = useState<WardenTopbarSearchHit[]>([]);
+  const [searching, setSearching] = useState(false);
 
-  const filteredHits = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return SAMPLE_WARDEN_SEARCH_HITS;
-    return SAMPLE_WARDEN_SEARCH_HITS.filter(
-      (hit) =>
-        hit.label.toLowerCase().includes(q) ||
-        hit.hint.toLowerCase().includes(q) ||
-        hit.category.toLowerCase().includes(q),
-    );
-  }, [query]);
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setHits([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const handle = window.setTimeout(() => {
+      void search(q).then((rows) => {
+        setHits(rows);
+        setSearching(false);
+      });
+    }, 280);
+    return () => window.clearTimeout(handle);
+  }, [query, search]);
 
-  const go = (href: string) => {
-    onOpenChange(false);
-    setQuery('');
-    router.push(href);
-  };
+  const go = useCallback(
+    (href: string) => {
+      onOpenChange(false);
+      setQuery('');
+      setHits([]);
+      router.push(href);
+    },
+    [onOpenChange, router],
+  );
 
   const deskModules = useMemo(
     () => flattenWardenNavLinks(filterWardenNavGroups(wardenNavGroups, createDefaultWardenPermissions())),
     [],
   );
 
-  const students = filteredHits.filter((h) => h.category === 'Students');
-  const rooms = filteredHits.filter((h) => h.category === 'Rooms');
-  const complaints = filteredHits.filter((h) => h.category === 'Complaints');
+  const students = hits.filter((h) => h.category === 'Students');
+  const rooms = hits.filter((h) => h.category === 'Rooms');
+  const complaints = hits.filter((h) => h.category === 'Complaints');
 
   return (
     <CommandDialog
       open={open}
       onOpenChange={(next) => {
         onOpenChange(next);
-        if (!next) setQuery('');
+        if (!next) {
+          setQuery('');
+          setHits([]);
+        }
       }}
       title="Global search"
-      description="Search students, rooms, and complaints in your hostel scope."
+      description="Search students, rooms, and complaints in your assigned hostel."
     >
       <CommandInput placeholder="Search students, rooms, complaints…" value={query} onValueChange={setQuery} />
       <CommandList>
-        <CommandEmpty>No matches. Try a room number or student name.</CommandEmpty>
+        <CommandEmpty>
+          {searching
+            ? 'Searching…'
+            : query.trim().length < 2
+              ? 'Type at least 2 characters to search live directory data.'
+              : 'No matches. Try a room number or student name.'}
+        </CommandEmpty>
         {students.length > 0 ? (
           <CommandGroup heading="Students">
             {students.map((hit) => {
-              const Icon = hit.icon;
+              const Icon = categoryIcon.Students;
               return (
                 <CommandItem key={hit.id} onSelect={() => go(hit.href)}>
                   <Icon className="size-4 opacity-70" />
@@ -78,7 +108,7 @@ export function WardenTopbarGlobalSearch({ open, onOpenChange }: Props) {
         {rooms.length > 0 ? (
           <CommandGroup heading="Rooms">
             {rooms.map((hit) => {
-              const Icon = hit.icon;
+              const Icon = categoryIcon.Rooms;
               return (
                 <CommandItem key={hit.id} onSelect={() => go(hit.href)}>
                   <Icon className="size-4 opacity-70" />
@@ -92,7 +122,7 @@ export function WardenTopbarGlobalSearch({ open, onOpenChange }: Props) {
         {complaints.length > 0 ? (
           <CommandGroup heading="Complaints">
             {complaints.map((hit) => {
-              const Icon = hit.icon;
+              const Icon = categoryIcon.Complaints;
               return (
                 <CommandItem key={hit.id} onSelect={() => go(hit.href)}>
                   <Icon className="size-4 opacity-70" />

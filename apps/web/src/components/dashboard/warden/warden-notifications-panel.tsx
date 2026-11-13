@@ -1,58 +1,17 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { Bell, ChevronRight, MessageSquareWarning, ShieldAlert } from 'lucide-react';
+import { Bell, ChevronRight, Loader2, MessageSquareWarning, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useMemo, useState } from 'react';
+import { useState } from 'react';
 
+import { useWardenTopbarLiveContext } from '@/components/dashboard/warden/warden-topbar-live-provider';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
 
-type Kind = 'complaint' | 'alert';
-
-type Item = {
-  id: string;
-  title: string;
-  body: string;
-  time: string;
-  kind: Kind;
-  href?: string;
-  actionLabel?: string;
-};
-
-const initial: Item[] = [
-  {
-    id: '1',
-    title: 'New complaint',
-    body: 'Water pressure — B block needs priority review.',
-    time: '6m ago',
-    kind: 'complaint',
-    href: '/warden/complaints',
-    actionLabel: 'Open ticket',
-  },
-  {
-    id: '2',
-    title: 'Leave request',
-    body: '3 weekend outing forms awaiting approval.',
-    time: '22m ago',
-    kind: 'alert',
-    href: '/warden/leave',
-    actionLabel: 'Review',
-  },
-  {
-    id: '3',
-    title: 'Late return alert',
-    body: 'Student flagged after curfew — room A-118.',
-    time: '1h ago',
-    kind: 'alert',
-    href: '/warden',
-    actionLabel: 'View resident',
-  },
-];
-
-const kindStyles: Record<Kind, { icon: typeof ShieldAlert; iconClass: string; surfaceClass: string }> = {
+const kindStyles = {
   complaint: {
     icon: MessageSquareWarning,
     iconClass: 'text-[var(--nestora-gold)]',
@@ -65,26 +24,22 @@ const kindStyles: Record<Kind, { icon: typeof ShieldAlert; iconClass: string; su
     surfaceClass:
       'border-[color-mix(in_oklch,var(--nestora-sage)_25%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-sage)_8%,var(--card))]',
   },
-};
+} as const;
 
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
 export function WardenNotificationsPanel() {
   const reduceMotion = useReducedMotion();
+  const {
+    notifications,
+    notificationUnreadCount,
+    readNotificationIds,
+    markNotificationRead,
+    markAllNotificationsRead,
+    loading,
+  } = useWardenTopbarLiveContext();
   const [open, setOpen] = useState(false);
-  const [items] = useState(initial);
-  const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
-
-  const unreadCount = useMemo(() => items.filter((item) => !readIds.has(item.id)).length, [items, readIds]);
-
-  const markAllRead = useCallback(() => {
-    setReadIds(new Set(items.map((item) => item.id)));
-  }, [items]);
-
-  const markRead = useCallback((id: string) => {
-    setReadIds((current) => new Set(current).add(id));
-  }, []);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -94,16 +49,16 @@ export function WardenNotificationsPanel() {
           'transition-colors hover:bg-muted/80',
           focusRing,
         )}
-        aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+        aria-label={`Notifications${notificationUnreadCount > 0 ? `, ${notificationUnreadCount} unread` : ''}`}
       >
         <Bell className="size-4" aria-hidden />
-        {unreadCount > 0 ? (
+        {notificationUnreadCount > 0 ? (
           <motion.span
             initial={reduceMotion ? false : { scale: 0 }}
             animate={{ scale: 1 }}
             className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-[var(--nestora-gold)] text-[9px] font-bold text-[var(--nestora-forest-dark)]"
           >
-            {unreadCount}
+            {notificationUnreadCount > 9 ? '9+' : notificationUnreadCount}
           </motion.span>
         ) : null}
       </PopoverTrigger>
@@ -117,10 +72,10 @@ export function WardenNotificationsPanel() {
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="text-sm font-semibold text-[var(--nestora-forest)]">Notifications</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Complaints, alerts & requests</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">Live complaints & pending actions</p>
             </div>
-            {unreadCount > 0 ? (
-              <button type="button" onClick={markAllRead} className={cn('rounded-full px-2.5 py-1 text-[10px] font-semibold', focusRing)}>
+            {notificationUnreadCount > 0 ? (
+              <button type="button" onClick={markAllNotificationsRead} className={cn('rounded-full px-2.5 py-1 text-[10px] font-semibold', focusRing)}>
                 Mark all read
               </button>
             ) : null}
@@ -128,8 +83,17 @@ export function WardenNotificationsPanel() {
         </div>
 
         <ul className="max-h-72 space-y-2 overflow-y-auto p-3">
-          {items.map((item, index) => {
-            const unread = !readIds.has(item.id);
+          {loading && notifications.length === 0 ? (
+            <li className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Syncing…
+            </li>
+          ) : null}
+          {!loading && notifications.length === 0 ? (
+            <li className="py-6 text-center text-sm text-muted-foreground">No pending alerts in your hostel scope.</li>
+          ) : null}
+          {notifications.map((item, index) => {
+            const unread = !readNotificationIds.has(item.id);
             const style = kindStyles[item.kind];
             const Icon = style.icon;
             return (
@@ -154,7 +118,7 @@ export function WardenNotificationsPanel() {
                         <Link
                           href={item.href}
                           onClick={() => {
-                            markRead(item.id);
+                            markNotificationRead(item.id);
                             setOpen(false);
                           }}
                           className={cn(

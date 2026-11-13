@@ -22,7 +22,13 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-export function AdminAnnouncementsDetailPage({ notice }: { notice: AnnouncementRecord }) {
+export function AdminAnnouncementsDetailPage({
+  notice,
+  listHref = '/admin/announcements',
+}: {
+  notice: AnnouncementRecord;
+  listHref?: string;
+}) {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const meta = CATEGORY_META[notice.category];
@@ -51,7 +57,7 @@ export function AdminAnnouncementsDetailPage({ notice }: { notice: AnnouncementR
   return (
     <div ref={rootRef} className="space-y-6 pb-8">
       <div data-ann-detail className="flex flex-wrap items-center gap-3">
-        <Button nativeButton={false} variant="outline" size="sm" className="rounded-xl" render={<Link href="/admin/announcements" className={focusRing} />}>
+        <Button nativeButton={false} variant="outline" size="sm" className="rounded-xl" render={<Link href={listHref} className={focusRing} />}>
           <ArrowLeft className="size-4" aria-hidden />
           Announcements
         </Button>

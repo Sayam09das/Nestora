@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { ClipboardCheck, Megaphone, UserPlus, Wrench } from 'lucide-react';
+import { BarChart3, ClipboardCheck, ClipboardList, Megaphone, UserPlus, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { useRef } from 'react';
 
@@ -42,6 +42,20 @@ const actions = [
     href: '/warden/announcements',
     icon: Megaphone,
   },
+  {
+    id: 'register',
+    label: 'Daily register',
+    hint: "Today's hostel activity log",
+    href: '/warden/register',
+    icon: ClipboardList,
+  },
+  {
+    id: 'reports',
+    label: 'Reports',
+    hint: 'Analytics and exports',
+    href: '/warden/reports',
+    icon: BarChart3,
+  },
 ] as const;
 
 export function WardenDashboardQuickActionsBar() {
@@ -72,7 +86,7 @@ export function WardenDashboardQuickActionsBar() {
       <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--nestora-sage)]">
         Quick actions
       </p>
-      <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {actions.map((action, index) => {
           const Icon = action.icon;
           return (

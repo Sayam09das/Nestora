@@ -68,3 +68,11 @@ export const registerStaffBodySchema = z
   .strict();
 
 export type RegisterStaffBody = z.infer<typeof registerStaffBodySchema>;
+
+export const updateStaffHostelAssignmentsBodySchema = z
+  .object({
+    hostelIds: z.array(z.string().uuid()).max(12),
+  })
+  .strict();
+
+export type UpdateStaffHostelAssignmentsBody = z.infer<typeof updateStaffHostelAssignmentsBodySchema>;

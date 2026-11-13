@@ -27,10 +27,12 @@ export function AdminSettingsDetailPage({
   panel,
   fields: fieldsProp,
   changeLog,
+  listHref = '/admin/settings',
 }: {
   panel: SettingsPanel;
   fields?: SettingField[];
   changeLog?: Array<{ when: string; actor: string; change: string }>;
+  listHref?: string;
 }) {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -58,7 +60,7 @@ export function AdminSettingsDetailPage({
   return (
     <div ref={rootRef} className="space-y-6 pb-8">
       <div data-set-detail className="flex flex-wrap items-center gap-3">
-        <Button nativeButton={false} variant="outline" size="sm" className="rounded-xl" render={<Link href="/admin/settings" className={focusRing} />}>
+        <Button nativeButton={false} variant="outline" size="sm" className="rounded-xl" render={<Link href={listHref} className={focusRing} />}>
           <ArrowLeft className="size-4" aria-hidden />
           Settings
         </Button>

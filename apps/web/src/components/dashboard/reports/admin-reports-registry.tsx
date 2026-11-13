@@ -14,9 +14,9 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-type Props = { rows: ReportTemplate[]; hidden?: boolean };
+type Props = { rows: ReportTemplate[]; hidden?: boolean; detailBasePath?: string };
 
-export function AdminReportsRegistry({ rows, hidden }: Props) {
+export function AdminReportsRegistry({ rows, hidden, detailBasePath = '/admin/reports' }: Props) {
   const reduceMotion = useReducedMotion();
   return (
     <section
@@ -48,7 +48,7 @@ export function AdminReportsRegistry({ rows, hidden }: Props) {
                   className="border-b last:border-0 hover:bg-muted/30"
                 >
                   <td className="px-4 py-3">
-                    <Link href={`/admin/reports/${row.id}`} className={cn('font-medium text-[var(--nestora-forest)]', focusRing)}>
+                    <Link href={`${detailBasePath}/${row.id}`} className={cn('font-medium text-[var(--nestora-forest)]', focusRing)}>
                       <span className="block text-[11px] text-muted-foreground">{row.code}</span>
                       {row.title}
                     </Link>

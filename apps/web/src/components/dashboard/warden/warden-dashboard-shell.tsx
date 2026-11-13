@@ -6,12 +6,16 @@ import { RoleAuthSessionProvider } from '@/components/dashboard/role-auth-sessio
 import { WardenDashboardMobileNav } from '@/components/dashboard/warden/warden-dashboard-mobile-nav';
 import { WardenDashboardSidebar } from '@/components/dashboard/warden/warden-dashboard-sidebar';
 import { WardenDashboardTopbar } from '@/components/dashboard/warden/warden-dashboard-topbar';
+import { WardenShellHostelBootstrap } from '@/components/dashboard/warden/warden-shell-hostel-bootstrap';
 import { WardenShellProvider } from '@/components/dashboard/warden/warden-shell-provider';
+import { WardenTopbarLiveProvider } from '@/components/dashboard/warden/warden-topbar-live-provider';
 
 export function WardenDashboardShell({ children }: { children: ReactNode }) {
   return (
     <RoleAuthSessionProvider allowedRoles={['HOSTEL_WARDEN']} homePath="/warden">
       <WardenShellProvider>
+        <WardenShellHostelBootstrap />
+        <WardenTopbarLiveProvider>
         <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-[color-mix(in_oklch,var(--nestora-cream)_12%,var(--muted))]">
           <WardenDashboardTopbar />
           <WardenDashboardMobileNav />
@@ -22,6 +26,7 @@ export function WardenDashboardShell({ children }: { children: ReactNode }) {
             </main>
           </div>
         </div>
+        </WardenTopbarLiveProvider>
       </WardenShellProvider>
     </RoleAuthSessionProvider>
   );

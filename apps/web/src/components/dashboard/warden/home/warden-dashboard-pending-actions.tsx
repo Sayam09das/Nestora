@@ -39,7 +39,7 @@ export function WardenDashboardPendingActions({ snapshot }: Props) {
       id: 'admissions',
       label: 'Admission verifications',
       hint: `${pending.admissions} awaiting tier-2`,
-      href: '/warden/students',
+      href: '/warden/students?tab=verification',
       icon: ClipboardList,
       accent: 'var(--nestora-forest)',
     },

@@ -19,9 +19,10 @@ const focusRing =
 type Props = {
   rows: AnnouncementRecord[];
   hidden?: boolean;
+  detailBasePath?: string;
 };
 
-export function AdminAnnouncementsList({ rows, hidden }: Props) {
+export function AdminAnnouncementsList({ rows, hidden, detailBasePath = '/admin/announcements' }: Props) {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -52,7 +53,7 @@ export function AdminAnnouncementsList({ rows, hidden }: Props) {
                 return (
                   <tr key={row.id} className="border-b last:border-0 hover:bg-[color-mix(in_oklch,var(--nestora-cream)_12%,var(--card))]">
                     <td className="px-4 py-3">
-                      <Link href={`/admin/announcements/${row.id}`} className={cn('font-medium text-[var(--nestora-forest)]', focusRing)}>
+                      <Link href={`${detailBasePath}/${row.id}`} className={cn('font-medium text-[var(--nestora-forest)]', focusRing)}>
                         <span className="block text-[11px] text-muted-foreground">{row.noticeRef}</span>
                         {row.title}
                       </Link>

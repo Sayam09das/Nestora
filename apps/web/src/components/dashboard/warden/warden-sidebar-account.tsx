@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 import { useWardenShell } from '@/components/dashboard/warden/warden-shell-provider';
-import { WARDEN_ASSIGNED_HOSTELS } from '@/components/dashboard/warden/warden-topbar-data';
 import { Button } from '@/components/ui/button';
 import { fetchCurrentUser, logout } from '@/lib/api/auth';
 import { cn } from '@/lib/utils';
@@ -25,11 +24,11 @@ const focusRing =
 export function WardenSidebarAccount() {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
-  const { sidebarCollapsed, selectedHostelId } = useWardenShell();
+  const { sidebarCollapsed, selectedHostelId, assignedHostels } = useWardenShell();
   const [displayName, setDisplayName] = useState('Hostel Warden');
 
   const hostelLabel =
-    WARDEN_ASSIGNED_HOSTELS.find((h) => h.id === selectedHostelId)?.label ?? 'Assigned hostel';
+    assignedHostels.find((h) => h.id === selectedHostelId)?.label ?? assignedHostels[0]?.label ?? 'Assigned hostel';
 
   useEffect(() => {
     let cancelled = false;

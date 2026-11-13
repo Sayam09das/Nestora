@@ -1,11 +1,11 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { MessageCircle, Send } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import { Loader2, MessageCircle, Send } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
 
-import { SAMPLE_WARDEN_MESSAGES } from '@/components/dashboard/warden/warden-topbar-data';
+import { useWardenTopbarLiveContext } from '@/components/dashboard/warden/warden-topbar-live-provider';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
@@ -17,17 +17,7 @@ const focusRing =
 export function WardenTopbarMessagesPanel() {
   const reduceMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
-  const [messages] = useState(SAMPLE_WARDEN_MESSAGES);
-  const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
-
-  const unreadCount = useMemo(
-    () => messages.filter((m) => m.unread && !readIds.has(m.id)).length,
-    [messages, readIds],
-  );
-
-  const markRead = useCallback((id: string) => {
-    setReadIds((current) => new Set(current).add(id));
-  }, []);
+  const { messages, messageUnreadCount, readMessageIds, markMessageRead, loading } = useWardenTopbarLiveContext();
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -37,16 +27,16 @@ export function WardenTopbarMessagesPanel() {
           'transition-colors hover:bg-muted/80',
           focusRing,
         )}
-        aria-label={`Messages${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+        aria-label={`Messages${messageUnreadCount > 0 ? `, ${messageUnreadCount} unread` : ''}`}
       >
         <MessageCircle className="size-4" aria-hidden />
-        {unreadCount > 0 ? (
+        {messageUnreadCount > 0 ? (
           <motion.span
             initial={reduceMotion ? false : { scale: 0 }}
             animate={{ scale: 1 }}
             className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-[var(--nestora-forest)] text-[9px] font-bold text-white"
           >
-            {unreadCount}
+            {messageUnreadCount > 9 ? '9+' : messageUnreadCount}
           </motion.span>
         ) : null}
       </PopoverTrigger>
@@ -60,25 +50,44 @@ export function WardenTopbarMessagesPanel() {
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="text-sm font-semibold text-[var(--nestora-forest)]">Messages</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Communication with admin</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">Live hostel notices</p>
             </div>
-            <button
-              type="button"
-              onClick={() => toast.message('Comms hub', { description: 'Messaging API connects in a later milestone.' })}
+            <Link
+              href="/warden/announcements"
+              onClick={() => setOpen(false)}
               className={cn(
                 'inline-flex items-center gap-1 rounded-full bg-[var(--nestora-forest)] px-2.5 py-1 text-[10px] font-semibold text-white',
                 focusRing,
               )}
             >
               <Send className="size-3" aria-hidden />
-              New
-            </button>
+              All notices
+            </Link>
           </div>
         </div>
 
         <ul className="max-h-72 space-y-2 overflow-y-auto p-3">
+          {loading && messages.length === 0 ? (
+            <li className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Syncing…
+            </li>
+          ) : null}
+          {!loading && messages.length === 0 ? (
+            <li className="py-6 text-center text-sm text-muted-foreground">No live notices for your hostel.</li>
+          ) : null}
           {messages.map((msg, index) => {
-            const unread = msg.unread && !readIds.has(msg.id);
+            const unread = msg.unread && !readMessageIds.has(msg.id);
+            const body = (
+              <>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-caption font-semibold text-foreground">{msg.from}</p>
+                  <time className="shrink-0 text-[10px] text-muted-foreground">{msg.time}</time>
+                </div>
+                <p className="text-[10px] text-[var(--nestora-sage)]">{msg.role}</p>
+                <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">{msg.preview}</p>
+              </>
+            );
             return (
               <motion.li
                 key={msg.id}
@@ -86,24 +95,35 @@ export function WardenTopbarMessagesPanel() {
                 animate={open ? { opacity: 1, y: 0 } : undefined}
                 transition={{ delay: index * 0.04, duration: 0.3, ease: motionEase }}
               >
-                <button
-                  type="button"
-                  onClick={() => markRead(msg.id)}
-                  className={cn(
-                    'w-full rounded-xl border p-3 text-left transition-shadow hover:shadow-sm',
-                    unread
-                      ? 'border-[color-mix(in_oklch,var(--nestora-sage)_25%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-sage)_8%,var(--card))]'
-                      : 'border-border bg-card opacity-90',
-                    focusRing,
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-caption font-semibold text-foreground">{msg.from}</p>
-                    <time className="shrink-0 text-[10px] text-muted-foreground">{msg.time}</time>
-                  </div>
-                  <p className="text-[10px] text-[var(--nestora-sage)]">{msg.role}</p>
-                  <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">{msg.preview}</p>
-                </button>
+                {msg.href ? (
+                  <Link
+                    href={msg.href}
+                    onClick={() => markMessageRead(msg.id)}
+                    className={cn(
+                      'block w-full rounded-xl border p-3 text-left transition-shadow hover:shadow-sm',
+                      unread
+                        ? 'border-[color-mix(in_oklch,var(--nestora-sage)_25%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-sage)_8%,var(--card))]'
+                        : 'border-border bg-card opacity-90',
+                      focusRing,
+                    )}
+                  >
+                    {body}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => markMessageRead(msg.id)}
+                    className={cn(
+                      'w-full rounded-xl border p-3 text-left transition-shadow hover:shadow-sm',
+                      unread
+                        ? 'border-[color-mix(in_oklch,var(--nestora-sage)_25%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-sage)_8%,var(--card))]'
+                        : 'border-border bg-card opacity-90',
+                      focusRing,
+                    )}
+                  >
+                    {body}
+                  </button>
+                )}
               </motion.li>
             );
           })}

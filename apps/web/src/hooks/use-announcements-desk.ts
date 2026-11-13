@@ -16,10 +16,11 @@ export type AnnouncementsDeskFilters = {
   status: string;
 };
 
-type Options = { pollIntervalMs?: number };
+type Options = { pollIntervalMs?: number; summaryScope?: string };
 
 export function useAnnouncementsDesk(filters: AnnouncementsDeskFilters, options?: Options) {
   const pollIntervalMs = options?.pollIntervalMs ?? 20_000;
+  const summaryScope = options?.summaryScope;
   const [summary, setSummary] = useState<AnnouncementsDeskSummary | null>(null);
   const [notices, setNotices] = useState<AnnouncementRecord[]>([]);
   const [loadingSummary, setLoadingSummary] = useState(true);
@@ -28,7 +29,7 @@ export function useAnnouncementsDesk(filters: AnnouncementsDeskFilters, options?
 
   const loadSummary = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoadingSummary(true);
-    const result = await fetchAnnouncementsDeskSummary();
+    const result = await fetchAnnouncementsDeskSummary(summaryScope);
     if (result.summary) {
       setSummary(result.summary);
       setError(null);
@@ -36,7 +37,7 @@ export function useAnnouncementsDesk(filters: AnnouncementsDeskFilters, options?
       setError(result.error);
     }
     if (!opts?.silent) setLoadingSummary(false);
-  }, []);
+  }, [summaryScope]);
 
   const loadList = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -72,12 +73,19 @@ export function useAnnouncementsDesk(filters: AnnouncementsDeskFilters, options?
   }, [loadList, pollIntervalMs]);
 
   useEffect(() => {
-    const onFocus = () => {
+    const refresh = () => {
       void loadSummary({ silent: true });
       void loadList({ silent: true });
     };
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
+    window.addEventListener('focus', refresh);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [loadList, loadSummary]);
 
   const refresh = useCallback(() => {

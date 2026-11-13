@@ -19,11 +19,14 @@ export type ComplaintsDeskSummary = {
   };
 };
 
-export async function fetchComplaintsDeskSummary(): Promise<{
+export async function fetchComplaintsDeskSummary(hostel?: string): Promise<{
   summary?: ComplaintsDeskSummary;
   error?: string;
 }> {
-  const response = await apiFetch('/api/v1/complaints/desk/summary');
+  const params = new URLSearchParams();
+  if (hostel && hostel !== 'All Hostels') params.set('hostel', hostel);
+  const qs = params.toString();
+  const response = await apiFetch(`/api/v1/complaints/desk/summary${qs ? `?${qs}` : ''}`);
   const body = (await response.json()) as ApiSuccessResponse<{ summary: ComplaintsDeskSummary }> | ApiErrorResponse;
   if (!body.success) return { error: body.error.message };
   return { summary: body.data.summary };

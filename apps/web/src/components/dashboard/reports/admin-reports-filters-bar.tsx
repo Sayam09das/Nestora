@@ -23,6 +23,7 @@ type Props = {
   onPeriodFilterChange: (v: string) => void;
   onReset: () => void;
   hostelOptions?: readonly string[];
+  showHostelFilter?: boolean;
 };
 
 export function AdminReportsFiltersBar(props: Props) {
@@ -31,7 +32,7 @@ export function AdminReportsFiltersBar(props: Props) {
     let n = 0;
     if (props.search.trim()) n++;
     if (props.categoryFilter !== 'All Categories') n++;
-    if (props.hostelFilter !== 'All Hostels') n++;
+    if (props.showHostelFilter !== false && props.hostelFilter !== 'All Hostels') n++;
     if (props.periodFilter !== 'Last 30 days') n++;
     return n;
   }, [props]);
@@ -47,7 +48,12 @@ export function AdminReportsFiltersBar(props: Props) {
           Reset
         </Button>
       </div>
-      <div className="mt-4 grid gap-3 lg:grid-cols-[1fr,auto,auto,auto]">
+      <div
+        className={cn(
+          'mt-4 grid gap-3',
+          props.showHostelFilter === false ? 'lg:grid-cols-[1fr,auto,auto]' : 'lg:grid-cols-[1fr,auto,auto,auto]',
+        )}
+      >
         <label className="relative block">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input value={props.search} onChange={(e) => props.onSearchChange(e.target.value)} placeholder="Search reports…" className={cn('h-10 rounded-xl pl-9', focusRing)} />
@@ -59,13 +65,15 @@ export function AdminReportsFiltersBar(props: Props) {
             </option>
           ))}
         </select>
-        <select value={props.hostelFilter} onChange={(e) => props.onHostelFilterChange(e.target.value)} className={selectClass}>
-          {(props.hostelOptions ?? ['All Hostels']).map((h) => (
-            <option key={h} value={h}>
-              {h}
-            </option>
-          ))}
-        </select>
+        {props.showHostelFilter !== false ? (
+          <select value={props.hostelFilter} onChange={(e) => props.onHostelFilterChange(e.target.value)} className={selectClass}>
+            {(props.hostelOptions ?? ['All Hostels']).map((h) => (
+              <option key={h} value={h}>
+                {h}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <select value={props.periodFilter} onChange={(e) => props.onPeriodFilterChange(e.target.value)} className={selectClass}>
           {REPORT_PERIOD_FILTERS.map((p) => (
             <option key={p} value={p}>

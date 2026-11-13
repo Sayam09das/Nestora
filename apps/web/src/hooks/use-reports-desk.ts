@@ -106,13 +106,20 @@ export function useReportsDesk(
   }, [loadPreview, pollIntervalMs]);
 
   useEffect(() => {
-    const onFocus = () => {
+    const refresh = () => {
       void loadSummary({ silent: true });
       void loadList({ silent: true });
       void loadPreview({ silent: true });
     };
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
+    window.addEventListener('focus', refresh);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [loadList, loadPreview, loadSummary]);
 
   const refresh = useCallback(() => {

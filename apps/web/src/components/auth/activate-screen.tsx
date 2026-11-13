@@ -8,7 +8,7 @@ import { AuthFlowShell } from '@/components/auth/auth-flow-shell';
 import { AuthFieldInput } from '@/components/auth/auth-form-fields';
 import { nestoraPrimaryCtaClasses } from '@/components/marketing/cta-styles';
 import { activateAccount } from '@/lib/api/auth';
-import { getApiBaseUrl } from '@/lib/api/client';
+import { isApiConfigured } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 
 export function ActivateAccountScreen() {
@@ -28,7 +28,7 @@ export function ActivateAccountScreen() {
     event.preventDefault();
     setError(null);
 
-    if (!getApiBaseUrl()) {
+    if (!isApiConfigured()) {
       setError('API URL is not configured. Set NEXT_PUBLIC_API_URL in apps/web/.env.local.');
       return;
     }

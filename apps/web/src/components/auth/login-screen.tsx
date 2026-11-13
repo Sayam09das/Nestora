@@ -20,7 +20,7 @@ import { useId, useRef, useState } from 'react';
 import { AuthFieldInput } from '@/components/auth/auth-form-fields';
 import { AuthSkiperLink } from '@/components/auth/auth-skiper-link';
 import { loginWithPassword, postLoginRedirect } from '@/lib/api/auth';
-import { getApiBaseUrl } from '@/lib/api/client';
+import { isApiConfigured } from '@/lib/api/client';
 import { nestoraPrimaryCtaClasses } from '@/components/marketing/cta-styles';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { NESTORA_BRAND_NAME } from '@/components/marketing/navbar';
@@ -94,7 +94,7 @@ export function LoginScreen() {
     event.preventDefault();
     setError(null);
 
-    if (!getApiBaseUrl()) {
+    if (!isApiConfigured()) {
       setError('API URL is not configured. Set NEXT_PUBLIC_API_URL in apps/web/.env.local.');
       return;
     }

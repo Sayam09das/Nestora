@@ -10,7 +10,17 @@ import { fetchReportDeskPreview, fetchReportDeskTemplate } from '@/lib/api/repor
 import type { ReportDeskPreview } from '@/lib/api/reports';
 import { Button } from '@/components/ui/button';
 
-export function AdminReportsDetailRoute({ reportId }: { reportId: string }) {
+type DetailRouteProps = {
+  reportId: string;
+  listHref?: string;
+  previewParams?: { hostel?: string; period?: string };
+};
+
+export function AdminReportsDetailRoute({
+  reportId,
+  listHref = '/admin/reports',
+  previewParams,
+}: DetailRouteProps) {
   const [report, setReport] = useState<ReportTemplate | null>(null);
   const [preview, setPreview] = useState<ReportDeskPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +32,7 @@ export function AdminReportsDetailRoute({ reportId }: { reportId: string }) {
       setLoading(true);
       const [templateResult, previewResult] = await Promise.all([
         fetchReportDeskTemplate(reportId),
-        fetchReportDeskPreview(reportId, { period: 'Last 30 days' }),
+        fetchReportDeskPreview(reportId, previewParams ?? { period: 'Last 30 days' }),
       ]);
       if (cancelled) return;
       if (templateResult.report) {
@@ -37,7 +47,7 @@ export function AdminReportsDetailRoute({ reportId }: { reportId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [reportId]);
+  }, [reportId, previewParams?.hostel, previewParams?.period]);
 
   if (loading) {
     return (
@@ -52,10 +62,10 @@ export function AdminReportsDetailRoute({ reportId }: { reportId: string }) {
     return (
       <div className="space-y-4 py-8 text-center">
         <p className="text-sm text-destructive">{error ?? 'Report not found.'}</p>
-        <Button nativeButton={false} variant="outline" className="rounded-xl" render={<Link href="/admin/reports">Back to reports</Link>} />
+        <Button nativeButton={false} variant="outline" className="rounded-xl" render={<Link href={listHref}>Back to reports</Link>} />
       </div>
     );
   }
 
-  return <AdminReportsDetailPage report={report} preview={preview} />;
+  return <AdminReportsDetailPage report={report} preview={preview} listHref={listHref} />;
 }

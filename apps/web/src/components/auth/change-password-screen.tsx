@@ -7,7 +7,7 @@ import { AuthFlowShell } from '@/components/auth/auth-flow-shell';
 import { AuthFieldInput } from '@/components/auth/auth-form-fields';
 import { nestoraPrimaryCtaClasses } from '@/components/marketing/cta-styles';
 import { changePassword, fetchCurrentUser, postLoginRedirect } from '@/lib/api/auth';
-import { getApiBaseUrl } from '@/lib/api/client';
+import { isApiConfigured } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 
 export function ChangePasswordScreen() {
@@ -25,7 +25,7 @@ export function ChangePasswordScreen() {
   useEffect(() => {
     let active = true;
     (async () => {
-      if (!getApiBaseUrl()) {
+      if (!isApiConfigured()) {
         setError('API URL is not configured.');
         setBooting(false);
         return;

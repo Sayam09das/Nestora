@@ -1,8 +1,8 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { BookOpen, Headphones, LifeBuoy, Phone } from 'lucide-react';
-import { toast } from 'sonner';
+import { BarChart3, ClipboardList, LifeBuoy, UserRound } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 import {
   DropdownMenu,
@@ -10,6 +10,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
@@ -19,6 +20,7 @@ const focusRing =
 
 export function WardenTopbarHelpMenu() {
   const reduceMotion = useReducedMotion();
+  const router = useRouter();
 
   return (
     <DropdownMenu>
@@ -36,29 +38,34 @@ export function WardenTopbarHelpMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 rounded-xl">
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="text-xs text-muted-foreground">Warden assistance</DropdownMenuLabel>
+          <DropdownMenuLabel className="text-xs text-muted-foreground">Warden desks</DropdownMenuLabel>
           <DropdownMenuItem
             className="rounded-lg"
-            onClick={() => toast.message('Duty officer', { description: '+91 98765 43210 · escalation line (sample).' })}
+            onClick={() => router.push('/warden/register')}
           >
-            <Phone className="size-4 text-[var(--nestora-gold)]" />
-            Call duty officer
+            <ClipboardList className="size-4 text-[var(--nestora-sage)]" />
+            Daily register log
           </DropdownMenuItem>
           <DropdownMenuItem
             className="rounded-lg"
-            onClick={() => toast.message('Admin support', { description: 'Connects to university admin desk (sample).' })}
+            onClick={() => router.push('/warden/reports')}
           >
-            <Headphones className="size-4 text-[var(--nestora-sage)]" />
-            Live support chat
+            <BarChart3 className="size-4 text-[var(--nestora-gold)]" />
+            Reports &amp; analytics
           </DropdownMenuItem>
           <DropdownMenuItem
             className="rounded-lg"
-            onClick={() => toast.message('Handbook', { description: 'Warden SOP library (sample).' })}
+            onClick={() => router.push('/warden/profile')}
           >
-            <BookOpen className="size-4 text-[var(--nestora-forest)]" />
-            Warden handbook
+            <UserRound className="size-4 text-[var(--nestora-forest)]" />
+            Profile &amp; emergency contact
           </DropdownMenuItem>
         </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="rounded-lg" onClick={() => router.push('/warden/incidents')}>
+          <LifeBuoy className="size-4 text-destructive" />
+          Report / view incidents
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

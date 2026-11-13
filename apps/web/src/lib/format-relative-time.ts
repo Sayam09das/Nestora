@@ -25,3 +25,12 @@ export function formatRelativeTime(iso: string, now = Date.now()): string {
 export function formatAnnouncementMeta(iso: string): string {
   return `Posted ${formatRelativeTime(iso)} · All students`;
 }
+
+/** Past-tense shorthand for desk notification lists (e.g. "12m ago"). */
+export function formatRelativeTimeFromIso(iso: string): string {
+  const label = formatRelativeTime(iso);
+  if (label.startsWith('in ')) {
+    return 'Just now';
+  }
+  return label;
+}

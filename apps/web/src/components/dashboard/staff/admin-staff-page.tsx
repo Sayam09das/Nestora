@@ -210,26 +210,20 @@ export function AdminStaffPage({ pageVariant = 'all' }: AdminStaffPageProps) {
       />
 
       <p className="text-center text-xs text-muted-foreground" role="note">
-        Directory syncs with the API; summary stats refresh about every minute.
+        Live directory — refreshes every 20 seconds and when you return to this tab.
       </p>
 
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete staff record?</AlertDialogTitle>
+            <AlertDialogTitle>Remove from directory?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes <strong>{deleteTarget?.name}</strong> ({deleteTarget?.staffId}) from the directory. This
-              action cannot be undone in production — confirm only for sample UI.
+              Deactivating <strong>{deleteTarget?.name}</strong> ({deleteTarget?.staffId}) is not wired yet. Open the
+              profile to edit assignments and account status instead.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="rounded-xl bg-destructive text-white hover:bg-destructive/90"
-              onClick={() => setDeleteTarget(null)}
-            >
-              Delete
-            </AlertDialogAction>
+            <AlertDialogCancel className="rounded-xl">Close</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

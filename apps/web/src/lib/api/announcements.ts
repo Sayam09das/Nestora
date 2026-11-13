@@ -16,11 +16,14 @@ export type AnnouncementsDeskSummary = {
   };
 };
 
-export async function fetchAnnouncementsDeskSummary(): Promise<{
+export async function fetchAnnouncementsDeskSummary(scope?: string): Promise<{
   summary?: AnnouncementsDeskSummary;
   error?: string;
 }> {
-  const response = await apiFetch('/api/v1/announcements/desk/summary');
+  const params = new URLSearchParams();
+  if (scope && scope !== 'All Scopes') params.set('scope', scope);
+  const qs = params.toString();
+  const response = await apiFetch(`/api/v1/announcements/desk/summary${qs ? `?${qs}` : ''}`);
   const body = (await response.json()) as
     | ApiSuccessResponse<{ summary: AnnouncementsDeskSummary }>
     | ApiErrorResponse;

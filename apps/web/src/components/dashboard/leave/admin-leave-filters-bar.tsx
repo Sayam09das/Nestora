@@ -23,6 +23,7 @@ type Props = {
   onStatusFilterChange: (v: string) => void;
   onReset: () => void;
   hostelOptions?: readonly string[];
+  showHostelFilter?: boolean;
 };
 
 export function AdminLeaveFiltersBar(props: Props) {
@@ -31,7 +32,7 @@ export function AdminLeaveFiltersBar(props: Props) {
   const active = useMemo(() => {
     let n = 0;
     if (props.search.trim()) n++;
-    if (props.hostelFilter !== 'All Hostels') n++;
+    if (props.showHostelFilter !== false && props.hostelFilter !== 'All Hostels') n++;
     if (props.categoryFilter !== 'All Categories') n++;
     if (props.statusFilter !== 'All Status') n++;
     return n;
@@ -67,13 +68,15 @@ export function AdminLeaveFiltersBar(props: Props) {
             className={cn('h-10 rounded-xl pl-9', focusRing)}
           />
         </label>
-        <select value={props.hostelFilter} onChange={(e) => props.onHostelFilterChange(e.target.value)} className={selectClass}>
-          {hostelOptions.map((h) => (
-            <option key={h} value={h}>
-              {h}
-            </option>
-          ))}
-        </select>
+        {props.showHostelFilter !== false ? (
+          <select value={props.hostelFilter} onChange={(e) => props.onHostelFilterChange(e.target.value)} className={selectClass}>
+            {hostelOptions.map((h) => (
+              <option key={h} value={h}>
+                {h}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <select value={props.categoryFilter} onChange={(e) => props.onCategoryFilterChange(e.target.value)} className={selectClass}>
           {LEAVE_CATEGORY_FILTERS.map((c) => (
             <option key={c} value={c}>

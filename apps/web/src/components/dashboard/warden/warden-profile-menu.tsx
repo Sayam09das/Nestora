@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { LayoutDashboard, LogOut, Settings, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, LogOut, Settings, ShieldCheck, UserRound } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -40,13 +40,23 @@ export function WardenProfileMenu({ className }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    void fetchCurrentUser().then(({ user }) => {
-      if (cancelled || !user) return;
-      setProfileName(`${user.firstName} ${user.lastName}`.trim() || 'Warden');
-      setProfileEmail(user.email);
-    });
+    const loadProfile = () => {
+      void fetchCurrentUser().then(({ user }) => {
+        if (cancelled || !user) return;
+        setProfileName(`${user.firstName} ${user.lastName}`.trim() || 'Warden');
+        setProfileEmail(user.email);
+      });
+    };
+    loadProfile();
+    const interval = window.setInterval(loadProfile, 60_000);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') loadProfile();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);
 
@@ -128,11 +138,31 @@ export function WardenProfileMenu({ className }: Props) {
               className="rounded-lg"
               onClick={() => {
                 setOpen(false);
-                router.push('/change-password');
+                router.push('/warden/profile');
+              }}
+            >
+              <UserRound className="size-4 text-[var(--nestora-sage)]" />
+              My profile
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="rounded-lg"
+              onClick={() => {
+                setOpen(false);
+                router.push('/warden/settings');
               }}
             >
               <Settings className="size-4 text-[var(--nestora-sage)]" />
-              Profile &amp; settings
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="rounded-lg"
+              onClick={() => {
+                setOpen(false);
+                router.push('/change-password');
+              }}
+            >
+              <ShieldCheck className="size-4 text-[var(--nestora-gold)]" />
+              Change password
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

@@ -21,9 +21,11 @@ const focusRing =
 export function AdminReportsDetailPage({
   report,
   preview,
+  listHref = '/admin/reports',
 }: {
   report: ReportTemplate;
   preview?: ReportDeskPreview | null;
+  listHref?: string;
 }) {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -52,7 +54,7 @@ export function AdminReportsDetailPage({
   return (
     <div ref={rootRef} className="space-y-6 pb-8">
       <div data-rpt-detail className="flex flex-wrap items-center gap-3">
-        <Button nativeButton={false} variant="outline" size="sm" className="rounded-xl" render={<Link href="/admin/reports" className={focusRing} />}>
+        <Button nativeButton={false} variant="outline" size="sm" className="rounded-xl" render={<Link href={listHref} className={focusRing} />}>
           <ArrowLeft className="size-4" aria-hidden />
           Reports
         </Button>

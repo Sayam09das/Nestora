@@ -11,6 +11,14 @@ export async function parseApiResponse<T>(response: Response): Promise<ParsedApi
   try {
     body = (await response.json()) as ApiSuccessResponse<T> | ApiErrorResponse;
   } catch {
+    if (status === 500 || status === 502 || status === 503 || status === 504) {
+      return {
+        ok: false,
+        status,
+        message:
+          'Cannot reach the Nestora API. Start it with `pnpm --filter @nestora/api dev` and ensure Neon (or local Postgres) is reachable.',
+      };
+    }
     return {
       ok: false,
       status,

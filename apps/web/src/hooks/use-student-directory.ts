@@ -23,8 +23,10 @@ type UseStudentDirectoryOptions = {
   pollIntervalMs?: number;
 };
 
+const DEFAULT_POLL_MS = 20_000;
+
 export function useStudentDirectory(filters: StudentDirectoryFilters, options?: UseStudentDirectoryOptions) {
-  const pollIntervalMs = options?.pollIntervalMs ?? 60_000;
+  const pollIntervalMs = options?.pollIntervalMs ?? DEFAULT_POLL_MS;
   const [summary, setSummary] = useState<StudentDirectorySummary | null>(null);
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [total, setTotal] = useState(0);
@@ -75,18 +77,36 @@ export function useStudentDirectory(filters: StudentDirectoryFilters, options?: 
 
   useEffect(() => {
     void loadSummary();
-    const interval = setInterval(() => {
+    const interval = window.setInterval(() => {
       void loadSummary();
     }, pollIntervalMs);
-    return () => clearInterval(interval);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void loadSummary();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [loadSummary, pollIntervalMs]);
 
   useEffect(() => {
     void loadList();
-    const interval = setInterval(() => {
+    const interval = window.setInterval(() => {
       void loadList({ silent: true });
     }, pollIntervalMs);
-    return () => clearInterval(interval);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void loadList({ silent: true });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [loadList, pollIntervalMs]);
 
   const refresh = useCallback(() => {

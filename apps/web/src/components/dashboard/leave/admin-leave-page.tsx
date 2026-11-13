@@ -15,6 +15,7 @@ import { queueLeaves, type LeaveRecord } from '@/components/dashboard/leave/admi
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Button } from '@/components/ui/button';
 import { useLeaveDesk } from '@/hooks/use-leave-desk';
+import { patchLeaveDecision } from '@/lib/api/leaves';
 
 export function AdminLeavePage() {
   const reduceMotion = useReducedMotion();
@@ -110,11 +111,15 @@ export function AdminLeavePage() {
     setLens(next);
   };
 
-  const onDecided = (id: string, decision: 'Approved' | 'Rejected', _feedback: string) => {
-    patchApplication(id, {
-      status: decision === 'Approved' ? 'Approved' : 'Rejected',
-      reviewedBy: 'Warden (pending API)',
-    });
+  const onDecided = async (id: string, decision: 'Approved' | 'Rejected', feedback: string) => {
+    const result = await patchLeaveDecision({ leaveId: id, decision, feedback: feedback || undefined });
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    if (result.application) {
+      patchApplication(id, result.application);
+    }
     void refresh();
   };
 

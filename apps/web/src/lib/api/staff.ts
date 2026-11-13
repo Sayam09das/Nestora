@@ -29,6 +29,7 @@ export type StaffDirectorySummary = {
     roles: string[];
     departments: string[];
     hostels: string[];
+    hostelOptions?: Array<{ id: string; name: string }>;
   };
 };
 
@@ -205,7 +206,13 @@ export type AdminStaffProfile = {
     hostelName: string;
     assignedAt: string;
   };
+  assignments: Array<{
+    hostelId: string;
+    hostelName: string;
+    assignedAt: string;
+  }>;
   wardenOf: string | null;
+  wardenInCharge: Array<{ hostelId: string; hostelName: string }>;
 };
 
 export async function fetchAdminStaffProfile(userId: string): Promise<{
@@ -213,6 +220,24 @@ export async function fetchAdminStaffProfile(userId: string): Promise<{
   error?: string;
 }> {
   const response = await apiFetch(`/api/v1/staff/${encodeURIComponent(userId)}/profile`);
+  const parsed = await parseApiResponse<{ profile: AdminStaffProfile }>(response);
+  if (!parsed.ok) {
+    return { error: parsed.message };
+  }
+  return { profile: parsed.data.profile };
+}
+
+export async function updateStaffHostelAssignments(
+  userId: string,
+  hostelIds: string[],
+): Promise<{ profile?: AdminStaffProfile; error?: string }> {
+  const response = await apiFetchMutating(
+    `/api/v1/staff/${encodeURIComponent(userId)}/hostel-assignments`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ hostelIds }),
+    },
+  );
   const parsed = await parseApiResponse<{ profile: AdminStaffProfile }>(response);
   if (!parsed.ok) {
     return { error: parsed.message };

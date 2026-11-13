@@ -23,6 +23,7 @@ type Props = {
   onSelect: (id: string) => void;
   listKey: string;
   hidden?: boolean;
+  detailBasePath?: string;
 };
 
 function Sparkline({ values }: { values: number[] }) {
@@ -46,7 +47,14 @@ const statusTone: Record<SettingsPanel['status'], string> = {
   'Pending approval': 'bg-sky-500/15 text-sky-900 dark:text-sky-100',
 };
 
-export function AdminSettingsHub({ panels, selectedId, onSelect, listKey, hidden }: Props) {
+export function AdminSettingsHub({
+  panels,
+  selectedId,
+  onSelect,
+  listKey,
+  hidden,
+  detailBasePath = '/admin/settings',
+}: Props) {
   const reduceMotion = useReducedMotion();
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -115,7 +123,7 @@ export function AdminSettingsHub({ panels, selectedId, onSelect, listKey, hidden
             </button>
             <div className="border-t px-4 py-2">
               <Link
-                href={`/admin/settings/${panel.id}`}
+                href={`${detailBasePath}/${panel.id}`}
                 className={cn('inline-flex items-center gap-1 text-xs font-semibold text-[var(--nestora-forest)]', focusRing)}
               >
                 Open panel

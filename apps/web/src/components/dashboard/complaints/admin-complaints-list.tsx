@@ -19,9 +19,10 @@ const focusRing =
 type Props = {
   tickets: ComplaintTicket[];
   hidden?: boolean;
+  detailBasePath?: string;
 };
 
-export function AdminComplaintsList({ tickets, hidden }: Props) {
+export function AdminComplaintsList({ tickets, hidden, detailBasePath = '/admin/complaints' }: Props) {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -55,7 +56,7 @@ export function AdminComplaintsList({ tickets, hidden }: Props) {
                     className="border-b last:border-0 hover:bg-[color-mix(in_oklch,var(--nestora-cream)_12%,var(--card))]"
                   >
                     <td className="px-4 py-3">
-                      <Link href={`/admin/complaints/${ticket.id}`} className={cn('block font-medium text-[var(--nestora-forest)]', focusRing)}>
+                      <Link href={`${detailBasePath}/${ticket.id}`} className={cn('block font-medium text-[var(--nestora-forest)]', focusRing)}>
                         <span className="block text-[11px] text-muted-foreground">{ticket.ticketNumber}</span>
                         {ticket.title}
                       </Link>

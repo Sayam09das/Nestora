@@ -43,7 +43,7 @@ export function WardenDashboardWelcome({ snapshot, displayName, metricsUpdatedAt
   useEffect(() => {
     const tick = () => setNow(new Date());
     tick();
-    const interval = setInterval(tick, 60_000);
+    const interval = setInterval(tick, 15_000);
     return () => clearInterval(interval);
   }, []);
 

@@ -9,7 +9,13 @@ import type { AnnouncementRecord } from '@/components/dashboard/announcements/ad
 import { fetchAnnouncementDeskNotice } from '@/lib/api/announcements';
 import { Button } from '@/components/ui/button';
 
-export function AdminAnnouncementsDetailRoute({ noticeId }: { noticeId: string }) {
+export function AdminAnnouncementsDetailRoute({
+  noticeId,
+  listHref = '/admin/announcements',
+}: {
+  noticeId: string;
+  listHref?: string;
+}) {
   const [notice, setNotice] = useState<AnnouncementRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,12 +52,12 @@ export function AdminAnnouncementsDetailRoute({ noticeId }: { noticeId: string }
     return (
       <LoadingShell>
         <p className="text-sm text-destructive">{error ?? 'Notice not found.'}</p>
-        <Button nativeButton={false} variant="outline" className="rounded-xl" render={<Link href="/admin/announcements">Back to studio</Link>} />
+        <Button nativeButton={false} variant="outline" className="rounded-xl" render={<Link href={listHref}>Back to studio</Link>} />
       </LoadingShell>
     );
   }
 
-  return <AdminAnnouncementsDetailPage notice={notice} />;
+  return <AdminAnnouncementsDetailPage notice={notice} listHref={listHref} />;
 }
 
 function LoadingShell({ children }: { children: React.ReactNode }) {

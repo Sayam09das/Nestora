@@ -38,11 +38,17 @@ const focusRing =
 export function WardenRoomsPage() {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
-  const { selectedHostelId } = useWardenShell();
-  const { overview, refresh: refreshOverview } = useOperationalDashboardOverview('HOSTEL_WARDEN');
+  const { selectedHostelId, assignedHostels } = useWardenShell();
+  const scopedHostelId = assignedHostels.some((h) => h.id === selectedHostelId) ? selectedHostelId : undefined;
+  const { overview, refresh: refreshOverview } = useOperationalDashboardOverview('HOSTEL_WARDEN', {
+    hostelId: scopedHostelId,
+  });
   const scopeHostelNames = overview?.scope.hostelNames ?? [];
-  const hostelApiFilter = getWardenHostelApiFilter(selectedHostelId, scopeHostelNames);
-  const hostelDisplay = getWardenHostelDisplayName(selectedHostelId, scopeHostelNames);
+  const hostelDisplay = getWardenHostelDisplayName(selectedHostelId, scopeHostelNames, assignedHostels);
+  const hostelApiFilter = getWardenHostelApiFilter(selectedHostelId, scopeHostelNames, assignedHostels);
+  const hostelScope =
+    hostelApiFilter ||
+    (hostelDisplay && hostelDisplay !== 'No hostel assigned' ? hostelDisplay : 'All Hostels');
 
   const [tab, setTab] = useState<DeskTab>('matrix');
   const [search, setSearch] = useState('');
@@ -64,7 +70,7 @@ export function WardenRoomsPage() {
   const roomFilters = useMemo(
     () => ({
       q: search,
-      hostel: hostelApiFilter || 'All Hostels',
+      hostel: hostelScope,
       block: blockFilter,
       floor: floorFilter,
       roomType: roomTypeFilter,
@@ -73,13 +79,13 @@ export function WardenRoomsPage() {
       page: tab === 'matrix' ? roomPage : 1,
       pageSize: tab === 'matrix' ? roomPageSize : roomPageSize,
     }),
-    [search, hostelApiFilter, blockFilter, floorFilter, roomTypeFilter, occupancyFilter, roomPage, roomPageSize, tab],
+    [search, hostelScope, blockFilter, floorFilter, roomTypeFilter, occupancyFilter, roomPage, roomPageSize, tab],
   );
 
   const bedFilters = useMemo(
     () => ({
       q: search,
-      hostel: hostelApiFilter || 'All Hostels',
+      hostel: hostelScope,
       block: blockFilter,
       floor: floorFilter,
       room: '',
@@ -87,7 +93,7 @@ export function WardenRoomsPage() {
       page: tab === 'beds' ? bedPage : 1,
       pageSize: tab === 'matrix' ? 200 : bedPageSize,
     }),
-    [search, hostelApiFilter, blockFilter, floorFilter, bedPage, bedPageSize, tab],
+    [search, hostelScope, blockFilter, floorFilter, bedPage, bedPageSize, tab],
   );
 
   const allocFilters = useMemo(
@@ -95,11 +101,11 @@ export function WardenRoomsPage() {
       q: '',
       status: 'All Status',
       type: 'All Types',
-      hostel: hostelApiFilter || 'All Hostels',
+      hostel: hostelScope,
       page: 1,
       pageSize: 50,
     }),
-    [hostelApiFilter],
+    [hostelScope],
   );
 
   const {
@@ -109,13 +115,39 @@ export function WardenRoomsPage() {
     error: roomError,
     summary: roomSummary,
     refresh: refreshRooms,
-  } = useRoomsDirectory(roomFilters, { pollIntervalMs: 60_000 });
+  } = useRoomsDirectory(roomFilters);
   const { beds, total: bedTotal, loadingList: loadingBeds, refresh: refreshBeds } = useBedsDirectory(bedFilters);
   const { queue, allocations, loadingQueue, loadingList: loadingAlloc, refresh: refreshAlloc } =
     useAllocationsDirectory(allocFilters);
-  const { stats: inventoryStats, loading: loadingInventory } = useWardenHostelInventoryStats(
-    hostelApiFilter || 'All Hostels',
-  );
+  const {
+    stats: inventoryStats,
+    loading: loadingInventory,
+    lastSyncedAt: inventorySyncedAt,
+    refresh: refreshInventory,
+  } = useWardenHostelInventoryStats(hostelScope);
+
+  const effectiveInventoryStats = useMemo(() => {
+    if (inventoryStats) {
+      return inventoryStats;
+    }
+    if (overview?.occupancy) {
+      return {
+        totalRooms: roomTotal || roomSummary?.totalRooms || 0,
+        availableBeds: overview.occupancy.availableBeds,
+        occupiedBeds: overview.occupancy.occupiedBeds,
+        maintenanceRooms: roomSummary?.maintenanceRooms ?? 0,
+      };
+    }
+    if (roomSummary) {
+      return {
+        totalRooms: roomSummary.totalRooms,
+        availableBeds: roomSummary.availableBeds,
+        occupiedBeds: roomSummary.occupiedBeds,
+        maintenanceRooms: roomSummary.maintenanceRooms,
+      };
+    }
+    return null;
+  }, [inventoryStats, overview?.occupancy, roomSummary, roomTotal]);
 
   const bedsByRoomId = useMemo(() => {
     const map = new Map<string, typeof beds>();
@@ -142,8 +174,14 @@ export function WardenRoomsPage() {
   );
 
   const hostelQueue = useMemo(
-    () => queue.filter((q) => !hostelApiFilter || q.preferenceHostel === hostelApiFilter || q.hostel === hostelApiFilter),
-    [queue, hostelApiFilter],
+    () =>
+      queue.filter(
+        (q) =>
+          hostelScope === 'All Hostels' ||
+          q.preferenceHostel === hostelScope ||
+          q.hostel === hostelScope,
+      ),
+    [queue, hostelScope],
   );
 
   const roomTotalPages = Math.max(1, Math.ceil(roomTotal / roomPageSize));
@@ -181,15 +219,20 @@ export function WardenRoomsPage() {
             onClick={() => {
               refreshOverview();
               refreshRooms();
+              refreshBeds();
+              refreshAlloc();
+              refreshInventory();
             }}
           >
             Retry
           </Button>
         </p>
-      ) : roomSummary?.generatedAt ? (
+      ) : inventorySyncedAt || roomSummary?.generatedAt || overview?.generatedAt ? (
         <p className="text-end text-xs text-muted-foreground tabular-nums">
           Inventory synced{' '}
-          {new Date(roomSummary.generatedAt).toLocaleTimeString(undefined, {
+          {new Date(
+            inventorySyncedAt ?? roomSummary?.generatedAt ?? overview?.generatedAt ?? Date.now(),
+          ).toLocaleTimeString(undefined, {
             hour: '2-digit',
             minute: '2-digit',
           })}
@@ -198,12 +241,16 @@ export function WardenRoomsPage() {
 
       <WardenRoomsHeader
         hostelName={hostelDisplay}
-        availableBeds={inventoryStats?.availableBeds ?? roomSummary?.availableBeds ?? 0}
-        occupiedBeds={inventoryStats?.occupiedBeds ?? roomSummary?.occupiedBeds ?? 0}
+        availableBeds={effectiveInventoryStats?.availableBeds ?? overview?.occupancy.availableBeds ?? 0}
+        occupiedBeds={effectiveInventoryStats?.occupiedBeds ?? overview?.occupancy.occupiedBeds ?? 0}
         onAssignBed={() => openAssign()}
       />
 
-      <WardenRoomsStatsStrip hostelName={hostelDisplay} stats={inventoryStats} loading={loadingInventory} />
+      <WardenRoomsStatsStrip
+        hostelName={hostelDisplay !== 'No hostel assigned' ? hostelDisplay : hostelScope}
+        stats={effectiveInventoryStats}
+        loading={loadingInventory && !effectiveInventoryStats}
+      />
 
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Room desk views">
         {(
@@ -348,8 +395,11 @@ export function WardenRoomsPage() {
       ) : null}
 
       <p className="text-[11px] text-muted-foreground" role="note">
-        Inventory is scoped to <strong className="font-semibold text-foreground">{hostelDisplay}</strong>. Allocation
-        history is immutable (FR-031). Cross-hostel assignment is not permitted.
+        Live inventory for{' '}
+        <strong className="font-semibold text-foreground">
+          {hostelDisplay !== 'No hostel assigned' ? hostelDisplay : hostelScope}
+        </strong>{' '}
+        — refreshes every 20 seconds. Allocation history is immutable (FR-031).
       </p>
 
       <WardenRoomsAllocateSheet

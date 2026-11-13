@@ -206,6 +206,7 @@ export type SettingField = {
   value: string | number | boolean;
   help?: string;
   options?: string[];
+  wardenEditable?: boolean;
 };
 
 export const PANEL_FIELDS: Record<string, SettingField[]> = {

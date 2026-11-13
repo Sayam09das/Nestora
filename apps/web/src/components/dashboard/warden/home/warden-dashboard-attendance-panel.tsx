@@ -63,10 +63,6 @@ export function WardenDashboardAttendancePanel({ snapshot }: Props) {
         ))}
       </ul>
 
-      <p className="mt-4 text-[11px] text-muted-foreground">
-        Illustrative dashboard data; actual figures should come from attendance records.
-      </p>
-
       <Link
         href="/warden/attendance"
         className={cn('mt-auto pt-4 text-sm font-semibold text-[var(--nestora-sage)] hover:text-[var(--nestora-forest)]', focusRing)}

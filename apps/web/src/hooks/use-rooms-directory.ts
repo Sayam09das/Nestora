@@ -73,18 +73,36 @@ export function useRoomsDirectory(filters: RoomDirectoryFilters, options?: UseRo
 
   useEffect(() => {
     void loadSummary();
-    const interval = setInterval(() => {
+    const interval = window.setInterval(() => {
       void loadSummary();
     }, pollIntervalMs);
-    return () => clearInterval(interval);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void loadSummary();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [loadSummary, pollIntervalMs]);
 
   useEffect(() => {
     void loadList();
-    const interval = setInterval(() => {
+    const interval = window.setInterval(() => {
       void loadList({ silent: true });
     }, pollIntervalMs);
-    return () => clearInterval(interval);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void loadList({ silent: true });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [loadList, pollIntervalMs]);
 
   const refresh = useCallback(() => {

@@ -28,6 +28,8 @@ type Props = {
   hostelOptions: readonly string[];
   blockOptions: readonly string[];
   floorOptions: readonly string[];
+  /** When false, hostel is fixed by warden topbar scope (default true). */
+  showHostelFilter?: boolean;
 };
 
 export function AdminAttendanceFiltersBar(props: Props) {
@@ -35,7 +37,7 @@ export function AdminAttendanceFiltersBar(props: Props) {
   const active = useMemo(() => {
     let n = 0;
     if (props.search.trim()) n++;
-    if (props.hostelFilter !== 'All Hostels') n++;
+    if (props.showHostelFilter !== false && props.hostelFilter !== 'All Hostels') n++;
     if (props.blockFilter !== 'All Blocks') n++;
     if (props.floorFilter !== 'All Floors') n++;
     if (props.markFilter !== 'All Marks') n++;
@@ -75,7 +77,9 @@ export function AdminAttendanceFiltersBar(props: Props) {
             className={cn('h-10 rounded-xl', focusRing)}
           />
         </label>
-        <SelectField label="Hostel" value={props.hostelFilter} options={props.hostelOptions} onChange={props.onHostelFilterChange} />
+        {props.showHostelFilter !== false ? (
+          <SelectField label="Hostel" value={props.hostelFilter} options={props.hostelOptions} onChange={props.onHostelFilterChange} />
+        ) : null}
         <SelectField label="Block" value={props.blockFilter} options={props.blockOptions} onChange={props.onBlockFilterChange} />
         <SelectField label="Floor" value={props.floorFilter} options={props.floorOptions} onChange={props.onFloorFilterChange} />
         <SelectField label="Mark" value={props.markFilter} options={ATTENDANCE_MARK_FILTERS} onChange={props.onMarkFilterChange} />
