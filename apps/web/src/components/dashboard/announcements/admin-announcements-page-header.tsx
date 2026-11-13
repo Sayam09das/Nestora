@@ -2,10 +2,10 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { Download, LayoutGrid, Megaphone, Rows3 } from 'lucide-react';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 
-import { ANNOUNCEMENT_STATS } from '@/components/dashboard/announcements/admin-announcements-data';
 import { Flip, gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { AnnouncementsDeskSummary } from '@/lib/api/announcements';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -17,9 +17,18 @@ type Props = {
   view: 'feed' | 'registry';
   onViewChange: (v: 'feed' | 'registry') => void;
   flipRootRef: React.RefObject<HTMLDivElement | null>;
+  summary: AnnouncementsDeskSummary | null;
+  loading?: boolean;
 };
 
-export function AdminAnnouncementsPageHeader({ onCompose, view, onViewChange, flipRootRef }: Props) {
+export function AdminAnnouncementsPageHeader({
+  onCompose,
+  view,
+  onViewChange,
+  flipRootRef,
+  summary,
+  loading = false,
+}: Props) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
 
@@ -39,16 +48,39 @@ export function AdminAnnouncementsPageHeader({ onCompose, view, onViewChange, fl
   );
 
   const setView = (next: 'feed' | 'registry') => {
-    if (next === view || reduceMotion || !flipRootRef.current) {
+    if (next === view) return;
+    if (reduceMotion || !flipRootRef.current) {
       onViewChange(next);
       return;
     }
-    const state = Flip.getState(flipRootRef.current.querySelectorAll('[data-ann-flip]'));
+    const targets = flipRootRef.current.querySelectorAll('[data-ann-flip]');
+    if (targets.length < 2) {
+      onViewChange(next);
+      return;
+    }
+    const state = Flip.getState(targets);
     onViewChange(next);
     requestAnimationFrame(() => {
-      Flip.from(state, { duration: 0.45, ease: 'power2.inOut', scale: true, stagger: 0.03, absolute: true });
+      Flip.from(state, {
+        duration: 0.45,
+        ease: 'power2.inOut',
+        scale: true,
+        stagger: 0.03,
+        absolute: true,
+        onComplete: () => {
+          gsap.set(targets, { clearProps: 'all' });
+        },
+      });
     });
   };
+
+  const avgReadRate = summary?.avgReadRate ?? (loading ? null : 0);
+  const liveNow = summary?.liveNow ?? 0;
+  const ackPending = summary?.ackPending ?? 0;
+  const liveStamp = useMemo(() => {
+    if (!summary?.generatedAt) return null;
+    return new Intl.DateTimeFormat('en-IN', { timeStyle: 'short' }).format(new Date(summary.generatedAt));
+  }, [summary?.generatedAt]);
 
   return (
     <header
@@ -61,9 +93,14 @@ export function AdminAnnouncementsPageHeader({ onCompose, view, onViewChange, fl
       />
       <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr,14rem]">
         <div className="space-y-3">
-          <p data-ann-hero className="flex items-center gap-2 text-xs text-muted-foreground">
+          <p data-ann-hero className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <Megaphone className="size-3.5 text-[var(--nestora-tan)]" aria-hidden />
             Dashboard / Notices & announcements
+            {liveStamp ? (
+              <span className="rounded-full border border-[color-mix(in_oklch,var(--nestora-gold)_30%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-gold)_8%,var(--card))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--nestora-sage)]">
+                Live · {liveStamp}
+              </span>
+            ) : null}
           </p>
           <h1 data-ann-hero className="text-2xl font-semibold text-[var(--nestora-forest)]">
             Announcement studio
@@ -71,12 +108,12 @@ export function AdminAnnouncementsPageHeader({ onCompose, view, onViewChange, fl
           <p data-ann-hero className="max-w-2xl text-sm text-muted-foreground">
             Publish scoped circulars, attach PDFs, and track mandatory acknowledgements across hostels (FR-084 – FR-089).
           </p>
-          <div data-ann-hero className="flex flex-wrap items-center gap-2 pt-1">
+          <div className="flex flex-wrap items-center gap-2 pt-1">
             <Button type="button" onClick={onCompose} className={cn('rounded-xl bg-[var(--nestora-forest)] text-white', focusRing)}>
               <Megaphone className="size-4" aria-hidden />
               New announcement
             </Button>
-            <Button type="button" variant="outline" className={cn('rounded-xl', focusRing)}>
+            <Button type="button" variant="outline" className={cn('rounded-xl', focusRing)} disabled>
               <Download className="size-4" aria-hidden />
               Export ack report
             </Button>
@@ -116,10 +153,12 @@ export function AdminAnnouncementsPageHeader({ onCompose, view, onViewChange, fl
           className="rounded-xl border border-[color-mix(in_oklch,var(--nestora-gold)_25%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-gold)_10%,var(--card))] p-4"
         >
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--nestora-sage)]">Engagement</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums text-[var(--nestora-forest)]">{ANNOUNCEMENT_STATS.avgReadRate}%</p>
-          <p className="text-xs text-muted-foreground">avg acknowledgement (sample)</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums text-[var(--nestora-forest)]">
+            {avgReadRate == null ? '…' : `${avgReadRate}%`}
+          </p>
+          <p className="text-xs text-muted-foreground">avg acknowledgement (mandatory notices)</p>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            {ANNOUNCEMENT_STATS.liveNow} live · {ANNOUNCEMENT_STATS.ackPending} acks pending
+            {liveNow} live · {ackPending} acks pending
           </p>
         </motion.aside>
       </div>

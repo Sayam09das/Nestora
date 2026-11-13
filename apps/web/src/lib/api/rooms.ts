@@ -3,6 +3,14 @@ import type { RoomRecord } from '@/components/dashboard/rooms/admin-rooms-data';
 import { apiFetch } from '@/lib/api/client';
 import { parseApiResponse } from '@/lib/api/parse-response';
 
+export type RoomSharingDistributionRow = {
+  roomType: string;
+  capacity: number;
+  rooms: number;
+  bedsPerRoom: number;
+  totalBeds: number;
+};
+
 export type RoomDirectorySummary = {
   generatedAt: string;
   totalRooms: number;
@@ -12,6 +20,7 @@ export type RoomDirectorySummary = {
   totalBeds: number;
   occupiedBeds: number;
   availableBeds: number;
+  sharingDistribution?: RoomSharingDistributionRow[];
   facets: {
     hostels: string[];
     blocks: string[];
@@ -21,6 +30,71 @@ export type RoomDirectorySummary = {
 };
 
 type DirectoryRowPayload = RoomRecord;
+
+export type RoomInfrastructureStatus = 'ACTIVE' | 'UNDER_MAINTENANCE' | 'DECOMMISSIONED';
+
+export type PatchInfrastructureRoomBody = {
+  roomNumber?: string;
+  status?: RoomInfrastructureStatus;
+};
+
+export type InfrastructureBedRow = {
+  id: string;
+  bedNumber: string;
+  status: 'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'MAINTENANCE';
+};
+
+export async function fetchInfrastructureRoomBeds(
+  roomId: string,
+): Promise<{ beds?: InfrastructureBedRow[]; error?: string }> {
+  const response = await apiFetch(
+    `/api/v1/infrastructure/rooms/${encodeURIComponent(roomId)}/beds?limit=20&page=1`,
+  );
+  const parsed = await parseApiResponse<{ beds: InfrastructureBedRow[] }>(response);
+  if (!parsed.ok) {
+    return { error: parsed.message };
+  }
+  return { beds: parsed.data.beds };
+}
+
+export async function deleteInfrastructureRoom(roomId: string): Promise<{ error?: string }> {
+  const response = await apiFetch(`/api/v1/infrastructure/rooms/${encodeURIComponent(roomId)}`, {
+    method: 'DELETE',
+  });
+  const parsed = await parseApiResponse<Record<string, unknown>>(response);
+  if (!parsed.ok) {
+    return { error: parsed.message };
+  }
+  return {};
+}
+
+export async function patchInfrastructureRoom(
+  roomId: string,
+  body: PatchInfrastructureRoomBody,
+): Promise<{ error?: string }> {
+  const response = await apiFetch(`/api/v1/infrastructure/rooms/${encodeURIComponent(roomId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const parsed = await parseApiResponse<Record<string, unknown>>(response);
+  if (!parsed.ok) {
+    return { error: parsed.message };
+  }
+  return {};
+}
+
+export async function fetchRoomDirectoryById(roomId: string): Promise<{
+  room?: RoomRecord;
+  error?: string;
+}> {
+  const response = await apiFetch(`/api/v1/rooms/directory/${encodeURIComponent(roomId)}`);
+  const parsed = await parseApiResponse<{ room: RoomRecord }>(response);
+  if (!parsed.ok) {
+    return { error: parsed.message };
+  }
+  return { room: parsed.data.room };
+}
 
 export async function fetchRoomDirectorySummary(): Promise<{
   summary?: RoomDirectorySummary;

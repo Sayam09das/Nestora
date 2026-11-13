@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { SAMPLE_ROLES } from '@/components/dashboard/roles/admin-roles-data';
+import type { RoleProfile } from '@/components/dashboard/roles/admin-roles-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -14,9 +14,10 @@ const focusRing =
 
 const HOSTELS = ['University-wide', 'Boys Hostel A', 'Girls Hostel B', 'Graduate Block C'] as const;
 
-type Props = { open: boolean; onOpenChange: (o: boolean) => void; preselectId?: string };
+type Props = { open: boolean; onOpenChange: (o: boolean) => void; preselectId?: string; roles?: RoleProfile[] };
 
-export function AdminRolesGrantDrawer({ open, onOpenChange, preselectId }: Props) {
+export function AdminRolesGrantDrawer({ open, onOpenChange, preselectId, roles }: Props) {
+  const catalog = roles ?? [];
   const [roleId, setRoleId] = useState('');
   const [email, setEmail] = useState('');
   const [hostel, setHostel] = useState<(typeof HOSTELS)[number]>('University-wide');
@@ -42,7 +43,7 @@ export function AdminRolesGrantDrawer({ open, onOpenChange, preselectId }: Props
       toast.error('User email is required.');
       return;
     }
-    const role = SAMPLE_ROLES.find((r) => r.id === roleId);
+    const role = catalog.find((r) => r.id === roleId);
     if (role?.scope === 'Hostel-scoped' && hostel === 'University-wide') {
       toast.error('Hostel-scoped roles require a hostel assignment (FR-006).');
       return;
@@ -63,7 +64,7 @@ export function AdminRolesGrantDrawer({ open, onOpenChange, preselectId }: Props
             <span className="text-xs font-medium">Role</span>
             <select value={roleId} onChange={(e) => setRoleId(e.target.value)} className={cn('h-10 w-full rounded-xl border px-3 text-sm', focusRing)}>
               <option value="">Select role</option>
-              {SAMPLE_ROLES.map((r) => (
+              {catalog.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.code} · {r.title}
                 </option>

@@ -18,10 +18,13 @@ type Props = { rows: ReportTemplate[]; hidden?: boolean };
 
 export function AdminReportsRegistry({ rows, hidden }: Props) {
   const reduceMotion = useReducedMotion();
-  if (hidden) return null;
-
   return (
-    <section data-rpt-reveal data-rpt-flip className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <section
+      data-rpt-reveal
+      data-rpt-flip
+      className={cn('overflow-hidden rounded-2xl border bg-card shadow-sm', hidden && 'hidden')}
+      aria-hidden={hidden}
+    >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[56rem] text-left text-sm">
           <thead>

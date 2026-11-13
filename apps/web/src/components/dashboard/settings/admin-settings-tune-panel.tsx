@@ -10,6 +10,7 @@ import {
   CATEGORY_META,
   PANEL_FIELDS,
   formatSettingsWhen,
+  type SettingField,
   type SettingsPanel,
 } from '@/components/dashboard/settings/admin-settings-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
@@ -21,12 +22,16 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-type Props = { panel: SettingsPanel | null };
+type Props = { panel: SettingsPanel | null; fields?: SettingField[]; loading?: boolean };
 
-export function AdminSettingsTunePanel({ panel }: Props) {
+export function AdminSettingsTunePanel({ panel, fields: fieldsProp }: Props) {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
-  const fields = useMemo(() => (panel ? PANEL_FIELDS[panel.id] ?? [] : []), [panel]);
+  const liveFields = Boolean(fieldsProp?.length);
+  const fields = useMemo(() => {
+    if (fieldsProp?.length) return fieldsProp;
+    return panel ? PANEL_FIELDS[panel.id] ?? [] : [];
+  }, [fieldsProp, panel]);
   const [local, setLocal] = useState<Record<string, string | number | boolean>>({});
 
   useGSAP(
@@ -103,6 +108,10 @@ export function AdminSettingsTunePanel({ panel }: Props) {
                     checked={Boolean(valueFor(field.key, field.value))}
                     disabled={field.type === 'locked'}
                     onCheckedChange={(v) => {
+                      if (liveFields && field.type !== 'locked') {
+                        toast.message('Use Review & publish to apply policy changes.');
+                        return;
+                      }
                       setLocal((s) => ({ ...s, [field.key]: v }));
                       toast.message('Saved locally (sample).');
                     }}
@@ -112,6 +121,7 @@ export function AdminSettingsTunePanel({ panel }: Props) {
               ) : field.type === 'number' ? (
                 <Input
                   type="number"
+                  readOnly={liveFields}
                   className={cn('h-9 w-24 rounded-lg tabular-nums', focusRing)}
                   value={Number(valueFor(field.key, field.value))}
                   onChange={(e) => setLocal((s) => ({ ...s, [field.key]: Number(e.target.value) }))}

@@ -8,7 +8,15 @@ function normalizeApiBaseUrl(raw: string): string {
   return trimmed;
 }
 
-const baseUrl = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL ?? '');
+function resolveApiBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    // Same-origin: Next.js rewrites /api/v1 → API server (session cookies work).
+    return '';
+  }
+  return normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:4000');
+}
+
+const baseUrl = resolveApiBaseUrl();
 
 let csrfTokenPromise: Promise<string | null> | null = null;
 
@@ -17,9 +25,6 @@ export function invalidateCsrfToken(): void {
 }
 
 async function fetchCsrfToken(): Promise<string | null> {
-  if (!baseUrl) {
-    return null;
-  }
   if (!csrfTokenPromise) {
     csrfTokenPromise = (async () => {
       const response = await fetch(`${baseUrl}/api/v1/auth/csrf-token`, {
@@ -81,9 +86,6 @@ async function apiFetchOnce(path: string, options: ApiFetchOptions = {}): Promis
     if (token) {
       headers.set('X-CSRF-Token', token);
     }
-  }
-  if (!baseUrl) {
-    throw new Error('NEXT_PUBLIC_API_URL is not configured.');
   }
   return fetch(`${baseUrl}${path}`, {
     ...rest,

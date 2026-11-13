@@ -1,7 +1,8 @@
 'use client';
 
 import { useReducedMotion } from 'framer-motion';
-import { useMemo, useRef, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { AdminFeesDesk } from '@/components/dashboard/fees/admin-fees-desk';
 import { AdminFeesFiltersBar } from '@/components/dashboard/fees/admin-fees-filters-bar';
@@ -11,11 +12,9 @@ import { AdminFeesRecordDrawer } from '@/components/dashboard/fees/admin-fees-re
 import { AdminFeesRegistry } from '@/components/dashboard/fees/admin-fees-registry';
 import { AdminFeesStatsStrip } from '@/components/dashboard/fees/admin-fees-stats-strip';
 import { AdminFeesWaiverDrawer } from '@/components/dashboard/fees/admin-fees-waiver-drawer';
-import {
-  DEFAULT_LEDGER_ID,
-  SAMPLE_LEDGER_ACCOUNTS,
-} from '@/components/dashboard/fees/admin-fees-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import { Button } from '@/components/ui/button';
+import { useFinanceDesk } from '@/hooks/use-finance-desk';
 
 export function AdminFeesPage() {
   const reduceMotion = useReducedMotion();
@@ -28,30 +27,55 @@ export function AdminFeesPage() {
   const [search, setSearch] = useState('');
   const [hostelFilter, setHostelFilter] = useState('All hostels');
   const [statusFilter, setStatusFilter] = useState('All status');
-  const [selectedId, setSelectedId] = useState(DEFAULT_LEDGER_ID);
+  const [selectedId, setSelectedId] = useState('');
+  const pageSize = 48;
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return SAMPLE_LEDGER_ACCOUNTS.filter((row) => {
-      if (hostelFilter !== 'All hostels' && row.hostel !== hostelFilter) return false;
-      if (statusFilter !== 'All status' && row.status !== statusFilter) return false;
-      if (!q) return true;
-      return (
-        row.studentName.toLowerCase().includes(q) ||
-        row.regNo.toLowerCase().includes(q) ||
-        row.code.toLowerCase().includes(q) ||
-        row.room.toLowerCase().includes(q)
-      );
-    });
-  }, [search, hostelFilter, statusFilter]);
+  const filters = useMemo(
+    () => ({
+      q: search,
+      hostel: hostelFilter,
+      status: statusFilter,
+      page: 1,
+      limit: pageSize,
+    }),
+    [search, hostelFilter, statusFilter],
+  );
 
-  const selected =
-    filtered.find((a) => a.id === selectedId) ??
-    filtered[0] ??
-    SAMPLE_LEDGER_ACCOUNTS.find((a) => a.id === DEFAULT_LEDGER_ID) ??
-    null;
+  const {
+    summary,
+    ledgers,
+    collectionTrend,
+    loadingSummary,
+    loadingList,
+    error,
+    refresh,
+    loadDetail,
+    detailLines,
+    detailWaivers,
+    loadingDetail,
+  } = useFinanceDesk(filters);
+
+  const facetHostels = useMemo(() => {
+    const hostels = summary?.facets.hostels ?? [];
+    return ['All hostels', ...hostels] as const;
+  }, [summary?.facets.hostels]);
+
+  const selected = ledgers.find((a) => a.id === selectedId) ?? ledgers[0] ?? null;
   const effectiveSelectedId = selected?.id ?? selectedId;
-  const listKey = `${search}|${hostelFilter}|${statusFilter}|${view}`;
+
+  useEffect(() => {
+    if (!effectiveSelectedId && ledgers[0]) {
+      setSelectedId(ledgers[0].id);
+    }
+  }, [ledgers, effectiveSelectedId]);
+
+  useEffect(() => {
+    if (effectiveSelectedId) {
+      void loadDetail(effectiveSelectedId);
+    }
+  }, [effectiveSelectedId, loadDetail]);
+
+  const listKey = `${search}|${hostelFilter}|${statusFilter}|${view}|${ledgers.length}`;
 
   useGSAP(
     () => {
@@ -80,8 +104,21 @@ export function AdminFeesPage() {
         view={view}
         onViewChange={setView}
         flipRootRef={flipRootRef}
+        summary={summary}
+        loading={loadingSummary}
       />
-      <AdminFeesStatsStrip />
+      {error ? (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"
+        >
+          <p className="text-destructive">{error}</p>
+          <Button type="button" size="sm" variant="outline" className="rounded-lg" onClick={refresh}>
+            Retry
+          </Button>
+        </div>
+      ) : null}
+      <AdminFeesStatsStrip summary={summary} loading={loadingSummary} />
       <AdminFeesFiltersBar
         search={search}
         onSearchChange={setSearch}
@@ -90,21 +127,43 @@ export function AdminFeesPage() {
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
         onReset={reset}
+        hostelOptions={facetHostels}
       />
       <div ref={flipRootRef} className="space-y-6">
-        <AdminFeesDesk
-          accounts={filtered}
-          selectedId={effectiveSelectedId}
-          onSelect={setSelectedId}
-          listKey={listKey}
-          hidden={view !== 'desk'}
-        />
-        <AdminFeesRegistry rows={filtered} hidden={view !== 'registry'} />
+        {loadingList && ledgers.length === 0 ? (
+          <div className="flex min-h-[30vh] items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="size-5 animate-spin text-[var(--nestora-sage)]" aria-hidden />
+            Loading ledgers…
+          </div>
+        ) : (
+          <>
+            <AdminFeesDesk
+              accounts={ledgers}
+              selectedId={effectiveSelectedId}
+              onSelect={setSelectedId}
+              listKey={listKey}
+              hidden={view !== 'desk'}
+              activeSchedules={summary?.activeSchedules ?? null}
+            />
+            <AdminFeesRegistry rows={ledgers} hidden={view !== 'registry'} />
+          </>
+        )}
         {view === 'desk' ? (
-          <AdminFeesLedgerPanel account={selected} onRequestWaiver={() => setWaiverOpen(true)} />
+          <AdminFeesLedgerPanel
+            account={selected}
+            onRequestWaiver={() => setWaiverOpen(true)}
+            lines={detailLines}
+            collectionTrend={collectionTrend}
+            pendingWaivers={detailWaivers}
+            loadingDetail={loadingDetail}
+          />
         ) : null}
       </div>
-      <AdminFeesRecordDrawer open={recordOpen} onOpenChange={setRecordOpen} preselectAccountId={effectiveSelectedId} />
+      <AdminFeesRecordDrawer
+        open={recordOpen}
+        onOpenChange={setRecordOpen}
+        preselectAccountId={effectiveSelectedId}
+      />
       <AdminFeesWaiverDrawer open={waiverOpen} onOpenChange={setWaiverOpen} />
     </div>
   );

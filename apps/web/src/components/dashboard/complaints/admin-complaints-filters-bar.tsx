@@ -6,7 +6,6 @@ import { useMemo } from 'react';
 
 import {
   COMPLAINT_CATEGORY_FILTERS,
-  COMPLAINT_HOSTEL_FILTERS,
   COMPLAINT_PRIORITY_FILTERS,
   COMPLAINT_STATUS_FILTERS,
 } from '@/components/dashboard/complaints/admin-complaints-data';
@@ -29,6 +28,7 @@ type Props = {
   statusFilter: string;
   onStatusFilterChange: (v: string) => void;
   onReset: () => void;
+  hostelOptions: readonly string[];
 };
 
 export function AdminComplaintsFiltersBar(props: Props) {
@@ -76,7 +76,7 @@ export function AdminComplaintsFiltersBar(props: Props) {
           />
         </label>
         <select value={props.hostelFilter} onChange={(e) => props.onHostelFilterChange(e.target.value)} className={selectClass}>
-          {COMPLAINT_HOSTEL_FILTERS.map((h) => (
+          {props.hostelOptions.map((h) => (
             <option key={h} value={h}>
               {h}
             </option>

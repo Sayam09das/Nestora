@@ -4,24 +4,64 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { AlarmClock, CalendarCheck, Hourglass, PlaneTakeoff, Repeat2 } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
-import { LEAVE_STATS } from '@/components/dashboard/leave/admin-leave-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { LeaveDeskSummary } from '@/lib/api/leaves';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
 
-export function AdminLeaveStatsStrip() {
+type Props = {
+  summary: LeaveDeskSummary | null;
+  loading?: boolean;
+};
+
+export function AdminLeaveStatsStrip({ summary, loading = false }: Props) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
 
   const cards = useMemo(
     () => [
-      { key: 'pending', label: 'Pending review', value: LEAVE_STATS.pendingReview, hint: 'Warden queue', icon: Hourglass, accent: 'var(--nestora-gold)' },
-      { key: 'on', label: 'On leave now', value: LEAVE_STATS.onLeaveNow, hint: 'Beds still occupied', icon: PlaneTakeoff, accent: 'var(--nestora-forest)' },
-      { key: 'today', label: 'Returning today', value: LEAVE_STATS.returningToday, hint: 'Gate desk watch', icon: CalendarCheck, accent: '#6d9773' },
-      { key: 'ext', label: 'Extensions', value: LEAVE_STATS.extensionsPending, hint: 'FR-041 pending', icon: Repeat2, accent: '#d97706' },
-      { key: 'late', label: 'Overstayed', value: LEAVE_STATS.overstayed, hint: 'FR-043 alerts sent', icon: AlarmClock, accent: '#dc2626' },
+      {
+        key: 'pending',
+        label: 'Pending review',
+        value: summary?.pendingReview ?? (loading ? '…' : 0),
+        hint: 'Warden queue',
+        icon: Hourglass,
+        accent: 'var(--nestora-gold)',
+      },
+      {
+        key: 'on',
+        label: 'On leave now',
+        value: summary?.onLeaveNow ?? (loading ? '…' : 0),
+        hint: 'Beds still occupied',
+        icon: PlaneTakeoff,
+        accent: 'var(--nestora-forest)',
+      },
+      {
+        key: 'today',
+        label: 'Returning today',
+        value: summary?.returningToday ?? (loading ? '…' : 0),
+        hint: 'Gate desk watch',
+        icon: CalendarCheck,
+        accent: '#6d9773',
+      },
+      {
+        key: 'ext',
+        label: 'Extensions',
+        value: summary?.extensionsPending ?? (loading ? '…' : 0),
+        hint: 'FR-041 pending',
+        icon: Repeat2,
+        accent: '#d97706',
+      },
+      {
+        key: 'late',
+        label: 'Overstayed',
+        value: summary?.overstayed ?? (loading ? '…' : 0),
+        hint: 'FR-043 alerts sent',
+        icon: AlarmClock,
+        accent: '#dc2626',
+      },
     ],
-    [],
+    [summary, loading],
   );
 
   useGSAP(

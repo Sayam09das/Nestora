@@ -4,24 +4,67 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Bell, CalendarClock, CheckCircle2, TrendingUp, Wallet } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
-import { FEES_STATS, formatInr } from '@/components/dashboard/fees/admin-fees-data';
+import { formatInr } from '@/components/dashboard/fees/admin-fees-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { FinanceDeskSummary } from '@/lib/api/finance';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
 
-export function AdminFeesStatsStrip() {
+type Props = {
+  summary: FinanceDeskSummary | null;
+  loading?: boolean;
+};
+
+export function AdminFeesStatsStrip({ summary, loading = false }: Props) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
 
+  const monthLabel = summary?.collectedMonthLabel ?? new Intl.DateTimeFormat('en-IN', { month: 'short' }).format(new Date());
+
   const cards = useMemo(
     () => [
-      { key: 'col', label: 'Collected (Nov)', value: formatInr(FEES_STATS.collectedMonth), hint: 'Online + offline', icon: TrendingUp, accent: 'var(--nestora-forest)' },
-      { key: 'out', label: 'Outstanding', value: formatInr(FEES_STATS.outstandingTotal), hint: 'Due & overdue', icon: Wallet, accent: 'var(--nestora-gold)' },
-      { key: 'appr', label: 'Pending approvals', value: FEES_STATS.pendingApprovals, hint: 'Waivers & schedules', icon: CheckCircle2, accent: '#7c3aed' },
-      { key: 'sched', label: 'Active schedules', value: FEES_STATS.activeSchedules, hint: 'FR-074', icon: CalendarClock, accent: 'var(--nestora-sage)' },
-      { key: 'rem', label: 'Reminders', value: FEES_STATS.remindersQueued, hint: 'FR-082', icon: Bell, accent: '#0ea5e9' },
+      {
+        key: 'col',
+        label: `Collected (${monthLabel})`,
+        value: loading && !summary ? '…' : formatInr(summary?.collectedMonth ?? 0),
+        hint: 'Online + offline',
+        icon: TrendingUp,
+        accent: 'var(--nestora-forest)',
+      },
+      {
+        key: 'out',
+        label: 'Outstanding',
+        value: loading && !summary ? '…' : formatInr(summary?.outstandingTotal ?? 0),
+        hint: 'Due & overdue',
+        icon: Wallet,
+        accent: 'var(--nestora-gold)',
+      },
+      {
+        key: 'appr',
+        label: 'Pending approvals',
+        value: summary?.pendingApprovals ?? (loading ? '…' : 0),
+        hint: 'Waivers & schedules',
+        icon: CheckCircle2,
+        accent: '#7c3aed',
+      },
+      {
+        key: 'sched',
+        label: 'Active schedules',
+        value: summary?.activeSchedules ?? (loading ? '…' : 0),
+        hint: 'FR-074',
+        icon: CalendarClock,
+        accent: 'var(--nestora-sage)',
+      },
+      {
+        key: 'rem',
+        label: 'Reminders',
+        value: summary?.remindersQueued ?? (loading ? '…' : 0),
+        hint: 'FR-082',
+        icon: Bell,
+        accent: '#0ea5e9',
+      },
     ],
-    [],
+    [summary, loading, monthLabel],
   );
 
   useGSAP(

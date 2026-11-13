@@ -60,10 +60,14 @@ export function AdminRolesHub({ roles, selectedId, onSelect, listKey, hidden }: 
     { scope: gridRef, dependencies: [listKey, hidden, reduceMotion] },
   );
 
-  if (hidden) return null;
-
   return (
-    <div ref={gridRef} data-role-reveal className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div
+      ref={gridRef}
+      data-role-reveal
+      data-role-flip
+      className={cn('grid gap-4 md:grid-cols-2 xl:grid-cols-3', hidden && 'hidden')}
+      aria-hidden={hidden}
+    >
       {roles.map((role) => {
         const Icon = ROLE_ICONS[role.id] ?? ShieldCheck;
         const meta = TIER_META[role.tier];

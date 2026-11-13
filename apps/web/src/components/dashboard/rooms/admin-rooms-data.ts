@@ -33,13 +33,13 @@ export type RoomRecord = {
 };
 
 export const ROOM_DIRECTORY_STATS = {
-  totalRooms: 180,
-  occupiedRooms: 145,
-  availableRooms: 25,
-  maintenanceRooms: 10,
-  totalBeds: 420,
-  occupiedBeds: 310,
-  availableBeds: 110,
+  totalRooms: 240,
+  occupiedRooms: 0,
+  availableRooms: 240,
+  maintenanceRooms: 0,
+  totalBeds: 540,
+  occupiedBeds: 0,
+  availableBeds: 540,
 } as const;
 
 export const HOSTEL_FILTER_OPTIONS = ['All Hostels', 'Boys Hostel A', 'Girls Hostel B', 'Graduate Wing C'] as const;

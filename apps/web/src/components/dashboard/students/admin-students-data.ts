@@ -12,6 +12,7 @@ export type StudentRecord = {
   room: string;
   status: StudentStatus;
   joinedDate: string;
+  profilePhotoUrl?: string | null;
 };
 
 export const STUDENT_DIRECTORY_STATS = {

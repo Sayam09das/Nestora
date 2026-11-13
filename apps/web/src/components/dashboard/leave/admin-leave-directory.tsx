@@ -18,16 +18,26 @@ const focusRing =
 type Props = {
   rows: LeaveRecord[];
   hidden?: boolean;
+  gatePassLog?: boolean;
 };
 
-export function AdminLeaveDirectory({ rows, hidden }: Props) {
+export function AdminLeaveDirectory({ rows, hidden, gatePassLog = false }: Props) {
   const reduceMotion = useReducedMotion();
 
-  if (hidden) return null;
-
   return (
-    <section data-leave-reveal data-leave-flip aria-label="Leave registry">
+    <section
+      data-leave-reveal
+      data-leave-flip
+      aria-label="Leave registry"
+      hidden={hidden}
+      className={cn(hidden && 'hidden')}
+    >
       <div className="overflow-hidden rounded-2xl border border-[color-mix(in_oklch,var(--nestora-sage)_18%,var(--border))] bg-card shadow-sm">
+        {gatePassLog ? (
+          <div className="border-b border-[var(--nestora-sage-muted)]/70 px-4 py-3 text-xs text-muted-foreground">
+            Gate pass log — tokens issued for approved leave and outings (MOD-10).
+          </div>
+        ) : null}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[56rem] text-left text-sm">
             <thead>

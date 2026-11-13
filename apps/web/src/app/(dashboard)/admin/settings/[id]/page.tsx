@@ -1,6 +1,4 @@
-import { notFound } from 'next/navigation';
-
-import { AdminSettingsDetailPage } from '@/components/dashboard/settings/admin-settings-detail-page';
+import { AdminSettingsDetailRoute } from '@/components/dashboard/settings/admin-settings-detail-route';
 import { getSettingsPanelById } from '@/components/dashboard/settings/admin-settings-data';
 import { createPrivatePageMetadata } from '@/lib/seo/metadata';
 
@@ -13,11 +11,7 @@ export async function generateMetadata({ params }: PageProps) {
   return createPrivatePageMetadata(title, `${title} — Nestora admin.`, `/admin/settings/${id}`);
 }
 
-export default async function AdminSettingsDetailRoute({ params }: PageProps) {
+export default async function AdminSettingsPanelRoute({ params }: PageProps) {
   const { id } = await params;
-  const record = getSettingsPanelById(id);
-  if (!record) {
-    notFound();
-  }
-  return <AdminSettingsDetailPage panel={record} />;
+  return <AdminSettingsDetailRoute panelId={id} />;
 }

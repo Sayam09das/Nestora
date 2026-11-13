@@ -65,10 +65,14 @@ export function AdminSettingsHub({ panels, selectedId, onSelect, listKey, hidden
     { scope: gridRef, dependencies: [listKey, hidden, reduceMotion] },
   );
 
-  if (hidden) return null;
-
   return (
-    <div ref={gridRef} data-set-reveal className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+    <div
+      ref={gridRef}
+      data-set-reveal
+      data-set-flip
+      className={cn('grid gap-4 lg:grid-cols-2 xl:grid-cols-3', hidden && 'hidden')}
+      aria-hidden={hidden}
+    >
       {panels.map((panel) => {
         const meta = CATEGORY_META[panel.category];
         const Icon = meta.icon;

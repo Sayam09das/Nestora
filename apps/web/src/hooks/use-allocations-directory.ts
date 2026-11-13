@@ -19,7 +19,13 @@ export type AllocationDirectoryFilters = {
   pageSize: number;
 };
 
-export function useAllocationsDirectory(filters: AllocationDirectoryFilters) {
+type UseAllocationsDirectoryOptions = { pollIntervalMs?: number };
+
+export function useAllocationsDirectory(
+  filters: AllocationDirectoryFilters,
+  options?: UseAllocationsDirectoryOptions,
+) {
+  const pollIntervalMs = options?.pollIntervalMs ?? 20_000;
   const [summary, setSummary] = useState<AllocationDirectorySummary | null>(null);
   const [allocations, setAllocations] = useState<AllocationRecord[]>([]);
   const [queue, setQueue] = useState<AllocationRecord[]>([]);
@@ -31,14 +37,18 @@ export function useAllocationsDirectory(filters: AllocationDirectoryFilters) {
 
   const loadSummary = useCallback(async () => {
     const result = await fetchAllocationDirectorySummary();
-    if (result.summary) setSummary(result.summary);
-    else if (result.error) setError(result.error);
+    if (result.summary) {
+      setSummary(result.summary);
+    } else if (result.error) {
+      setError(result.error);
+    }
     setLoadingSummary(false);
   }, []);
 
-  const loadList = useCallback(async () => {
-    setLoadingList(true);
-    setError(null);
+  const loadList = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) {
+      setLoadingList(true);
+    }
     const result = await fetchAllocationDirectoryList({
       page: filters.page,
       limit: filters.pageSize,
@@ -50,36 +60,64 @@ export function useAllocationsDirectory(filters: AllocationDirectoryFilters) {
     if (result.allocations) {
       setAllocations(result.allocations);
       setTotal(result.total ?? result.allocations.length);
+      setError(null);
     } else if (result.error) {
       setError(result.error);
-      setAllocations([]);
-      setTotal(0);
+      if (!opts?.silent) {
+        setAllocations([]);
+        setTotal(0);
+      }
     }
-    setLoadingList(false);
+    if (!opts?.silent) {
+      setLoadingList(false);
+    }
   }, [filters]);
 
-  const loadQueue = useCallback(async () => {
-    setLoadingQueue(true);
+  const loadQueue = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) {
+      setLoadingQueue(true);
+    }
     const result = await fetchAllocationQueue();
-    if (result.queue) setQueue(result.queue);
-    setLoadingQueue(false);
+    if (result.queue) {
+      setQueue(result.queue);
+    }
+    if (!opts?.silent) {
+      setLoadingQueue(false);
+    }
   }, []);
 
   useEffect(() => {
     void loadSummary();
-    const interval = setInterval(() => void loadSummary(), 60_000);
+    const interval = setInterval(() => void loadSummary(), pollIntervalMs);
     return () => clearInterval(interval);
-  }, [loadSummary]);
+  }, [loadSummary, pollIntervalMs]);
 
   useEffect(() => {
     void loadList();
-  }, [loadList]);
+    const interval = setInterval(() => void loadList({ silent: true }), pollIntervalMs);
+    return () => clearInterval(interval);
+  }, [loadList, pollIntervalMs]);
 
   useEffect(() => {
     void loadQueue();
-  }, [loadQueue]);
+    const interval = setInterval(() => void loadQueue({ silent: true }), pollIntervalMs);
+    return () => clearInterval(interval);
+  }, [loadQueue, pollIntervalMs]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      void loadSummary();
+      void loadList({ silent: true });
+      void loadQueue({ silent: true });
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [loadList, loadQueue, loadSummary]);
 
   const refresh = useCallback(() => {
+    setLoadingSummary(true);
+    setLoadingList(true);
+    setLoadingQueue(true);
     void loadSummary();
     void loadList();
     void loadQueue();

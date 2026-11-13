@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { RotateCcw, Search } from 'lucide-react';
 import { useMemo } from 'react';
 
-import { FEE_HOSTEL_FILTERS, FEE_STATUS_FILTERS } from '@/components/dashboard/fees/admin-fees-data';
+import { FEE_STATUS_FILTERS } from '@/components/dashboard/fees/admin-fees-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,7 @@ type Props = {
   statusFilter: string;
   onStatusFilterChange: (v: string) => void;
   onReset: () => void;
+  hostelOptions: readonly string[];
 };
 
 export function AdminFeesFiltersBar(props: Props) {
@@ -66,7 +67,7 @@ export function AdminFeesFiltersBar(props: Props) {
           />
         </label>
         <select value={props.hostelFilter} onChange={(e) => props.onHostelFilterChange(e.target.value)} className={selectClass}>
-          {FEE_HOSTEL_FILTERS.map((h) => (
+            {props.hostelOptions.map((h) => (
             <option key={h} value={h}>
               {h}
             </option>

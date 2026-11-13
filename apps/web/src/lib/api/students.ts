@@ -31,6 +31,7 @@ type DirectoryRowPayload = {
   room: string;
   status: StudentStatus;
   joinedDate: string;
+  profilePhotoUrl?: string | null;
 };
 
 function toStudentRecord(row: DirectoryRowPayload): StudentRecord {
@@ -114,6 +115,7 @@ export type AdminStudentProfile = {
     mfaEnabled: boolean;
     mustChangePassword: boolean;
     joinedAt: string;
+    profilePhotoUrl?: string | null;
   };
   student: null | {
     id: string;

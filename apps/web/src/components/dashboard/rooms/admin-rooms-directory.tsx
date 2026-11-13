@@ -103,7 +103,15 @@ function OccupancyBar({ room }: { room: RoomRecord }) {
   );
 }
 
-function RoomActionsMenu({ room, onDelete }: { room: RoomRecord; onDelete: () => void }) {
+type RoomActionHandlers = {
+  onAssign: () => void;
+  onChangeStatus: () => void;
+  onMarkMaintenance: () => void;
+  onDelete: () => void;
+};
+
+function RoomActionsMenu({ room, actions }: { room: RoomRecord; actions: RoomActionHandlers }) {
+  const { onAssign, onChangeStatus, onMarkMaintenance, onDelete } = actions;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -120,11 +128,18 @@ function RoomActionsMenu({ room, onDelete }: { room: RoomRecord; onDelete: () =>
           <Eye className="size-4" aria-hidden />
           View room details
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem render={<Link href={`/admin/rooms/${room.id}?edit=1`} />}>
           <Pencil className="size-4" aria-hidden />
           Edit room
         </DropdownMenuItem>
-        <DropdownMenuItem disabled={room.operationalStatus === 'Maintenance' || room.operationalStatus === 'Inactive'}>
+        <DropdownMenuItem
+          disabled={
+            room.operationalStatus === 'Maintenance' ||
+            room.operationalStatus === 'Inactive' ||
+            roomAvailableBeds(room) <= 0
+          }
+          onClick={onAssign}
+        >
           <UserPlus className="size-4" aria-hidden />
           Assign student
         </DropdownMenuItem>
@@ -133,11 +148,14 @@ function RoomActionsMenu({ room, onDelete }: { room: RoomRecord; onDelete: () =>
           View assigned students
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={onChangeStatus}>
           <ToggleLeft className="size-4" aria-hidden />
           Change room status
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={room.operationalStatus === 'Maintenance'}
+          onClick={onMarkMaintenance}
+        >
           <Hammer className="size-4" aria-hidden />
           Mark for maintenance
         </DropdownMenuItem>
@@ -165,7 +183,28 @@ function BedsAvailableLabel({ room }: { room: RoomRecord }) {
   );
 }
 
-function RoomGridCard({ room, onDelete }: { room: RoomRecord; onDelete: () => void }) {
+function makeRoomActions(
+  room: RoomRecord,
+  onAssign: (row: RoomRecord) => void,
+  onChangeStatus: (row: RoomRecord) => void,
+  onMarkMaintenance: (row: RoomRecord) => void,
+  onDelete: (row: RoomRecord) => void,
+): RoomActionHandlers {
+  return {
+    onAssign: () => onAssign(room),
+    onChangeStatus: () => onChangeStatus(room),
+    onMarkMaintenance: () => onMarkMaintenance(room),
+    onDelete: () => onDelete(room),
+  };
+}
+
+function RoomGridCard({
+  room,
+  actions,
+}: {
+  room: RoomRecord;
+  actions: RoomActionHandlers;
+}) {
   const reduceMotion = useReducedMotion();
   return (
     <motion.article
@@ -181,7 +220,7 @@ function RoomGridCard({ room, onDelete }: { room: RoomRecord; onDelete: () => vo
           <p className="text-lg font-semibold tracking-tight text-[var(--nestora-forest)]">{room.roomNumber}</p>
           <StatusBadge status={room.operationalStatus} />
         </div>
-        <RoomActionsMenu room={room} onDelete={onDelete} />
+        <RoomActionsMenu room={room} actions={actions} />
       </div>
       <p className="mt-3 text-sm text-muted-foreground">
         {room.hostel} · {room.floor} · {room.roomType}
@@ -209,6 +248,9 @@ export type AdminRoomsDirectoryProps = {
   pageRows: RoomRecord[];
   filteredCount: number;
   totalRooms: number;
+  onAssign: (row: RoomRecord) => void;
+  onChangeStatus: (row: RoomRecord) => void;
+  onMarkMaintenance: (row: RoomRecord) => void;
   onDelete: (row: RoomRecord) => void;
   pageSize: number;
   onPageSizeChange: (size: number) => void;
@@ -223,6 +265,9 @@ export function AdminRoomsDirectory({
   pageRows,
   filteredCount,
   totalRooms,
+  onAssign,
+  onChangeStatus,
+  onMarkMaintenance,
   onDelete,
   pageSize,
   onPageSizeChange,
@@ -373,7 +418,10 @@ export function AdminRoomsDirectory({
             >
               {pageRows.map((room) => (
                 <li key={room.id}>
-                  <RoomGridCard room={room} onDelete={() => onDelete(room)} />
+                  <RoomGridCard
+                    room={room}
+                    actions={makeRoomActions(room, onAssign, onChangeStatus, onMarkMaintenance, onDelete)}
+                  />
                 </li>
               ))}
             </motion.ul>
@@ -431,7 +479,10 @@ export function AdminRoomsDirectory({
                           >
                             <Eye className="size-4" aria-hidden />
                           </Button>
-                          <RoomActionsMenu room={room} onDelete={() => onDelete(room)} />
+                          <RoomActionsMenu
+                            room={room}
+                            actions={makeRoomActions(room, onAssign, onChangeStatus, onMarkMaintenance, onDelete)}
+                          />
                         </div>
                       </TableCell>
                     </TableRow>

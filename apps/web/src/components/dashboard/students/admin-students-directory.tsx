@@ -17,10 +17,10 @@ import { useRef } from 'react';
 
 import {
   formatJoinedDate,
-  getStudentInitials,
   type StudentRecord,
   type StudentStatus,
 } from '@/components/dashboard/students/admin-students-data';
+import { StudentDirectoryAvatar } from '@/components/dashboard/students/student-directory-avatar';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -358,13 +358,7 @@ export function AdminStudentsDirectory({
                           </TableCell>
                           <TableCell>
                             <span className="flex items-center gap-3">
-                              <motion.span
-                                className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[var(--nestora-sage-muted)] bg-[color-mix(in_oklch,var(--nestora-sage-light)_45%,var(--card))] text-xs font-bold text-[var(--nestora-forest)] shadow-sm"
-                                whileHover={reduceMotion ? undefined : { scale: 1.04 }}
-                                transition={{ type: 'spring', stiffness: 420, damping: 24 }}
-                              >
-                                {getStudentInitials(row.name)}
-                              </motion.span>
+                              <StudentDirectoryAvatar name={row.name} photoUrl={row.profilePhotoUrl} size="sm" />
                               <span className="min-w-0">
                                 <span className="block font-semibold text-foreground">{row.name}</span>
                                 <span className="block text-xs text-muted-foreground">{row.studentId}</span>
@@ -415,9 +409,12 @@ export function AdminStudentsDirectory({
                         onCheckedChange={(v) => onToggleRow(row.id, v === true)}
                         aria-label={`Select ${row.name}`}
                       />
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[var(--nestora-sage-muted)] bg-muted/40 text-xs font-bold text-[var(--nestora-forest)]">
-                        {getStudentInitials(row.name)}
-                      </span>
+                      <StudentDirectoryAvatar
+                        name={row.name}
+                        photoUrl={row.profilePhotoUrl}
+                        size="md"
+                        className="bg-muted/40"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <div>

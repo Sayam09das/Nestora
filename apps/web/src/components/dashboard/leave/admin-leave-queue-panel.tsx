@@ -69,10 +69,17 @@ export function AdminLeaveQueuePanel({ queue, selectedId, onSelect, onReview, li
     { scope: listRef, dependencies: [listKey, queue.length, reduceMotion, hidden] },
   );
 
-  if (hidden) return null;
-
   return (
-    <section data-leave-reveal data-leave-flip className="overflow-hidden rounded-2xl border border-[color-mix(in_oklch,var(--nestora-sage)_22%,var(--border))] bg-card shadow-sm">
+    <section
+      data-leave-reveal
+      data-leave-flip
+      aria-label="Warden queue"
+      hidden={hidden}
+      className={cn(
+        'overflow-hidden rounded-2xl border border-[color-mix(in_oklch,var(--nestora-sage)_22%,var(--border))] bg-card shadow-sm',
+        hidden && 'hidden',
+      )}
+    >
       <header className="border-b border-[var(--nestora-sage-muted)]/70 px-4 py-4 sm:px-5">
         <h2 className="text-base font-semibold text-[var(--nestora-forest)]">Warden queue</h2>
         <p className="text-xs text-muted-foreground">Overstays and extensions surface first; beds stay occupied when approved.</p>

@@ -9,7 +9,6 @@ import { toast } from 'sonner';
 import {
   CATEGORY_META,
   NOTICE_STATUS_STYLES,
-  SAMPLE_ACK_ROSTER,
   ackRate,
   formatNoticeDate,
   formatNoticeWhen,
@@ -28,7 +27,7 @@ export function AdminAnnouncementsDetailPage({ notice }: { notice: AnnouncementR
   const rootRef = useRef<HTMLDivElement>(null);
   const meta = CATEGORY_META[notice.category];
   const Icon = meta.icon;
-  const roster = SAMPLE_ACK_ROSTER[notice.id] ?? [];
+  const roster: Array<{ id: string; studentName: string; block: string; status: string }> = [];
   const rate = ackRate(notice);
 
   useGSAP(
@@ -166,7 +165,9 @@ export function AdminAnnouncementsDetailPage({ notice }: { notice: AnnouncementR
               ))}
             </ul>
           ) : (
-            <p className="p-6 text-sm text-muted-foreground">Sample roster not loaded for this notice ID.</p>
+            <p className="p-6 text-sm text-muted-foreground">
+              Per-student acknowledgement list is not exposed on this endpoint yet — counts above are live from the database.
+            </p>
           )}
         </section>
       ) : null}

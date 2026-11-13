@@ -1,4 +1,5 @@
 import type { ApiErrorResponse, ApiSuccessResponse } from '@nestora/types';
+import { humanizeApiErrorMessage } from '@/lib/api/humanize-error';
 
 export type ParsedApi<T> =
   | { ok: true; data: T; message: string; status: number }
@@ -26,6 +27,6 @@ export async function parseApiResponse<T>(response: Response): Promise<ParsedApi
     ok: false,
     status,
     code: err?.code,
-    message: err?.message ?? `Request failed (${status}).`,
+    message: humanizeApiErrorMessage(err?.message ?? `Request failed (${status}).`),
   };
 }

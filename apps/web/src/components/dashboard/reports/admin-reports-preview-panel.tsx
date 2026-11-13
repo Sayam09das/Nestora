@@ -16,6 +16,7 @@ import {
   formatReportWhen,
   type ReportTemplate,
 } from '@/components/dashboard/reports/admin-reports-data';
+import type { ReportDeskPreview } from '@/lib/api/reports';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Button } from '@/components/ui/button';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
@@ -26,7 +27,7 @@ const focusRing =
 
 const BAR_COLORS = ['#8ba391', '#6d9773', '#4d7a5c', '#2d5c45', '#164c3c', '#ffba00'] as const;
 
-type Props = { report: ReportTemplate | null };
+type Props = { report: ReportTemplate | null; preview?: ReportDeskPreview | null; loadingPreview?: boolean };
 
 type PreviewChartSlice = {
   data: Array<Record<string, string | number>>;
@@ -88,14 +89,27 @@ function resolvePreviewChart(report: ReportTemplate): PreviewChartSlice {
   }
 }
 
-export function AdminReportsPreviewPanel({ report }: Props) {
+export function AdminReportsPreviewPanel({ report, preview }: Props) {
   const reduceMotion = useReducedMotion();
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const { data, dataKey, xKey, config, tooltipFormat } = useMemo(
-    () => (report ? resolvePreviewChart(report) : emptyChart),
-    [report],
-  );
+  const { data, dataKey, xKey, config, tooltipFormat } = useMemo(() => {
+    if (!report) return emptyChart;
+    if (preview?.chart?.data?.length) {
+      const base = resolvePreviewChart(report);
+      return {
+        ...base,
+        data: preview.chart.data as Array<Record<string, string | number>>,
+        dataKey: preview.chart.dataKey,
+        xKey: preview.chart.xKey,
+      };
+    }
+    if (preview) {
+      const base = resolvePreviewChart(report);
+      return { ...base, data: [] };
+    }
+    return emptyChart;
+  }, [preview, report]);
 
   useGSAP(
     () => {
@@ -117,7 +131,7 @@ export function AdminReportsPreviewPanel({ report }: Props) {
   if (!report) {
     return (
       <section className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
-        Select a report template to preview sample output.
+        Select a report template to preview live output.
       </section>
     );
   }
@@ -142,7 +156,7 @@ export function AdminReportsPreviewPanel({ report }: Props) {
             variant="secondary"
             size="sm"
             className={cn('rounded-xl', focusRing)}
-            onClick={() => toast.success(`${report.code} re-run queued (sample).`)}
+            onClick={() => toast.success(`${report.code} refresh queued — pulling live aggregates.`)}
           >
             <Play className="size-4" aria-hidden />
             Run now

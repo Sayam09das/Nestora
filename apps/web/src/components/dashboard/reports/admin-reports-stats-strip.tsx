@@ -4,25 +4,64 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Clock, FileSpreadsheet, Layers, Timer, Zap } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 
-import { REPORTS_STATS } from '@/components/dashboard/reports/admin-reports-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { ReportsDeskSummary } from '@/lib/api/reports';
+import { liveMetricNumber, liveMetricText } from '@/lib/api/live-metric';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
 
-export function AdminReportsStatsStrip() {
+type Props = { summary?: ReportsDeskSummary | null; loading?: boolean };
+
+export function AdminReportsStatsStrip({ summary, loading }: Props) {
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
 
-  const cards = useMemo(
-    () => [
-      { key: 'tpl', label: 'Report templates', value: REPORTS_STATS.templates, hint: 'FR-129 – FR-138', icon: Layers, accent: 'var(--nestora-forest)' },
-      { key: 'sched', label: 'Scheduled jobs', value: REPORTS_STATS.scheduledJobs, hint: 'Cron + on-demand', icon: Timer, accent: '#0284c7' },
-      { key: 'exp', label: 'Exports this week', value: REPORTS_STATS.exportsThisWeek, hint: 'CSV & PDF', icon: FileSpreadsheet, accent: 'var(--nestora-gold)' },
-      { key: 'run', label: 'Avg runtime', value: `${REPORTS_STATS.avgRunSeconds}s`, hint: 'Cached aggregates', icon: Zap, accent: '#6d9773' },
-      { key: 'fresh', label: 'Data freshness', value: `${REPORTS_STATS.dataFreshnessMin}m`, hint: 'Since last ETL', icon: Clock, accent: 'var(--nestora-sage)' },
-    ],
-    [],
-  );
+  const cards = useMemo(() => {
+    const s = summary;
+    const freshness = s ? (s.dataFreshnessMin <= 0 ? 'Live' : `${s.dataFreshnessMin}m`) : loading ? '—' : '—';
+    return [
+      {
+        key: 'tpl',
+        label: 'Report templates',
+        value: liveMetricNumber(s?.templates, loading),
+        hint: 'FR-129 – FR-138',
+        icon: Layers,
+        accent: 'var(--nestora-forest)',
+      },
+      {
+        key: 'sched',
+        label: 'Scheduled jobs',
+        value: liveMetricNumber(s?.scheduledJobs, loading),
+        hint: 'Cron + on-demand',
+        icon: Timer,
+        accent: '#0284c7',
+      },
+      {
+        key: 'exp',
+        label: 'Exports this week',
+        value: liveMetricNumber(s?.exportsThisWeek, loading),
+        hint: 'CSV & PDF',
+        icon: FileSpreadsheet,
+        accent: 'var(--nestora-gold)',
+      },
+      {
+        key: 'run',
+        label: 'Avg runtime',
+        value: `${liveMetricNumber(s?.avgRunSeconds, loading)}s`,
+        hint: 'Live aggregates',
+        icon: Zap,
+        accent: '#6d9773',
+      },
+      {
+        key: 'fresh',
+        label: 'Data freshness',
+        value: freshness,
+        hint: s?.dataFreshnessMin === 0 ? 'Neon Postgres' : 'Since last ETL',
+        icon: Clock,
+        accent: 'var(--nestora-sage)',
+      },
+    ];
+  }, [loading, summary]);
 
   useGSAP(
     () => {

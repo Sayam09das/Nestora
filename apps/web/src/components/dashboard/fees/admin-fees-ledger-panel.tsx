@@ -3,16 +3,11 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { FileCheck, Wallet } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useRef } from 'react';
+import { useRef } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts';
 
-import {
-  COLLECTION_CHART_DATA,
-  LEDGER_LINES,
-  PENDING_WAIVERS,
-  formatInr,
-  type LedgerAccount,
-} from '@/components/dashboard/fees/admin-fees-data';
+import { formatInr, type LedgerAccount, type LedgerLine } from '@/components/dashboard/fees/admin-fees-data';
+import type { FinanceCollectionTrendPoint, FinancePendingWaiver } from '@/lib/api/finance';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,12 +27,23 @@ const chartConfig = {
 type Props = {
   account: LedgerAccount | null;
   onRequestWaiver: () => void;
+  lines: LedgerLine[];
+  collectionTrend: FinanceCollectionTrendPoint[];
+  pendingWaivers: FinancePendingWaiver[];
+  loadingDetail?: boolean;
 };
 
-export function AdminFeesLedgerPanel({ account, onRequestWaiver }: Props) {
+export function AdminFeesLedgerPanel({
+  account,
+  onRequestWaiver,
+  lines,
+  collectionTrend,
+  pendingWaivers,
+  loadingDetail = false,
+}: Props) {
   const reduceMotion = useReducedMotion();
   const chartRef = useRef<HTMLDivElement>(null);
-  const lines = useMemo(() => (account ? LEDGER_LINES[account.id] ?? [] : []), [account]);
+  const chartData = collectionTrend.length ? collectionTrend : [{ month: '—', collected: 0, outstanding: 0 }];
 
   useGSAP(
     () => {
@@ -91,13 +97,13 @@ export function AdminFeesLedgerPanel({ account, onRequestWaiver }: Props) {
         >
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Campus collection trend</p>
           <ChartContainer config={chartConfig} className="aspect-[2.2/1] w-full max-h-48">
-            <BarChart data={COLLECTION_CHART_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+            <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted/40" />
               <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 10 }} />
               <YAxis hide tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
               <ChartTooltip content={<ChartTooltipContent formatter={(v) => formatInr(Number(v))} />} />
               <Bar dataKey="collected" radius={[4, 4, 0, 0]}>
-                {COLLECTION_CHART_DATA.map((_, i) => (
+                {chartData.map((_, i) => (
                   <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />
                 ))}
               </Bar>
@@ -108,8 +114,10 @@ export function AdminFeesLedgerPanel({ account, onRequestWaiver }: Props) {
         <div className="mt-4 space-y-2">
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Recent ledger lines</p>
           <ul className="divide-y rounded-xl border">
-            {lines.length === 0 ? (
-              <li className="px-3 py-4 text-center text-xs text-muted-foreground">No line items in sample data.</li>
+            {loadingDetail ? (
+              <li className="px-3 py-4 text-center text-xs text-muted-foreground">Loading ledger lines…</li>
+            ) : lines.length === 0 ? (
+              <li className="px-3 py-4 text-center text-xs text-muted-foreground">No ledger lines yet.</li>
             ) : (
               lines.map((line) => (
                 <li key={`${line.date}-${line.label}`} className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm">
@@ -170,7 +178,10 @@ export function AdminFeesLedgerPanel({ account, onRequestWaiver }: Props) {
             </Button>
           </div>
           <ul className="mt-3 space-y-2">
-            {PENDING_WAIVERS.map((w) => (
+            {pendingWaivers.length === 0 ? (
+              <li className="rounded-lg border border-dashed px-3 py-2 text-center text-[11px] text-muted-foreground">No pending waivers.</li>
+            ) : null}
+            {pendingWaivers.map((w) => (
               <li key={w.id} className="rounded-lg border bg-muted/20 px-3 py-2">
                 <p className="text-xs font-medium">{w.student}</p>
                 <p className="text-[11px] text-muted-foreground">

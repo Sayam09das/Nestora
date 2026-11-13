@@ -3,8 +3,10 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, BedDouble, Building2, Hammer, Shield, Sparkles, UserRound } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { AdminRoomAssignSheet } from '@/components/dashboard/rooms/admin-room-assign-sheet';
+import { AdminRoomEditSheet } from '@/components/dashboard/rooms/admin-room-edit-sheet';
 import {
   formatMaintenanceDate,
   roomAvailableBeds,
@@ -26,6 +28,8 @@ const focusRing =
 
 type AdminRoomsDetailPageProps = {
   room: RoomRecord;
+  autoOpenEdit?: boolean;
+  onRoomUpdated?: () => void | Promise<void>;
 };
 
 function StatusPill({ status }: { status: RoomRecord['operationalStatus'] }) {
@@ -44,9 +48,21 @@ function StatusPill({ status }: { status: RoomRecord['operationalStatus'] }) {
   );
 }
 
-export function AdminRoomsDetailPage({ room }: AdminRoomsDetailPageProps) {
+export function AdminRoomsDetailPage({ room, autoOpenEdit = false, onRoomUpdated }: AdminRoomsDetailPageProps) {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
+  const [editOpen, setEditOpen] = useState(autoOpenEdit);
+  const [assignOpen, setAssignOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.location.hash !== '#residents') {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      document.getElementById('residents')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [room.id]);
 
   const occupancyPct = useMemo(() => roomOccupancyPercent(room), [room]);
   const availableBeds = roomAvailableBeds(room);
@@ -112,13 +128,23 @@ export function AdminRoomsDetailPage({ room }: AdminRoomsDetailPageProps) {
             <p className="mt-1 text-xs text-muted-foreground">Room ID {room.roomId}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" className="rounded-xl border-[var(--nestora-sage-muted)]">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl border-[var(--nestora-sage-muted)]"
+              onClick={() => setEditOpen(true)}
+            >
               Edit room
             </Button>
             <Button
               type="button"
               className="rounded-xl bg-[var(--nestora-forest)] text-white hover:brightness-110"
-              disabled={room.operationalStatus === 'Maintenance' || room.operationalStatus === 'Inactive'}
+              disabled={
+                room.operationalStatus === 'Maintenance' ||
+                room.operationalStatus === 'Inactive' ||
+                availableBeds <= 0
+              }
+              onClick={() => setAssignOpen(true)}
             >
               Assign student
             </Button>
@@ -289,6 +315,28 @@ export function AdminRoomsDetailPage({ room }: AdminRoomsDetailPageProps) {
         Operational status ({room.operationalStatus}) is independent of bed occupancy — a room under maintenance may
         still show vacant beds until work completes.
       </section>
+
+      <AdminRoomEditSheet
+        room={room}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onSaved={async () => {
+          if (onRoomUpdated) {
+            await onRoomUpdated();
+          }
+        }}
+      />
+
+      <AdminRoomAssignSheet
+        room={room}
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+        onAssigned={async () => {
+          if (onRoomUpdated) {
+            await onRoomUpdated();
+          }
+        }}
+      />
     </div>
   );
 }

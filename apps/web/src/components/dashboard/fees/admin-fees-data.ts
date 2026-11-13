@@ -15,7 +15,7 @@ export type LedgerAccount = {
   paid: number;
   outstanding: number;
   status: FeeAccountStatus;
-  lastPayment: string;
+  lastPayment: string | null;
   frRef: string;
   sparkline: number[];
 };
@@ -205,6 +205,7 @@ export function formatInr(value: number): string {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value);
 }
 
-export function formatFeeWhen(iso: string): string {
+export function formatFeeWhen(iso: string | null): string {
+  if (!iso) return '—';
   return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
 }

@@ -96,12 +96,16 @@ export function AdminAllocationPage() {
   return (
     <div ref={rootRef} className="space-y-6 pb-6">
       {error ? (
-        <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          {error}{' '}
-          <Button type="button" variant="link" className="h-auto p-0 text-destructive" onClick={() => refresh()}>
-            Retry
+        <div
+          className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+          role="alert"
+        >
+          <p className="font-semibold text-[var(--nestora-forest)]">Live data temporarily unavailable</p>
+          <p className="mt-1 text-destructive">{error}</p>
+          <Button type="button" variant="link" className="mt-1 h-auto p-0 text-destructive" onClick={() => refresh()}>
+            Retry now
           </Button>
-        </p>
+        </div>
       ) : null}
 
       <AdminAllocationPageHeader onAllocate={() => openAssign()} summary={summary} loading={loadingSummary} />

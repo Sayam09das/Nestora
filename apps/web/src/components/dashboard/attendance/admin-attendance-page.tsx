@@ -1,6 +1,7 @@
 'use client';
 
 import { useReducedMotion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -9,25 +10,42 @@ import { AdminAttendancePageHeader } from '@/components/dashboard/attendance/adm
 import { AdminAttendanceRoster } from '@/components/dashboard/attendance/admin-attendance-roster';
 import { AdminAttendanceSessionsDirectory } from '@/components/dashboard/attendance/admin-attendance-sessions-directory';
 import { AdminAttendanceStatsStrip } from '@/components/dashboard/attendance/admin-attendance-stats-strip';
-import {
-  SAMPLE_ROSTER,
-  SAMPLE_SESSIONS,
-  type AttendanceMark,
-  type AttendanceRosterRow,
-} from '@/components/dashboard/attendance/admin-attendance-data';
+import type { AttendanceMark } from '@/components/dashboard/attendance/admin-attendance-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import { Button } from '@/components/ui/button';
+import { useNightAttendance } from '@/hooks/use-night-attendance';
+
+function todayIsoDate(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 export function AdminAttendancePage() {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const [sessionDate, setSessionDate] = useState('2026-03-10');
-  const [roster, setRoster] = useState<AttendanceRosterRow[]>(SAMPLE_ROSTER);
+  const [sessionDate, setSessionDate] = useState(todayIsoDate);
   const [search, setSearch] = useState('');
   const [hostelFilter, setHostelFilter] = useState('All Hostels');
   const [blockFilter, setBlockFilter] = useState('All Blocks');
   const [floorFilter, setFloorFilter] = useState('All Floors');
   const [markFilter, setMarkFilter] = useState('All Marks');
+
+  const { summary, roster, sessions, loading, error, applyMark, refresh } = useNightAttendance(sessionDate);
+
+  const facetOptions = useMemo(() => {
+    const hostels = summary?.facets.hostels ?? [];
+    const blocks = summary?.facets.blocks ?? [];
+    const floors = summary?.facets.floors ?? [];
+    return {
+      hostels: ['All Hostels', ...hostels] as const,
+      blocks: ['All Blocks', ...blocks] as const,
+      floors: ['All Floors', ...floors] as const,
+    };
+  }, [summary?.facets]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -45,7 +63,7 @@ export function AdminAttendancePage() {
     });
   }, [roster, search, hostelFilter, blockFilter, floorFilter, markFilter]);
 
-  const listKey = `${search}|${hostelFilter}|${blockFilter}|${floorFilter}|${markFilter}`;
+  const listKey = `${sessionDate}|${search}|${hostelFilter}|${blockFilter}|${floorFilter}|${markFilter}|${roster.length}`;
 
   useGSAP(
     () => {
@@ -69,21 +87,37 @@ export function AdminAttendancePage() {
     setMarkFilter('All Marks');
   };
 
-  const onMarkChange = (id: string, mark: AttendanceMark) => {
-    setRoster((prev) => prev.map((r) => (r.id === id ? { ...r, mark } : r)));
+  const onMarkChange = async (id: string, mark: AttendanceMark) => {
+    const result = await applyMark(id, mark);
+    if (!result.ok) {
+      toast.error(result.error);
+    }
   };
 
-  const bulkFloorPresent = () => {
+  const bulkFloorPresent = async () => {
     const floor = floorFilter !== 'All Floors' ? floorFilter : null;
     const block = blockFilter !== 'All Blocks' ? blockFilter : null;
     if (!floor || !block) {
       toast.message('Select a specific block and floor to bulk-mark present.');
       return;
     }
-    setRoster((prev) =>
-      prev.map((r) => (r.block === block && r.floor === floor && !r.onApprovedLeave ? { ...r, mark: 'Present' as const } : r)),
+    const targets = roster.filter(
+      (r) => r.block === block && r.floor === floor && !r.onApprovedLeave && r.mark !== 'Present',
     );
-    toast.success(`${block} · ${floor} marked present (sample). Toggle exceptions before publish.`);
+    if (!targets.length) {
+      toast.message('No residents to update on this floor.');
+      return;
+    }
+    let failed = 0;
+    for (const row of targets) {
+      const result = await applyMark(row.id, 'Present');
+      if (!result.ok) failed += 1;
+    }
+    if (failed) {
+      toast.error(`${failed} marks could not be saved.`);
+    } else {
+      toast.success(`${block} · ${floor} marked present. Review exceptions before publish.`);
+    }
   };
 
   const publish = () => {
@@ -92,13 +126,30 @@ export function AdminAttendancePage() {
       toast.error(`${unmarked} residents still unmarked.`);
       return;
     }
-    toast.success('Roster published (sample UI). Revisions will append to audit log.');
+    toast.success('Roster ready for publish. Session totals are saved to attendance records.');
   };
 
   return (
     <div ref={rootRef} className="space-y-6 pb-6">
-      <AdminAttendancePageHeader sessionDate={sessionDate} onSessionDateChange={setSessionDate} onPublish={publish} />
-      <AdminAttendanceStatsStrip />
+      <AdminAttendancePageHeader
+        sessionDate={sessionDate}
+        onSessionDateChange={setSessionDate}
+        onPublish={publish}
+        summary={summary}
+        loading={loading}
+      />
+      {error ? (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"
+        >
+          <p className="text-destructive">{error}</p>
+          <Button type="button" size="sm" variant="outline" className="rounded-lg" onClick={refresh}>
+            Retry
+          </Button>
+        </div>
+      ) : null}
+      <AdminAttendanceStatsStrip summary={summary} loading={loading} />
       <AdminAttendanceFiltersBar
         search={search}
         onSearchChange={setSearch}
@@ -111,10 +162,24 @@ export function AdminAttendancePage() {
         markFilter={markFilter}
         onMarkFilterChange={setMarkFilter}
         onReset={reset}
-        onBulkFloorPresent={bulkFloorPresent}
+        onBulkFloorPresent={() => void bulkFloorPresent()}
+        hostelOptions={facetOptions.hostels}
+        blockOptions={facetOptions.blocks}
+        floorOptions={facetOptions.floors}
       />
-      <AdminAttendanceRoster rows={filtered} onMarkChange={onMarkChange} listKey={listKey} />
-      <AdminAttendanceSessionsDirectory sessions={SAMPLE_SESSIONS} />
+      {loading && roster.length === 0 ? (
+        <div className="flex min-h-[30vh] items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-5 animate-spin text-[var(--nestora-sage)]" aria-hidden />
+          Loading tonight&apos;s roster…
+        </div>
+      ) : (
+        <AdminAttendanceRoster
+          rows={filtered}
+          onMarkChange={(id, mark) => void onMarkChange(id, mark)}
+          listKey={listKey}
+        />
+      )}
+      <AdminAttendanceSessionsDirectory sessions={sessions} />
     </div>
   );
 }

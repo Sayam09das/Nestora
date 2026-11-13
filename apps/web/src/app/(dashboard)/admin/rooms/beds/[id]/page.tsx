@@ -1,7 +1,4 @@
-import { notFound } from 'next/navigation';
-
-import { AdminBedsDetailPage } from '@/components/dashboard/beds/admin-beds-detail-page';
-import { getBedById } from '@/components/dashboard/beds/admin-beds-data';
+import { AdminBedDetailPage } from '@/components/dashboard/beds/admin-bed-detail-page';
 import { createPrivatePageMetadata } from '@/lib/seo/metadata';
 
 type PageProps = {
@@ -10,17 +7,10 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params;
-  const bed = getBedById(id);
-  const title = bed ? bed.bedId : 'Bed details';
-  const path = `/admin/rooms/beds/${id}`;
-  return createPrivatePageMetadata(title, `${title} — Nestora bed inventory.`, path);
+  return createPrivatePageMetadata('Bed details', 'Bed inventory and assignment record.', `/admin/rooms/beds/${id}`);
 }
 
 export default async function AdminBedDetailRoute({ params }: PageProps) {
   const { id } = await params;
-  const bed = getBedById(id);
-  if (!bed) {
-    notFound();
-  }
-  return <AdminBedsDetailPage bed={bed} />;
+  return <AdminBedDetailPage bedId={id} />;
 }

@@ -24,10 +24,14 @@ type Props = {
 export function AdminAnnouncementsList({ rows, hidden }: Props) {
   const reduceMotion = useReducedMotion();
 
-  if (hidden) return null;
-
   return (
-    <section data-ann-reveal data-ann-flip aria-label="Notice registry">
+    <section
+      data-ann-reveal
+      data-ann-flip
+      aria-label="Notice registry"
+      hidden={hidden}
+      className={cn(hidden && 'hidden')}
+    >
       <div className="overflow-hidden rounded-2xl border border-[color-mix(in_oklch,var(--nestora-sage)_18%,var(--border))] bg-card shadow-sm">
         <motion.div className="overflow-x-auto" initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }}>
           <table className="w-full min-w-[52rem] text-left text-sm">

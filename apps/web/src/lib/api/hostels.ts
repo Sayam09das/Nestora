@@ -20,6 +20,18 @@ export type HostelDirectorySummary = {
   };
 };
 
+export async function fetchHostelDirectoryById(hostelId: string): Promise<{
+  hostel?: HostelRecord;
+  error?: string;
+}> {
+  const response = await apiFetch(`/api/v1/hostels/directory/${encodeURIComponent(hostelId)}`);
+  const parsed = await parseApiResponse<{ hostel: HostelRecord }>(response);
+  if (!parsed.ok) {
+    return { error: parsed.message };
+  }
+  return { hostel: parsed.data.hostel };
+}
+
 export async function fetchHostelDirectorySummary(): Promise<{
   summary?: HostelDirectorySummary;
   error?: string;

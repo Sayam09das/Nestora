@@ -2,9 +2,10 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { LayoutGrid, Rows3, Shield, UserPlus } from 'lucide-react';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 
-import { ROLES_STATS } from '@/components/dashboard/roles/admin-roles-data';
+import type { RolesDeskSummary } from '@/lib/api/roles-desk';
+import { liveMetricNumber } from '@/lib/api/live-metric';
 import { Flip, gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -17,9 +18,11 @@ type Props = {
   view: 'hub' | 'registry';
   onViewChange: (v: 'hub' | 'registry') => void;
   flipRootRef: React.RefObject<HTMLDivElement | null>;
+  summary?: RolesDeskSummary | null;
+  loading?: boolean;
 };
 
-export function AdminRolesPageHeader({ onGrant, view, onViewChange, flipRootRef }: Props) {
+export function AdminRolesPageHeader({ onGrant, view, onViewChange, flipRootRef, summary, loading }: Props) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
 
@@ -37,6 +40,15 @@ export function AdminRolesPageHeader({ onGrant, view, onViewChange, flipRootRef 
     },
     { scope: headerRef, dependencies: [reduceMotion] },
   );
+
+  const modules = liveMetricNumber(summary?.matrixModules, loading);
+  const pendingReviews = liveMetricNumber(summary?.pendingReviews, loading);
+  const customGrants = liveMetricNumber(summary?.customGrants, loading);
+
+  const liveStamp = useMemo(() => {
+    if (!summary?.generatedAt) return null;
+    return new Intl.DateTimeFormat('en-IN', { timeStyle: 'short' }).format(new Date(summary.generatedAt));
+  }, [summary?.generatedAt]);
 
   const setView = (next: 'hub' | 'registry') => {
     if (next === view || reduceMotion || !flipRootRef.current) {
@@ -61,9 +73,14 @@ export function AdminRolesPageHeader({ onGrant, view, onViewChange, flipRootRef 
       />
       <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr,14rem]">
         <div className="space-y-3">
-          <p data-role-hero className="flex items-center gap-2 text-xs text-muted-foreground">
+          <p data-role-hero className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <Shield className="size-3.5 text-[var(--nestora-sage)]" aria-hidden />
             System / Roles & permissions
+            {liveStamp ? (
+              <span className="rounded-full border border-[color-mix(in_oklch,var(--nestora-sage)_30%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-sage)_8%,var(--card))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--nestora-sage)]">
+                Live · {liveStamp}
+              </span>
+            ) : null}
           </p>
           <h1 data-role-hero className="text-2xl font-semibold text-[var(--nestora-forest)]">
             Access architecture
@@ -103,10 +120,10 @@ export function AdminRolesPageHeader({ onGrant, view, onViewChange, flipRootRef 
         </div>
         <motion.aside data-role-hero className="rounded-xl border bg-[color-mix(in_oklch,var(--nestora-cream)_12%,var(--card))] p-4">
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--nestora-sage)]">Coverage</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums text-[var(--nestora-forest)]">{ROLES_STATS.matrixModules}</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums text-[var(--nestora-forest)]">{modules ?? '—'}</p>
           <p className="text-xs text-muted-foreground">modules in policy matrix</p>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            {ROLES_STATS.pendingReviews} pending reviews · {ROLES_STATS.customGrants} custom grants
+            {pendingReviews ?? '—'} pending reviews · {customGrants ?? '—'} custom grants
           </p>
         </motion.aside>
       </div>

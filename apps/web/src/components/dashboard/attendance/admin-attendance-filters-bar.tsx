@@ -4,12 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { RotateCcw, Search } from 'lucide-react';
 import { useMemo } from 'react';
 
-import {
-  ATTENDANCE_BLOCK_FILTERS,
-  ATTENDANCE_FLOOR_FILTERS,
-  ATTENDANCE_HOSTEL_FILTERS,
-  ATTENDANCE_MARK_FILTERS,
-} from '@/components/dashboard/attendance/admin-attendance-data';
+import { ATTENDANCE_MARK_FILTERS } from '@/components/dashboard/attendance/admin-attendance-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -30,6 +25,9 @@ type Props = {
   onMarkFilterChange: (v: string) => void;
   onReset: () => void;
   onBulkFloorPresent: () => void;
+  hostelOptions: readonly string[];
+  blockOptions: readonly string[];
+  floorOptions: readonly string[];
 };
 
 export function AdminAttendanceFiltersBar(props: Props) {
@@ -77,9 +75,9 @@ export function AdminAttendanceFiltersBar(props: Props) {
             className={cn('h-10 rounded-xl', focusRing)}
           />
         </label>
-        <SelectField label="Hostel" value={props.hostelFilter} options={ATTENDANCE_HOSTEL_FILTERS} onChange={props.onHostelFilterChange} />
-        <SelectField label="Block" value={props.blockFilter} options={ATTENDANCE_BLOCK_FILTERS} onChange={props.onBlockFilterChange} />
-        <SelectField label="Floor" value={props.floorFilter} options={ATTENDANCE_FLOOR_FILTERS} onChange={props.onFloorFilterChange} />
+        <SelectField label="Hostel" value={props.hostelFilter} options={props.hostelOptions} onChange={props.onHostelFilterChange} />
+        <SelectField label="Block" value={props.blockFilter} options={props.blockOptions} onChange={props.onBlockFilterChange} />
+        <SelectField label="Floor" value={props.floorFilter} options={props.floorOptions} onChange={props.onFloorFilterChange} />
         <SelectField label="Mark" value={props.markFilter} options={ATTENDANCE_MARK_FILTERS} onChange={props.onMarkFilterChange} />
       </div>
     </motion.section>

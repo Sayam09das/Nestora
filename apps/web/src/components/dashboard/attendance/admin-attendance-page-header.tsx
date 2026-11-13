@@ -2,10 +2,10 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { CalendarDays, Download, Send } from 'lucide-react';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 
-import { ATTENDANCE_STATS } from '@/components/dashboard/attendance/admin-attendance-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import type { NightAttendanceSummary } from '@/lib/api/attendance';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -17,11 +17,29 @@ type Props = {
   sessionDate: string;
   onSessionDateChange: (v: string) => void;
   onPublish: () => void;
+  summary: NightAttendanceSummary | null;
+  loading?: boolean;
 };
 
-export function AdminAttendancePageHeader({ sessionDate, onSessionDateChange, onPublish }: Props) {
+export function AdminAttendancePageHeader({
+  sessionDate,
+  onSessionDateChange,
+  onPublish,
+  summary,
+  loading = false,
+}: Props) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
+
+  const liveLabel = useMemo(() => {
+    if (!summary?.generatedAt || loading) return null;
+    return new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit' }).format(
+      new Date(summary.generatedAt),
+    );
+  }, [summary?.generatedAt, loading]);
+
+  const rateLabel =
+    summary?.todayRatePct != null ? `${summary.todayRatePct}%` : summary && !loading ? '—' : '…';
 
   useGSAP(
     () => {
@@ -48,6 +66,11 @@ export function AdminAttendancePageHeader({ sessionDate, onSessionDateChange, on
           <p data-att-hero className="flex items-center gap-2 text-xs text-muted-foreground">
             <CalendarDays className="size-3.5 text-[var(--nestora-sage)]" aria-hidden />
             Dashboard / Attendance
+            {liveLabel ? (
+              <span className="rounded-full border border-[color-mix(in_oklch,var(--nestora-sage)_35%,var(--border))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--nestora-forest)]">
+                Live · {liveLabel}
+              </span>
+            ) : null}
           </p>
           <h1 data-att-hero className="text-2xl font-semibold text-[var(--nestora-forest)]">
             Night attendance
@@ -78,8 +101,16 @@ export function AdminAttendancePageHeader({ sessionDate, onSessionDateChange, on
         </motion.div>
       </div>
       <p data-att-hero className="mt-4 text-xs text-muted-foreground">
-        Live preview: {ATTENDANCE_STATS.presentToday} present · {ATTENDANCE_STATS.absentToday} absent ·{' '}
-        {ATTENDANCE_STATS.todayRatePct}% rate (illustrative)
+        {loading && !summary ? (
+          'Loading session totals…'
+        ) : summary ? (
+          <>
+            {summary.presentToday} present · {summary.absentToday} absent · {summary.onLeaveToday} on leave · {rateLabel}{' '}
+            rate · {summary.residentsTotal} residents
+          </>
+        ) : (
+          'Session totals unavailable.'
+        )}
       </p>
     </header>
   );

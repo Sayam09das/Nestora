@@ -2,9 +2,10 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { Download, FileText, List, ScrollText } from 'lucide-react';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 
-import { AUDIT_STATS } from '@/components/dashboard/audit-logs/admin-audit-logs-data';
+import type { AuditDeskSummary } from '@/lib/api/audit';
+import { liveMetricNumber } from '@/lib/api/live-metric';
 import { Flip, gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -17,10 +18,20 @@ type Props = {
   view: 'timeline' | 'registry';
   onViewChange: (v: 'timeline' | 'registry') => void;
   flipRootRef: React.RefObject<HTMLDivElement | null>;
+  summary?: AuditDeskSummary | null;
   apiOnline: boolean;
+  loading?: boolean;
 };
 
-export function AdminAuditLogsPageHeader({ onExport, view, onViewChange, flipRootRef, apiOnline }: Props) {
+export function AdminAuditLogsPageHeader({
+  onExport,
+  view,
+  onViewChange,
+  flipRootRef,
+  summary,
+  apiOnline,
+  loading,
+}: Props) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
 
@@ -38,6 +49,14 @@ export function AdminAuditLogsPageHeader({ onExport, view, onViewChange, flipRoo
     },
     { scope: headerRef, dependencies: [reduceMotion] },
   );
+
+  const entries24h = liveMetricNumber(summary?.entries24h, loading);
+  const retentionYears = summary?.retentionYears ?? 7;
+
+  const liveStamp = useMemo(() => {
+    if (!summary?.generatedAt) return null;
+    return new Intl.DateTimeFormat('en-IN', { timeStyle: 'short' }).format(new Date(summary.generatedAt));
+  }, [summary?.generatedAt]);
 
   const setView = (next: 'timeline' | 'registry') => {
     if (next === view || reduceMotion || !flipRootRef.current) {
@@ -62,9 +81,14 @@ export function AdminAuditLogsPageHeader({ onExport, view, onViewChange, flipRoo
       />
       <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr,14rem]">
         <div className="space-y-3">
-          <p data-aud-hero className="flex items-center gap-2 text-xs text-muted-foreground">
+          <p data-aud-hero className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <FileText className="size-3.5 text-[var(--nestora-sage)]" aria-hidden />
             System / Activity logs
+            {liveStamp ? (
+              <span className="rounded-full border border-[color-mix(in_oklch,var(--nestora-sage)_30%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-sage)_8%,var(--card))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--nestora-sage)]">
+                Live · {liveStamp}
+              </span>
+            ) : null}
           </p>
           <h1 data-aud-hero className="text-2xl font-semibold text-[var(--nestora-forest)]">
             Immutable audit trail
@@ -104,10 +128,10 @@ export function AdminAuditLogsPageHeader({ onExport, view, onViewChange, flipRoo
         </div>
         <motion.aside data-aud-hero className="rounded-xl border bg-[color-mix(in_oklch,var(--nestora-cream)_12%,var(--card))] p-4">
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--nestora-sage)]">Integrity</p>
-          <p className="mt-2 text-3xl font-semibold text-[var(--nestora-forest)]">{AUDIT_STATS.entries24h}</p>
+          <p className="mt-2 text-3xl font-semibold text-[var(--nestora-forest)]">{entries24h ?? '—'}</p>
           <p className="text-xs text-muted-foreground">events last 24h</p>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            {apiOnline ? 'Live API' : 'Sample fallback'} · {AUDIT_STATS.retentionYears}y retention
+            {apiOnline ? 'Live API' : loading ? 'Connecting…' : 'Offline'} · {retentionYears}y retention
           </p>
         </motion.aside>
       </div>

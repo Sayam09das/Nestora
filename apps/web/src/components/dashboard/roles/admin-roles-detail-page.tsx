@@ -10,7 +10,6 @@ import { AdminRolesGrantDrawer } from '@/components/dashboard/roles/admin-roles-
 import {
   ROLE_ICONS,
   ROLE_PERMISSIONS,
-  SAMPLE_ASSIGNMENTS,
   permissionLabel,
   type PermissionLevel,
   type RoleProfile,
@@ -36,14 +35,20 @@ const levelClass = (level: PermissionLevel): string => {
   }
 };
 
-export function AdminRolesDetailPage({ role }: { role: RoleProfile }) {
+export function AdminRolesDetailPage({
+  role,
+  assignments,
+}: {
+  role: RoleProfile;
+  assignments?: Array<{ user: string; hostel: string; since: string }>;
+}) {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const matrixRef = useRef<HTMLTableSectionElement>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const Icon = ROLE_ICONS[role.id];
   const matrix = ROLE_PERMISSIONS[role.id] ?? [];
-  const assignees = SAMPLE_ASSIGNMENTS[role.id] ?? [];
+  const assignees = assignments ?? [];
 
   useGSAP(
     () => {

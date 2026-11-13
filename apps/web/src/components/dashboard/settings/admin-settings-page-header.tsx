@@ -2,9 +2,10 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { LayoutGrid, Rows3, Save, Settings2 } from 'lucide-react';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 
-import { SETTINGS_STATS } from '@/components/dashboard/settings/admin-settings-data';
+import type { SettingsDeskSummary } from '@/lib/api/settings';
+import { liveMetricNumber, liveMetricText } from '@/lib/api/live-metric';
 import { Flip, gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -17,9 +18,11 @@ type Props = {
   view: 'hub' | 'registry';
   onViewChange: (v: 'hub' | 'registry') => void;
   flipRootRef: React.RefObject<HTMLDivElement | null>;
+  summary?: SettingsDeskSummary | null;
+  loading?: boolean;
 };
 
-export function AdminSettingsPageHeader({ onReviewSave, view, onViewChange, flipRootRef }: Props) {
+export function AdminSettingsPageHeader({ onReviewSave, view, onViewChange, flipRootRef, summary, loading }: Props) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
 
@@ -37,6 +40,16 @@ export function AdminSettingsPageHeader({ onReviewSave, view, onViewChange, flip
     },
     { scope: headerRef, dependencies: [reduceMotion] },
   );
+
+  const environment = liveMetricText(summary?.environment, loading, '—');
+  const lastPublishHours = liveMetricNumber(summary?.lastPublishHours, loading);
+  const pendingDrafts = liveMetricNumber(summary?.pendingDrafts, loading);
+  const criticalLocks = liveMetricNumber(summary?.criticalLocks, loading);
+
+  const liveStamp = useMemo(() => {
+    if (!summary?.generatedAt) return null;
+    return new Intl.DateTimeFormat('en-IN', { timeStyle: 'short' }).format(new Date(summary.generatedAt));
+  }, [summary?.generatedAt]);
 
   const setView = (next: 'hub' | 'registry') => {
     if (next === view || reduceMotion || !flipRootRef.current) {
@@ -61,9 +74,14 @@ export function AdminSettingsPageHeader({ onReviewSave, view, onViewChange, flip
       />
       <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr,14rem]">
         <div className="space-y-3">
-          <p data-set-hero className="flex items-center gap-2 text-xs text-muted-foreground">
+          <p data-set-hero className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <Settings2 className="size-3.5 text-[var(--nestora-sage)]" aria-hidden />
             System / Settings console
+            {liveStamp ? (
+              <span className="rounded-full border border-[color-mix(in_oklch,var(--nestora-sage)_30%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-sage)_8%,var(--card))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--nestora-sage)]">
+                Live · {liveStamp}
+              </span>
+            ) : null}
           </p>
           <h1 data-set-hero className="text-2xl font-semibold text-[var(--nestora-forest)]">
             Control center
@@ -103,10 +121,10 @@ export function AdminSettingsPageHeader({ onReviewSave, view, onViewChange, flip
         </div>
         <motion.aside data-set-hero className="rounded-xl border bg-[color-mix(in_oklch,var(--nestora-cream)_12%,var(--card))] p-4">
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--nestora-sage)]">Environment</p>
-          <p className="mt-2 text-3xl font-semibold text-[var(--nestora-forest)]">{SETTINGS_STATS.environment}</p>
-          <p className="text-xs text-muted-foreground">Last publish {SETTINGS_STATS.lastPublishHours}h ago</p>
+          <p className="mt-2 text-3xl font-semibold text-[var(--nestora-forest)]">{environment}</p>
+          <p className="text-xs text-muted-foreground">Last publish {lastPublishHours ?? '—'}h ago</p>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            {SETTINGS_STATS.pendingDrafts} drafts · {SETTINGS_STATS.criticalLocks} locked controls
+            {pendingDrafts ?? '—'} drafts · {criticalLocks ?? '—'} locked controls
           </p>
         </motion.aside>
       </div>

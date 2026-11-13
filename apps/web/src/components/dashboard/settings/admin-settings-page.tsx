@@ -1,7 +1,8 @@
 'use client';
 
 import { useReducedMotion } from 'framer-motion';
-import { useMemo, useRef, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { AdminSettingsFiltersBar } from '@/components/dashboard/settings/admin-settings-filters-bar';
 import { AdminSettingsHub } from '@/components/dashboard/settings/admin-settings-hub';
@@ -10,8 +11,10 @@ import { AdminSettingsRegistry } from '@/components/dashboard/settings/admin-set
 import { AdminSettingsSaveDrawer } from '@/components/dashboard/settings/admin-settings-save-drawer';
 import { AdminSettingsStatsStrip } from '@/components/dashboard/settings/admin-settings-stats-strip';
 import { AdminSettingsTunePanel } from '@/components/dashboard/settings/admin-settings-tune-panel';
-import { DEFAULT_PANEL_ID, SAMPLE_PANELS } from '@/components/dashboard/settings/admin-settings-data';
+import { DEFAULT_PANEL_ID } from '@/components/dashboard/settings/admin-settings-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import { Button } from '@/components/ui/button';
+import { useSettingsDesk } from '@/hooks/use-settings-desk';
 
 export function AdminSettingsPage() {
   const reduceMotion = useReducedMotion();
@@ -26,26 +29,32 @@ export function AdminSettingsPage() {
   const [statusFilter, setStatusFilter] = useState('All status');
   const [selectedId, setSelectedId] = useState(DEFAULT_PANEL_ID);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return SAMPLE_PANELS.filter((row) => {
-      if (categoryFilter !== 'All Categories' && row.category !== categoryFilter) return false;
-      if (statusFilter !== 'All status' && row.status !== statusFilter) return false;
-      if (scopeFilter === 'Hostel overrides' && row.category === 'Institution') return false;
-      if (!q) return true;
-      return (
-        row.title.toLowerCase().includes(q) ||
-        row.code.toLowerCase().includes(q) ||
-        row.description.toLowerCase().includes(q) ||
-        row.frRef.toLowerCase().includes(q)
-      );
-    });
-  }, [search, categoryFilter, scopeFilter, statusFilter]);
+  const filters = useMemo(
+    () => ({
+      q: search,
+      category: categoryFilter,
+      scope: scopeFilter,
+      status: statusFilter,
+    }),
+    [search, categoryFilter, scopeFilter, statusFilter],
+  );
 
-  const selected =
-    filtered.find((p) => p.id === selectedId) ?? filtered[0] ?? SAMPLE_PANELS.find((p) => p.id === DEFAULT_PANEL_ID) ?? null;
+  const { summary, panels, tuneFields, loadingSummary, loadingList, loadingTune, error, refresh } = useSettingsDesk(
+    filters,
+    selectedId,
+  );
+
+  const selected = panels.find((p) => p.id === selectedId) ?? panels[0] ?? null;
   const effectiveSelectedId = selected?.id ?? selectedId;
-  const listKey = `${search}|${categoryFilter}|${scopeFilter}|${statusFilter}|${view}`;
+
+  useEffect(() => {
+    if (!panels.length) return;
+    if (!panels.some((p) => p.id === selectedId)) {
+      setSelectedId(panels[0]?.id ?? DEFAULT_PANEL_ID);
+    }
+  }, [panels, selectedId]);
+
+  const listKey = `${search}|${categoryFilter}|${scopeFilter}|${statusFilter}|${view}|${panels.length}`;
 
   useGSAP(
     () => {
@@ -68,6 +77,8 @@ export function AdminSettingsPage() {
     setStatusFilter('All status');
   };
 
+  const loading = loadingSummary && loadingList && !summary && panels.length === 0;
+
   return (
     <div ref={rootRef} className="space-y-6 pb-6">
       <AdminSettingsPageHeader
@@ -75,8 +86,11 @@ export function AdminSettingsPage() {
         view={view}
         onViewChange={setView}
         flipRootRef={flipRootRef}
+        summary={summary}
+        loading={loadingSummary}
       />
-      <AdminSettingsStatsStrip />
+      <AdminSettingsStatsStrip summary={summary} loading={loadingSummary} />
+      {error ? <ErrorBanner error={error} onRetry={refresh} /> : null}
       <AdminSettingsFiltersBar
         search={search}
         onSearchChange={setSearch}
@@ -88,18 +102,38 @@ export function AdminSettingsPage() {
         onStatusFilterChange={setStatusFilter}
         onReset={reset}
       />
-      <div ref={flipRootRef} className="space-y-6">
-        <AdminSettingsHub
-          panels={filtered}
-          selectedId={effectiveSelectedId}
-          onSelect={setSelectedId}
-          listKey={listKey}
-          hidden={view !== 'hub'}
-        />
-        <AdminSettingsRegistry rows={filtered} hidden={view !== 'registry'} />
-        {view === 'hub' ? <AdminSettingsTunePanel panel={selected} /> : null}
-      </div>
-      <AdminSettingsSaveDrawer open={drawerOpen} onOpenChange={setDrawerOpen} preselectId={effectiveSelectedId} />
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border bg-card py-16 text-sm text-muted-foreground">
+          <Loader2 className="size-5 animate-spin text-[var(--nestora-sage)]" aria-hidden />
+          Loading settings console…
+        </div>
+      ) : (
+        <div ref={flipRootRef} className="space-y-6">
+          <AdminSettingsHub
+            panels={panels}
+            selectedId={effectiveSelectedId}
+            onSelect={setSelectedId}
+            listKey={listKey}
+            hidden={view !== 'hub'}
+          />
+          <AdminSettingsRegistry rows={panels} hidden={view !== 'registry'} />
+          {view === 'hub' ? (
+            <AdminSettingsTunePanel panel={selected} fields={tuneFields} loading={loadingTune} />
+          ) : null}
+        </div>
+      )}
+      <AdminSettingsSaveDrawer open={drawerOpen} onOpenChange={setDrawerOpen} preselectId={effectiveSelectedId} panels={panels} />
+    </div>
+  );
+}
+
+function ErrorBanner({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
+      <p className="text-destructive">{error}</p>
+      <Button type="button" size="sm" variant="outline" className="rounded-lg" onClick={onRetry}>
+        Retry
+      </Button>
     </div>
   );
 }

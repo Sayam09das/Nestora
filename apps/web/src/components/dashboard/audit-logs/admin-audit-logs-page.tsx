@@ -1,7 +1,8 @@
 'use client';
 
 import { useReducedMotion } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { AdminAuditLogsExportDrawer } from '@/components/dashboard/audit-logs/admin-audit-logs-export-drawer';
 import { AdminAuditLogsFiltersBar } from '@/components/dashboard/audit-logs/admin-audit-logs-filters-bar';
@@ -10,13 +11,10 @@ import { AdminAuditLogsPageHeader } from '@/components/dashboard/audit-logs/admi
 import { AdminAuditLogsRegistry } from '@/components/dashboard/audit-logs/admin-audit-logs-registry';
 import { AdminAuditLogsStatsStrip } from '@/components/dashboard/audit-logs/admin-audit-logs-stats-strip';
 import { AdminAuditLogsTimeline } from '@/components/dashboard/audit-logs/admin-audit-logs-timeline';
-import {
-  SAMPLE_AUDIT_LOGS,
-  categorizeAction,
-  severityFor,
-} from '@/components/dashboard/audit-logs/admin-audit-logs-data';
+import { categorizeAction, severityFor } from '@/components/dashboard/audit-logs/admin-audit-logs-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
-import { type AuditLogRow, fetchAuditLogs } from '@/lib/api/audit';
+import { Button } from '@/components/ui/button';
+import { useAuditDesk } from '@/hooks/use-audit-desk';
 
 export function AdminAuditLogsPage() {
   const reduceMotion = useReducedMotion();
@@ -29,65 +27,40 @@ export function AdminAuditLogsPage() {
   const [categoryFilter, setCategoryFilter] = useState('All categories');
   const [severityFilter, setSeverityFilter] = useState('All severity');
   const [actionFilter, setActionFilter] = useState('');
-  const [logs, setLogs] = useState<AuditLogRow[]>(SAMPLE_AUDIT_LOGS);
-  const [apiOnline, setApiOnline] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [fetchError, setFetchError] = useState<string | undefined>();
-  const [selectedId, setSelectedId] = useState(SAMPLE_AUDIT_LOGS[0]?.id ?? '');
+  const [selectedId, setSelectedId] = useState('');
 
-  const loadApi = useCallback(async () => {
-    setLoading(true);
-    setFetchError(undefined);
-    const result = await fetchAuditLogs({
-      page: 1,
-      limit: 50,
-      ...(actionFilter.trim() ? { actionName: actionFilter.trim() } : {}),
-    });
-    setLoading(false);
-    if (result.error) {
-      setFetchError(result.error);
-      setApiOnline(false);
-      setLogs(SAMPLE_AUDIT_LOGS);
-      return;
-    }
-    if (result.logs.length > 0) {
-      setApiOnline(true);
-      setLogs(result.logs);
-      const first = result.logs[0];
-      if (first) setSelectedId(first.id);
-    } else {
-      setApiOnline(false);
-      setLogs(SAMPLE_AUDIT_LOGS);
-    }
-  }, [actionFilter]);
+  const apiFilters = useMemo(
+    () => ({
+      q: search,
+      actionName: actionFilter,
+    }),
+    [actionFilter, search],
+  );
 
-  useEffect(() => {
-    void loadApi();
-    // Initial API probe only; use Refresh API for filtered reload.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { summary, logs, loadingSummary, loadingList, error, refresh, apiOnline } = useAuditDesk(apiFilters);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
     return logs.filter((row) => {
       const cat = categorizeAction(row.actionName);
       const sev = severityFor(row.actionName);
       if (categoryFilter !== 'All categories' && cat !== categoryFilter) return false;
       if (severityFilter !== 'All severity' && sev !== severityFilter) return false;
-      if (!q) return true;
-      return (
-        row.actionName.toLowerCase().includes(q) ||
-        row.entityType.toLowerCase().includes(q) ||
-        row.entityId.toLowerCase().includes(q) ||
-        row.actorRole.toLowerCase().includes(q) ||
-        (row.actorUserId ?? '').toLowerCase().includes(q)
-      );
+      return true;
     });
-  }, [logs, search, categoryFilter, severityFilter]);
+  }, [logs, categoryFilter, severityFilter]);
 
   const selected = filtered.find((l) => l.id === selectedId) ?? filtered[0] ?? null;
   const effectiveSelectedId = selected?.id ?? selectedId;
+
+  useEffect(() => {
+    if (!filtered.length) return;
+    if (!filtered.some((l) => l.id === selectedId)) {
+      setSelectedId(filtered[0]?.id ?? '');
+    }
+  }, [filtered, selectedId]);
+
   const listKey = `${search}|${categoryFilter}|${severityFilter}|${view}|${logs.length}`;
+  const bootLoading = loadingSummary && loadingList && !summary && logs.length === 0;
 
   useGSAP(
     () => {
@@ -117,14 +90,12 @@ export function AdminAuditLogsPage() {
         view={view}
         onViewChange={setView}
         flipRootRef={flipRootRef}
+        summary={summary}
         apiOnline={apiOnline}
+        loading={loadingSummary}
       />
-      {fetchError && !apiOnline ? (
-        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-900 dark:text-amber-100" role="status">
-          API unavailable — showing sample trail. {fetchError}
-        </p>
-      ) : null}
-      <AdminAuditLogsStatsStrip />
+      {error ? <ErrorBanner error={error} onRetry={refresh} /> : null}
+      <AdminAuditLogsStatsStrip summary={summary} loading={loadingSummary} />
       <AdminAuditLogsFiltersBar
         search={search}
         onSearchChange={setSearch}
@@ -135,21 +106,43 @@ export function AdminAuditLogsPage() {
         actionFilter={actionFilter}
         onActionFilterChange={setActionFilter}
         onReset={reset}
-        onApplyApi={loadApi}
-        loading={loading}
+        onApplyApi={refresh}
+        loading={loadingList}
       />
-      <div ref={flipRootRef} className="space-y-6">
-        <AdminAuditLogsTimeline
-          logs={filtered}
-          selectedId={effectiveSelectedId}
-          onSelect={setSelectedId}
-          listKey={listKey}
-          hidden={view !== 'timeline'}
-        />
-        <AdminAuditLogsRegistry rows={filtered} hidden={view !== 'registry'} />
-        {view === 'timeline' ? <AdminAuditLogsInspectPanel log={selected} /> : null}
-      </div>
+      {bootLoading ? (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border bg-card py-16 text-sm text-muted-foreground">
+          <Loader2 className="size-5 animate-spin text-[var(--nestora-sage)]" aria-hidden />
+          Loading audit trail…
+        </div>
+      ) : filtered.length === 0 && !loadingList ? (
+        <p className="rounded-xl border border-dashed bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+          No audit entries match your filters yet.
+        </p>
+      ) : (
+        <div ref={flipRootRef} className="space-y-6">
+          <AdminAuditLogsTimeline
+            logs={filtered}
+            selectedId={effectiveSelectedId}
+            onSelect={setSelectedId}
+            listKey={listKey}
+            hidden={view !== 'timeline'}
+          />
+          <AdminAuditLogsRegistry rows={filtered} hidden={view !== 'registry'} />
+          {view === 'timeline' ? <AdminAuditLogsInspectPanel log={selected} /> : null}
+        </div>
+      )}
       <AdminAuditLogsExportDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
+    </div>
+  );
+}
+
+function ErrorBanner({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
+      <p className="text-destructive">{error}</p>
+      <Button type="button" size="sm" variant="outline" className="rounded-lg" onClick={onRetry}>
+        Retry
+      </Button>
     </div>
   );
 }

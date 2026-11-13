@@ -2,9 +2,9 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { Download, Kanban, MessageSquareWarning, UserPlus } from 'lucide-react';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 
-import { COMPLAINT_STATS } from '@/components/dashboard/complaints/admin-complaints-data';
+import type { ComplaintsDeskSummary } from '@/lib/api/complaints';
 import { Flip, gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -17,9 +17,18 @@ type Props = {
   view: 'board' | 'list';
   onViewChange: (v: 'board' | 'list') => void;
   boardRef: React.RefObject<HTMLDivElement | null>;
+  summary: ComplaintsDeskSummary | null;
+  loading?: boolean;
 };
 
-export function AdminComplaintsPageHeader({ onAssign, view, onViewChange, boardRef }: Props) {
+export function AdminComplaintsPageHeader({
+  onAssign,
+  view,
+  onViewChange,
+  boardRef,
+  summary,
+  loading = false,
+}: Props) {
   const reduceMotion = useReducedMotion();
   const headerRef = useRef<HTMLElement>(null);
 
@@ -56,7 +65,14 @@ export function AdminComplaintsPageHeader({ onAssign, view, onViewChange, boardR
     });
   };
 
-  const slaPct = Math.min(100, Math.round((COMPLAINT_STATS.avgTurnaroundHours / 48) * 100));
+  const avgHours = summary?.avgTurnaroundHours ?? 0;
+  const slaPct = Math.min(100, Math.round((avgHours / 48) * 100));
+  const liveLabel = useMemo(() => {
+    if (!summary?.generatedAt || loading) return null;
+    return new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit' }).format(
+      new Date(summary.generatedAt),
+    );
+  }, [summary?.generatedAt, loading]);
 
   return (
     <header
@@ -74,6 +90,11 @@ export function AdminComplaintsPageHeader({ onAssign, view, onViewChange, boardR
           <p data-cmp-hero className="flex items-center gap-2 text-xs text-muted-foreground">
             <MessageSquareWarning className="size-3.5 text-[var(--nestora-sage)]" aria-hidden />
             Dashboard / Complaints & maintenance
+            {liveLabel ? (
+              <span className="rounded-full border border-[color-mix(in_oklch,var(--nestora-sage)_35%,var(--border))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--nestora-forest)]">
+                Live · {liveLabel}
+              </span>
+            ) : null}
           </p>
           <h1 data-cmp-hero className="text-2xl font-semibold text-[var(--nestora-forest)]">
             Ticket command center
@@ -127,14 +148,14 @@ export function AdminComplaintsPageHeader({ onAssign, view, onViewChange, boardR
         >
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--nestora-sage)]">Resolution pulse</p>
           <p className="mt-2 text-3xl font-semibold tabular-nums text-[var(--nestora-forest)]">
-            {COMPLAINT_STATS.avgTurnaroundHours}h
+            {loading && !summary ? '…' : `${avgHours}h`}
           </p>
-          <p className="text-xs text-muted-foreground">avg turnaround (sample)</p>
+          <p className="text-xs text-muted-foreground">avg turnaround (7-day)</p>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e7e7dc]">
             <div className="h-full rounded-full bg-[#6d9773]" style={{ width: `${100 - slaPct}%` }} />
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            {COMPLAINT_STATS.openTickets} open · {COMPLAINT_STATS.slaAtRisk} at SLA risk
+            {summary?.openTickets ?? (loading ? '…' : 0)} open · {summary?.slaAtRisk ?? (loading ? '…' : 0)} at SLA risk
           </p>
         </motion.aside>
       </div>

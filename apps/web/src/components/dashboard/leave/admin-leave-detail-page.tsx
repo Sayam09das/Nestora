@@ -10,8 +10,8 @@ import {
   LEAVE_STATUS_STYLES,
   formatLeaveDate,
   leaveDurationDays,
-  timelineForLeave,
   type LeaveRecord,
+  type LeaveTimelineEntry,
 } from '@/components/dashboard/leave/admin-leave-data';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Badge } from '@/components/ui/badge';
@@ -21,12 +21,18 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-export function AdminLeaveDetailPage({ record: initial }: { record: LeaveRecord }) {
+export function AdminLeaveDetailPage({
+  record: initial,
+  timeline: initialTimeline = [],
+}: {
+  record: LeaveRecord;
+  timeline?: LeaveTimelineEntry[];
+}) {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const [record, setRecord] = useState(initial);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const timeline = timelineForLeave(record.id);
+  const timeline = initialTimeline;
   const days = leaveDurationDays(record.departureDate, record.expectedReturnDate);
 
   useGSAP(
