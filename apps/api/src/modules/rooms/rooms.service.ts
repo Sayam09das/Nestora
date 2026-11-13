@@ -9,6 +9,14 @@ import {
 
 export type RoomOperationalStatus = 'Available' | 'Full' | 'Maintenance' | 'Inactive';
 
+export type RoomSharingDistributionRow = {
+  roomType: string;
+  capacity: number;
+  rooms: number;
+  bedsPerRoom: number;
+  totalBeds: number;
+};
+
 export type RoomDirectorySummary = {
   generatedAt: string;
   totalRooms: number;
@@ -18,12 +26,20 @@ export type RoomDirectorySummary = {
   totalBeds: number;
   occupiedBeds: number;
   availableBeds: number;
+  sharingDistribution: RoomSharingDistributionRow[];
   facets: {
     hostels: string[];
     blocks: string[];
     floors: string[];
     roomTypes: string[];
   };
+};
+
+export type RoomStudentAllocationRow = {
+  id: string;
+  name: string;
+  bedLabel: string;
+  studentId: string;
 };
 
 export type RoomDirectoryRow = {
@@ -39,7 +55,7 @@ export type RoomDirectoryRow = {
   operationalStatus: RoomOperationalStatus;
   facilities: string[];
   wardenName: string;
-  students: [];
+  students: RoomStudentAllocationRow[];
   maintenanceHistory: [];
 };
 
@@ -139,7 +155,61 @@ export function deriveOperationalStatus(
   return 'Available';
 }
 
-function rowFromRoom(room: RoomWithLocation): RoomDirectoryRow {
+function studentsFromDetailBeds(
+  beds: Array<{
+    bedNumber: string;
+    allocationRecords: Array<{
+      student: {
+        id: string;
+        registrationNumber: string;
+        user: { firstName: string; lastName: string };
+      };
+    }>;
+  }>,
+): RoomStudentAllocationRow[] {
+  const rows: RoomStudentAllocationRow[] = [];
+  for (const bed of beds) {
+    const alloc = bed.allocationRecords[0];
+    if (!alloc) continue;
+    const name = `${alloc.student.user.firstName} ${alloc.student.user.lastName}`.trim();
+    rows.push({
+      id: alloc.student.id,
+      name: name || alloc.student.registrationNumber,
+      bedLabel: `Bed ${bed.bedNumber}`,
+      studentId: alloc.student.registrationNumber,
+    });
+  }
+  return rows;
+}
+
+const roomDetailInclude = {
+  floor: locationInclude.floor,
+  config: true,
+  beds: {
+    select: {
+      status: true,
+      bedNumber: true,
+      allocationRecords: {
+        where: { status: 'ACTIVE' },
+        take: 1,
+        orderBy: { allocatedAt: 'desc' as const },
+        select: {
+          student: {
+            select: {
+              id: true,
+              registrationNumber: true,
+              user: { select: { firstName: true, lastName: true } },
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.RoomInclude;
+
+type RoomDetailPayload = Prisma.RoomGetPayload<{ include: typeof roomDetailInclude }>;
+
+function rowFromRoom(room: RoomWithLocation, students: RoomStudentAllocationRow[] = []): RoomDirectoryRow {
   const hostel = room.floor.block.building.hostel;
   const capacity = room.config.capacity;
   const occupiedBeds = countOccupiedBeds(room.beds);
@@ -165,9 +235,33 @@ function rowFromRoom(room: RoomWithLocation): RoomDirectoryRow {
     operationalStatus: deriveOperationalStatus(room.status, capacity, occupiedBeds),
     facilities,
     wardenName,
-    students: [],
+    students,
     maintenanceHistory: [],
   };
+}
+
+function rowFromRoomDetail(room: RoomDetailPayload): RoomDirectoryRow {
+  const students = studentsFromDetailBeds(room.beds);
+  return rowFromRoom(room, students);
+}
+
+export async function getRoomDirectoryById(
+  prisma: PrismaClient,
+  roomId: string,
+  scopeHostelNames?: string[],
+): Promise<RoomDirectoryRow | null> {
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    include: roomDetailInclude,
+  });
+  if (!room) {
+    return null;
+  }
+  const hostelName = room.floor.block.building.hostel.name;
+  if (scopeHostelNames && scopeHostelNames.length > 0 && !scopeHostelNames.includes(hostelName)) {
+    return null;
+  }
+  return rowFromRoomDetail(room);
 }
 
 function activeFullyOccupiedWhere(): Prisma.RoomWhereInput {
@@ -240,6 +334,7 @@ function emptyRoomDirectorySummary(scopeHostelNames: string[] = []): RoomDirecto
     totalBeds: 0,
     occupiedBeds: 0,
     availableBeds: 0,
+    sharingDistribution: [],
     facets: {
       hostels: [...scopeHostelNames].sort(),
       blocks: [],
@@ -247,6 +342,40 @@ function emptyRoomDirectorySummary(scopeHostelNames: string[] = []): RoomDirecto
       roomTypes: [],
     },
   };
+}
+
+async function buildSharingDistribution(
+  prisma: PrismaClient,
+  roomWhere?: Prisma.RoomWhereInput,
+): Promise<RoomSharingDistributionRow[]> {
+  const rows = await prisma.room.groupBy({
+    by: ['configId'],
+    where: roomWhere,
+    _count: { _all: true },
+  });
+  if (rows.length === 0) {
+    return [];
+  }
+  const configs = await prisma.roomConfiguration.findMany({
+    where: { id: { in: rows.map((r) => r.configId) } },
+    select: { id: true, capacity: true },
+  });
+  const capacityByConfigId = new Map(configs.map((c) => [c.id, c.capacity]));
+  const merged = new Map<number, number>();
+  for (const row of rows) {
+    const capacity = capacityByConfigId.get(row.configId);
+    if (capacity == null) continue;
+    merged.set(capacity, (merged.get(capacity) ?? 0) + row._count._all);
+  }
+  return [...merged.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([capacity, rooms]) => ({
+      roomType: sharingTypeLabel(capacity),
+      capacity,
+      rooms,
+      bedsPerRoom: capacity,
+      totalBeds: rooms * capacity,
+    }));
 }
 
 export async function getRoomDirectorySummaryForHostels(
@@ -260,7 +389,7 @@ export async function getRoomDirectorySummaryForHostels(
   const roomScope = prismaHostelNamesOnRoom(scopeHostelNames);
   const bedScope = prismaHostelNamesOnBed(scopeHostelNames);
 
-  const [totalRooms, maintenanceRooms, totalBeds, occupiedBeds, availableBeds, activeRooms, facetRows] =
+  const [totalRooms, maintenanceRooms, totalBeds, occupiedBeds, availableBeds, activeRooms, facetRows, sharingDistribution] =
     await Promise.all([
       prisma.room.count({ where: roomScope }),
       prisma.room.count({ where: { AND: [roomScope, { status: 'UNDER_MAINTENANCE' }] } }),
@@ -292,6 +421,7 @@ export async function getRoomDirectorySummaryForHostels(
           },
         },
       }),
+      buildSharingDistribution(prisma, roomScope),
     ]);
 
   let occupiedRooms = 0;
@@ -327,6 +457,7 @@ export async function getRoomDirectorySummaryForHostels(
     totalBeds,
     occupiedBeds,
     availableBeds,
+    sharingDistribution,
     facets: {
       hostels: [...hostels].sort(),
       blocks: [...blocks].sort(),
@@ -341,7 +472,7 @@ export async function getRoomDirectorySummaryForHostels(
 }
 
 export async function getRoomDirectorySummary(prisma: PrismaClient): Promise<RoomDirectorySummary> {
-  const [totalRooms, maintenanceRooms, totalBeds, occupiedBeds, availableBeds, activeRooms, facetRows] =
+  const [totalRooms, maintenanceRooms, totalBeds, occupiedBeds, availableBeds, activeRooms, facetRows, sharingDistribution] =
     await Promise.all([
       prisma.room.count(),
       prisma.room.count({ where: { status: 'UNDER_MAINTENANCE' } }),
@@ -372,6 +503,7 @@ export async function getRoomDirectorySummary(prisma: PrismaClient): Promise<Roo
           },
         },
       }),
+      buildSharingDistribution(prisma),
     ]);
 
   let occupiedRooms = 0;
@@ -407,6 +539,7 @@ export async function getRoomDirectorySummary(prisma: PrismaClient): Promise<Roo
     totalBeds,
     occupiedBeds,
     availableBeds,
+    sharingDistribution,
     facets: {
       hostels: [...hostels].sort(),
       blocks: [...blocks].sort(),
@@ -523,7 +656,7 @@ export async function listRoomDirectory(
   ]);
 
   return {
-    rooms: rows.map(rowFromRoom),
+    rooms: rows.map((room) => rowFromRoom(room)),
     pagination: buildPaginationMeta(page, safeLimit, total),
   };
 }

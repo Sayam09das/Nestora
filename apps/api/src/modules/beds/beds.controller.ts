@@ -1,5 +1,6 @@
 import { bedDirectoryListQuerySchema } from '@nestora/validators';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { NotFoundError } from '../../common/errors/index.js';
 import { paginatedSuccessResponse, successResponse } from '../../common/api-response.js';
 import { DEFAULT_PAGE, DEFAULT_PAGE_LIMIT } from '../../common/constants/limits.js';
 import { buildPaginationMeta, normalizePagination } from '../../common/helpers/index.js';
@@ -69,4 +70,30 @@ export async function listBedDirectoryHandler(
 
   const { beds, pagination } = await service.listBedDirectory(request.server.prisma, query);
   reply.send(paginatedSuccessResponse({ beds }, 'Bed directory loaded.', pagination));
+}
+
+export async function getBedDirectoryByIdHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'UNIVERSITY_ADMINISTRATOR', 'HOSTEL_WARDEN', 'HOSTEL_STAFF');
+
+  const bedId = (request.params as { bedId: string }).bedId;
+
+  if (isHostelOperationalRole(user.role)) {
+    const hostelNames = await resolveOperationalHostelNames(request.server.prisma, user);
+    const bed = await service.getBedDirectoryById(request.server.prisma, bedId, hostelNames);
+    if (!bed) {
+      throw new NotFoundError('Bed not found.');
+    }
+    reply.send(successResponse({ bed }, 'Bed details loaded.'));
+    return;
+  }
+
+  const bed = await service.getBedDirectoryById(request.server.prisma, bedId);
+  if (!bed) {
+    throw new NotFoundError('Bed not found.');
+  }
+  reply.send(successResponse({ bed }, 'Bed details loaded.'));
 }

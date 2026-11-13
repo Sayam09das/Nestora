@@ -48,7 +48,7 @@ pnpm --filter @nestora/database db:migrate:deploy
 | `pnpm --filter @nestora/database db:migrate:dev`    | Create/apply development migrations            |
 | `pnpm --filter @nestora/database db:migrate:deploy` | Apply migrations in deployment                 |
 | `pnpm --filter @nestora/database db:seed`           | Upsert six documented room configurations only |
-| `pnpm neon:seed-rooms` (from repo root)             | Demo inventory: **180 rooms / 420 beds** (Double/Triple AC & Non-AC mix; see `apps/api/scripts/seed-neon-rooms-and-beds.ts`) |
+| `pnpm neon:seed-rooms` (from repo root)             | Demo inventory: **240 rooms / 540 beds** (30 single, 120 double, 90 triple; see `apps/api/scripts/seed-neon-rooms-and-beds.ts`) |
 
 ## PostgreSQL-specific SQL
 

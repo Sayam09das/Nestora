@@ -1,7 +1,11 @@
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { requireAuth } from '../../middleware/authenticate.js';
 import { requireRoles } from '../../middleware/authorize.js';
-import { getHostelDirectorySummary, listHostelDirectoryHandler } from './hostels.controller.js';
+import {
+  getHostelDirectoryByIdHandler,
+  getHostelDirectorySummary,
+  listHostelDirectoryHandler,
+} from './hostels.controller.js';
 
 function withAdminAuth() {
   return {
@@ -18,5 +22,6 @@ const adminOnly = withAdminAuth();
 
 export const hostelsRoutes: FastifyPluginAsync = async (app) => {
   app.get('/directory/summary', adminOnly, getHostelDirectorySummary);
+  app.get('/directory/:hostelId', adminOnly, getHostelDirectoryByIdHandler);
   app.get('/directory', adminOnly, listHostelDirectoryHandler);
 };

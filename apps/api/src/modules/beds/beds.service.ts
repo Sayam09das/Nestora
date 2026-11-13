@@ -405,6 +405,25 @@ export type BedDirectoryListOptions = BedDirectoryListQuery & {
   scopeHostelNames?: string[];
 };
 
+export async function getBedDirectoryById(
+  prisma: PrismaClient,
+  bedId: string,
+  scopeHostelNames?: string[],
+): Promise<BedDirectoryRow | null> {
+  const bed = await prisma.bed.findUnique({
+    where: { id: bedId },
+    include: bedListInclude,
+  });
+  if (!bed) {
+    return null;
+  }
+  const hostelName = bed.room.floor.block.building.hostel.name;
+  if (scopeHostelNames && scopeHostelNames.length > 0 && !scopeHostelNames.includes(hostelName)) {
+    return null;
+  }
+  return rowFromBed(bed);
+}
+
 export async function listBedDirectory(
   prisma: PrismaClient,
   query: BedDirectoryListOptions,

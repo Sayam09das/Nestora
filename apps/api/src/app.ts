@@ -7,6 +7,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { errorResponse, successResponse } from './common/api-response.js';
 import { ERROR_CODES } from './common/constants/index.js';
 import { isAppError } from './common/errors/index.js';
+import { sanitizeClientErrorMessage } from './common/errors/sanitize-client-message.js';
 import type { Env } from './config/env.js';
 import { refreshSessionCookieIfPresent } from './modules/auth/session-cookie.js';
 import { authenticate } from './middleware/authenticate.js';
@@ -21,6 +22,14 @@ import { bedsPlugin } from './modules/beds/index.js';
 import { roomTypesPlugin } from './modules/room-types/index.js';
 import { hostelsPlugin } from './modules/hostels/index.js';
 import { allocationsPlugin } from './modules/allocations/index.js';
+import { attendancePlugin } from './modules/attendance/index.js';
+import { financePlugin } from './modules/finance/index.js';
+import { complaintsPlugin } from './modules/complaints/index.js';
+import { leavePlugin } from './modules/leave/index.js';
+import { announcementsPlugin } from './modules/announcements/index.js';
+import { reportsPlugin } from './modules/reports/index.js';
+import { settingsPlugin } from './modules/settings/index.js';
+import { rolesDeskPlugin } from './modules/roles/index.js';
 import { uploadsPlugin } from './modules/uploads/index.js';
 import { infrastructurePlugin } from './modules/infrastructure/index.js';
 import { configPluginWrapped } from './plugins/config.js';
@@ -73,8 +82,9 @@ function resolveErrorPayload(
   const isProduction = env.NODE_ENV === 'production';
 
   if (isAppError(error)) {
-    const message =
+    let message =
       error.statusCode >= 500 && isProduction ? 'An unexpected error occurred.' : error.message;
+    message = sanitizeClientErrorMessage(message, error.statusCode);
     return {
       statusCode: error.statusCode,
       code: error.code,
@@ -96,7 +106,8 @@ function resolveErrorPayload(
   }
 
   const rawMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
-  const message = statusCode >= 500 && isProduction ? 'An unexpected error occurred.' : rawMessage;
+  let message = statusCode >= 500 && isProduction ? 'An unexpected error occurred.' : rawMessage;
+  message = sanitizeClientErrorMessage(message, statusCode);
 
   return { statusCode, code, message };
 }
@@ -221,6 +232,14 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
       await v1.register(roomTypesPlugin);
       await v1.register(hostelsPlugin);
       await v1.register(allocationsPlugin);
+      await v1.register(attendancePlugin);
+      await v1.register(financePlugin);
+      await v1.register(complaintsPlugin);
+      await v1.register(leavePlugin);
+      await v1.register(announcementsPlugin);
+      await v1.register(reportsPlugin);
+      await v1.register(settingsPlugin);
+      await v1.register(rolesDeskPlugin);
     },
     { prefix: '/api/v1' },
   );

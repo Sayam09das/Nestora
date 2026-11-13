@@ -19,6 +19,15 @@ import { assertObjectExists, buildPublicStaffPhotoUrl } from '../storage/storage
 
 export type StaffDirectoryUiStatus = 'Active' | 'On Leave' | 'Inactive';
 
+export type StaffDirectoryWorkforceBreakdown = {
+  wardens: number;
+  security: number;
+  administrative: number;
+  housekeeping: number;
+  maintenance: number;
+  otherStaff: number;
+};
+
 export type StaffDirectorySummary = {
   generatedAt: string;
   total: number;
@@ -27,6 +36,7 @@ export type StaffDirectorySummary = {
   inactive: number;
   activeRatePercent: number | null;
   createdThisMonth: number;
+  workforce?: StaffDirectoryWorkforceBreakdown;
   facets: {
     roles: string[];
     departments: string[];
@@ -45,6 +55,7 @@ export type StaffDirectoryRow = {
   hostel: string;
   status: StaffDirectoryUiStatus;
   joinedDate: string;
+  profilePhotoUrl: string | null;
 };
 
 const STAFF_ROLES: Role[] = ['HOSTEL_WARDEN', 'HOSTEL_STAFF', 'SECURITY_GUARD', 'ACCOUNTANT'];
@@ -130,6 +141,7 @@ function rowFromUser(
       wardenInChargeHostels: { select: { name: true }; take: 1 };
     };
   }>,
+  env: Env,
 ): StaffDirectoryRow {
   const profile = u.staffProfile;
   const roleLabel = profile?.designation?.trim() || defaultRoleLabel(u.role);
@@ -151,6 +163,7 @@ function rowFromUser(
     hostel,
     status: mapStaffStatus(u.status),
     joinedDate: u.createdAt.toISOString().slice(0, 10),
+    profilePhotoUrl: u.profilePhotoKey ? buildPublicStaffPhotoUrl(env, u.profilePhotoKey) : null,
   };
 }
 
@@ -199,6 +212,46 @@ export async function getStaffDirectorySummary(
     roles.add(role);
   }
 
+  let workforce: StaffDirectoryWorkforceBreakdown | undefined;
+  if (variant === 'all') {
+    const staffBase = staffUserWhere('all');
+    const [wardens, security, administrative, housekeeping, maintenance, operationalTotal] =
+      await Promise.all([
+        prisma.user.count({ where: { ...staffBase, role: 'HOSTEL_WARDEN' } }),
+        prisma.user.count({ where: { ...staffBase, role: 'SECURITY_GUARD' } }),
+        prisma.user.count({
+          where: {
+            ...staffBase,
+            role: 'HOSTEL_STAFF',
+            staffProfile: { department: { contains: 'Administration', mode: 'insensitive' } },
+          },
+        }),
+        prisma.user.count({
+          where: {
+            ...staffBase,
+            role: 'HOSTEL_STAFF',
+            staffProfile: { department: { contains: 'Housekeeping', mode: 'insensitive' } },
+          },
+        }),
+        prisma.user.count({
+          where: {
+            ...staffBase,
+            role: 'HOSTEL_STAFF',
+            staffProfile: { department: { contains: 'Maintenance', mode: 'insensitive' } },
+          },
+        }),
+        prisma.user.count({ where: { ...staffBase, role: { not: 'HOSTEL_WARDEN' } } }),
+      ]);
+    workforce = {
+      wardens,
+      security,
+      administrative,
+      housekeeping,
+      maintenance,
+      otherStaff: Math.max(0, operationalTotal - security - administrative - housekeeping - maintenance),
+    };
+  }
+
   return {
     generatedAt: new Date().toISOString(),
     total,
@@ -207,6 +260,7 @@ export async function getStaffDirectorySummary(
     inactive,
     activeRatePercent,
     createdThisMonth,
+    workforce,
     facets: {
       roles: [...roles].sort(),
       departments: [...departments].sort(),
@@ -217,6 +271,7 @@ export async function getStaffDirectorySummary(
 
 export async function listStaffDirectory(
   prisma: PrismaClient,
+  env: Env,
   query: StaffDirectoryListQuery,
 ): Promise<{
   staff: StaffDirectoryRow[];
@@ -308,7 +363,7 @@ export async function listStaffDirectory(
     }),
   ]);
 
-  const staff = rows.map(rowFromUser);
+  const staff = rows.map((row) => rowFromUser(row, env));
 
   return {
     staff,
@@ -324,7 +379,7 @@ function mapJobTitleToRole(jobTitle: string): Role {
   if (title === 'security guard') {
     return 'SECURITY_GUARD';
   }
-  if (title === 'warden' || title === 'assistant warden' || title === 'hostel manager') {
+  if (title.includes('warden') || title.includes('hostel manager')) {
     return 'HOSTEL_WARDEN';
   }
   return 'HOSTEL_STAFF';
