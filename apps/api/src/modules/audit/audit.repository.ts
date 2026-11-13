@@ -42,3 +42,7 @@ export function listAuditLogs(
     prisma.auditLog.count({ where: opts.where }),
   ]);
 }
+
+export function findAuditLogById(prisma: PrismaClient, id: string) {
+  return prisma.auditLog.findUnique({ where: { id } });
+}

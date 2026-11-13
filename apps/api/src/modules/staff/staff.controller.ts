@@ -61,6 +61,10 @@ export async function listStaffDirectoryHandler(
   assertRole(user, 'UNIVERSITY_ADMINISTRATOR');
 
   const query = staffDirectoryListQuerySchema.parse(request.query);
-  const { staff, pagination } = await service.listStaffDirectory(request.server.prisma, query);
+  const { staff, pagination } = await service.listStaffDirectory(
+    request.server.prisma,
+    request.server.config,
+    query,
+  );
   reply.send(paginatedSuccessResponse({ staff }, 'Staff directory loaded.', pagination));
 }

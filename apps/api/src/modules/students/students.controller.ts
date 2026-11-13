@@ -65,16 +65,21 @@ export async function listStudentDirectoryHandler(
     }
     assertHostelFilterInScope(query.hostel, hostelNames);
 
-    const { students, pagination } = await service.listStudentDirectory(request.server.prisma, {
-      ...query,
-      scopeHostelNames: hostelNames,
-    });
+    const { students, pagination } = await service.listStudentDirectory(
+      request.server.prisma,
+      request.server.config,
+      {
+        ...query,
+        scopeHostelNames: hostelNames,
+      },
+    );
     reply.send(paginatedSuccessResponse({ students }, 'Student directory loaded.', pagination));
     return;
   }
 
   const { students, pagination } = await service.listStudentDirectory(
     request.server.prisma,
+    request.server.config,
     query,
   );
   reply.send(paginatedSuccessResponse({ students }, 'Student directory loaded.', pagination));
@@ -88,7 +93,11 @@ export async function getAdminStudentProfileHandler(
   assertRole(user, 'UNIVERSITY_ADMINISTRATOR', 'HOSTEL_WARDEN', 'HOSTEL_STAFF');
 
   const { userId } = userIdParamsSchema.parse(request.params);
-  const profile = await service.getAdminStudentProfile(request.server.prisma, userId);
+  const profile = await service.getAdminStudentProfile(
+    request.server.prisma,
+    request.server.config,
+    userId,
+  );
 
   if (isHostelOperationalRole(user.role)) {
     const hostelNames = await resolveOperationalHostelNames(request.server.prisma, user);

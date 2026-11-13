@@ -1,5 +1,6 @@
-import { allocationDirectoryListQuerySchema } from '@nestora/validators';
+import { allocationDirectoryListQuerySchema, assignStudentToBedBodySchema } from '@nestora/validators';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { NotFoundError } from '../../common/errors/index.js';
 import { paginatedSuccessResponse, successResponse } from '../../common/api-response.js';
 import { DEFAULT_PAGE, DEFAULT_PAGE_LIMIT } from '../../common/constants/limits.js';
 import { buildPaginationMeta, normalizePagination } from '../../common/helpers/index.js';
@@ -93,4 +94,46 @@ export async function listAllocationQueueHandler(
   }
 
   reply.send(successResponse({ queue }, 'Allocation queue loaded.'));
+}
+
+export async function getAllocationDirectoryByIdHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'UNIVERSITY_ADMINISTRATOR', 'HOSTEL_WARDEN', 'HOSTEL_STAFF');
+
+  const allocationId = decodeURIComponent((request.params as { allocationId: string }).allocationId);
+
+  if (isHostelOperationalRole(user.role)) {
+    const hostelNames = await resolveOperationalHostelNames(request.server.prisma, user);
+    const allocation = await service.getAllocationDirectoryById(
+      request.server.prisma,
+      allocationId,
+      hostelNames,
+    );
+    if (!allocation) {
+      throw new NotFoundError('Allocation record not found.');
+    }
+    reply.send(successResponse({ allocation }, 'Allocation details loaded.'));
+    return;
+  }
+
+  const allocation = await service.getAllocationDirectoryById(request.server.prisma, allocationId);
+  if (!allocation) {
+    throw new NotFoundError('Allocation record not found.');
+  }
+  reply.send(successResponse({ allocation }, 'Allocation details loaded.'));
+}
+
+export async function assignStudentToBedHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'UNIVERSITY_ADMINISTRATOR', 'HOSTEL_WARDEN');
+
+  const body = assignStudentToBedBodySchema.parse(request.body);
+  const result = await service.assignStudentToBed(request.server.prisma, user.id, body);
+  reply.status(201).send(successResponse(result, 'Student assigned to bed.'));
 }

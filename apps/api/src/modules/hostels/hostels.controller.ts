@@ -1,5 +1,6 @@
 import { hostelDirectoryListQuerySchema } from '@nestora/validators';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { NotFoundError } from '../../common/errors/index.js';
 import { paginatedSuccessResponse, successResponse } from '../../common/api-response.js';
 import { requireAuth } from '../../middleware/authenticate.js';
 import { assertRole } from '../../middleware/authorize.js';
@@ -26,4 +27,19 @@ export async function listHostelDirectoryHandler(
   const query = hostelDirectoryListQuerySchema.parse(request.query);
   const { hostels, pagination } = await service.listHostelDirectory(request.server.prisma, query);
   reply.send(paginatedSuccessResponse({ hostels }, 'Hostel directory loaded.', pagination));
+}
+
+export async function getHostelDirectoryByIdHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'UNIVERSITY_ADMINISTRATOR');
+
+  const hostelId = (request.params as { hostelId: string }).hostelId;
+  const hostel = await service.getHostelDirectoryById(request.server.prisma, hostelId);
+  if (!hostel) {
+    throw new NotFoundError('Hostel not found.');
+  }
+  reply.send(successResponse({ hostel }, 'Hostel details loaded.'));
 }

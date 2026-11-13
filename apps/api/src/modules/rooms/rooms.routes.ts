@@ -1,7 +1,11 @@
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { requireAuth } from '../../middleware/authenticate.js';
 import { requireRoles } from '../../middleware/authorize.js';
-import { getRoomDirectorySummary, listRoomDirectoryHandler } from './rooms.controller.js';
+import {
+  getRoomDirectoryByIdHandler,
+  getRoomDirectorySummary,
+  listRoomDirectoryHandler,
+} from './rooms.controller.js';
 
 function withAdminAuth() {
   return {
@@ -31,5 +35,6 @@ const adminOrWarden = withAdminOrWardenAuth();
 
 export const roomsRoutes: FastifyPluginAsync = async (app) => {
   app.get('/directory/summary', adminOrWarden, getRoomDirectorySummary);
+  app.get('/directory/:roomId', adminOrWarden, getRoomDirectoryByIdHandler);
   app.get('/directory', adminOrWarden, listRoomDirectoryHandler);
 };
