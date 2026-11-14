@@ -1,25 +1,20 @@
 import { z } from 'zod';
 
-const settingsCategorySchema = z.enum([
-  'Institution',
-  'Operations',
-  'Security',
-  'Communications',
-  'Finance',
-  'Safety',
-]);
-
-const settingsPanelStatusSchema = z.enum(['Synced', 'Draft', 'Pending approval']);
-
 export const settingsDeskListQuerySchema = z.object({
-  q: z.string().max(100).trim().optional(),
-  category: settingsCategorySchema.optional(),
-  scope: z.enum(['University-wide', 'Hostel overrides']).optional(),
-  status: settingsPanelStatusSchema.optional(),
+  q: z.string().optional(),
+  category: z.string().optional(),
+  scope: z.string().optional(),
+  status: z.string().optional(),
+  hostel: z.string().optional(),
 });
 
 export const settingsPanelIdParamsSchema = z.object({
-  panelId: z.string().min(2).max(64),
+  panelId: z.string().min(1),
+});
+
+export const patchSettingsPanelBodySchema = z.object({
+  hostel: z.string().optional(),
+  fields: z.record(z.union([z.string(), z.number(), z.boolean()])),
 });
 
 export type SettingsDeskListQuery = z.infer<typeof settingsDeskListQuerySchema>;

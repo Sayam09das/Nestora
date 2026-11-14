@@ -2,10 +2,17 @@ import type { FastifyPluginAsync } from 'fastify';
 import { requireRoles } from '../../middleware/authorize.js';
 import {
   getAdminDashboardOverviewHandler,
+  getStaffAttendanceHandler,
   getStaffDashboardOverviewHandler,
-  getStudentDashboardOverviewHandler,
+  getStaffScheduleHandler,
   getWardenDashboardOverviewHandler,
 } from './dashboard.controller.js';
+import { getStaffReportDeskHandler, postStaffReportHandler } from './staff-report.controller.js';
+import {
+  getStaffSettingsDeskHandler,
+  patchStaffSettingsNotificationsHandler,
+  postStaffRevokeOtherSessionsHandler,
+} from './staff-settings.controller.js';
 
 export const dashboardRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -30,10 +37,52 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
     getStaffDashboardOverviewHandler,
   );
   app.get(
-    '/student/overview',
+    '/staff/schedule',
     {
-      preHandler: [requireRoles('STUDENT')],
+      preHandler: [requireRoles('HOSTEL_STAFF')],
     },
-    getStudentDashboardOverviewHandler,
+    getStaffScheduleHandler,
+  );
+  app.get(
+    '/staff/attendance',
+    {
+      preHandler: [requireRoles('HOSTEL_STAFF')],
+    },
+    getStaffAttendanceHandler,
+  );
+  app.get(
+    '/staff/report',
+    {
+      preHandler: [requireRoles('HOSTEL_STAFF')],
+    },
+    getStaffReportDeskHandler,
+  );
+  app.post(
+    '/staff/report',
+    {
+      preHandler: [requireRoles('HOSTEL_STAFF')],
+    },
+    postStaffReportHandler,
+  );
+  app.get(
+    '/staff/settings',
+    {
+      preHandler: [requireRoles('HOSTEL_STAFF')],
+    },
+    getStaffSettingsDeskHandler,
+  );
+  app.patch(
+    '/staff/settings/notifications',
+    {
+      preHandler: [requireRoles('HOSTEL_STAFF')],
+    },
+    patchStaffSettingsNotificationsHandler,
+  );
+  app.post(
+    '/staff/settings/sessions/revoke-others',
+    {
+      preHandler: [requireRoles('HOSTEL_STAFF')],
+    },
+    postStaffRevokeOtherSessionsHandler,
   );
 };

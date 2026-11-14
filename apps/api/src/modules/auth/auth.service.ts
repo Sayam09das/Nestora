@@ -451,33 +451,36 @@ export async function login(
     mfaVerified: needsMfa,
   });
 
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id: user.id },
-      data: {
-        failedLoginAttempts: 0,
-        failedAttemptsWindowStartedAt: null,
-        lockedUntil: null,
-      },
-    });
-    await revokeOtherSessions(tx, user.id, sessionId);
-    await auditService.logAuditEventInTransaction(tx, {
-      actorUserId: user.id,
-      actorRole: user.role,
-      actionName: 'LOGIN_SUCCESS',
-      entityType: 'Session',
-      entityId: sessionId,
-      ipAddress: ip ?? null,
-    });
-    await auditService.logAuditEventInTransaction(tx, {
-      actorUserId: user.id,
-      actorRole: user.role,
-      actionName: 'SESSION_CREATED',
-      entityType: 'Session',
-      entityId: sessionId,
-      ipAddress: ip ?? null,
-    });
-  });
+  await prisma.$transaction(
+    async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: 0,
+          failedAttemptsWindowStartedAt: null,
+          lockedUntil: null,
+        },
+      });
+      await revokeOtherSessions(tx, user.id, sessionId);
+      await auditService.logAuditEventInTransaction(tx, {
+        actorUserId: user.id,
+        actorRole: user.role,
+        actionName: 'LOGIN_SUCCESS',
+        entityType: 'Session',
+        entityId: sessionId,
+        ipAddress: ip ?? null,
+      });
+      await auditService.logAuditEventInTransaction(tx, {
+        actorUserId: user.id,
+        actorRole: user.role,
+        actionName: 'SESSION_CREATED',
+        entityType: 'Session',
+        entityId: sessionId,
+        ipAddress: ip ?? null,
+      });
+    },
+    { maxWait: 15_000, timeout: 30_000 },
+  );
 
   const refreshed = await repo.findUserByEmail(prisma, normalizedEmail);
   return {
