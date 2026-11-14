@@ -32,6 +32,11 @@ export function StaffDashboardAnnouncementsPanel({ snapshot }: Props) {
       </div>
 
       <ul className="mt-4 space-y-3">
+        {snapshot.announcements.length === 0 ? (
+          <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+            {snapshot.liveMetrics ? 'No live announcements for your hostel.' : 'No announcements yet.'}
+          </li>
+        ) : null}
         {snapshot.announcements.map((item, index) => (
           <motion.li
             key={item.id}

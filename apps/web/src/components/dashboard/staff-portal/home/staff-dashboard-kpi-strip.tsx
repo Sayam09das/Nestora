@@ -22,9 +22,9 @@ type KpiCard = {
   accent: string;
 };
 
-type Props = { snapshot: StaffDashboardSnapshot };
+type Props = { snapshot: StaffDashboardSnapshot; loading?: boolean };
 
-export function StaffDashboardKpiStrip({ snapshot }: Props) {
+export function StaffDashboardKpiStrip({ snapshot, loading }: Props) {
   const reduceMotion = useReducedMotion();
   const stripRef = useRef<HTMLDivElement>(null);
   const { kpis } = snapshot;
@@ -109,7 +109,7 @@ export function StaffDashboardKpiStrip({ snapshot }: Props) {
                 </span>
               </div>
               <p className="mt-3 text-3xl font-semibold tracking-tight text-[var(--nestora-forest)] tabular-nums">
-                {String(card.value).padStart(2, '0')}
+                {loading ? '…' : String(card.value).padStart(2, '0')}
               </p>
               <p className="mt-0.5 text-sm font-medium text-foreground">{card.label}</p>
               <p className="text-xs text-muted-foreground">{card.hint}</p>

@@ -50,6 +50,13 @@ export function StaffDashboardTasksPanel({ snapshot }: Props) {
       </div>
 
       <ul className="mt-4 divide-y divide-border rounded-xl border border-border">
+        {snapshot.tasks.length === 0 ? (
+          <li className="px-4 py-10 text-center text-sm text-muted-foreground">
+            {snapshot.liveMetrics
+              ? 'No open work orders assigned to you right now.'
+              : 'Loading assignments…'}
+          </li>
+        ) : null}
         {snapshot.tasks.map((task, index) => (
           <motion.li
             key={task.id}

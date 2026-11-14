@@ -138,7 +138,7 @@ export function StaffDashboardTopbar() {
               {breadcrumbs.map((crumb, index) => {
                 const isLast = index === breadcrumbs.length - 1;
                 return (
-                  <span key={crumb.href} className="inline-flex min-w-0 items-center gap-1">
+                  <span key={`${crumb.href}-${index}`} className="inline-flex min-w-0 items-center gap-1">
                     {index > 0 ? <ChevronRight className="size-3 shrink-0 text-muted-foreground/60" aria-hidden /> : null}
                     {isLast ? (
                       <span className="truncate font-semibold text-[var(--nestora-forest)]" aria-current="page">

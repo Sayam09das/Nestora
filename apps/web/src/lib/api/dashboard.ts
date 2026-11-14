@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api/client';
+import { apiFetch, apiFetchMutating } from '@/lib/api/client';
 import { parseApiResponse } from '@/lib/api/parse-response';
 
 export type AdminDashboardOverview = {
@@ -175,6 +175,196 @@ export async function fetchStaffDashboardOverview(): Promise<{
   const parsed = await parseApiResponse<{ overview: OperationalDashboardOverview }>(response);
   if (!parsed.ok) return { error: parsed.message };
   return { overview: parsed.data.overview };
+}
+
+export type StaffScheduleEntry = {
+  id: string;
+  dutyDate: string;
+  shiftType: string;
+  shiftLabel: string;
+  timeWindow: string;
+  zone: string | null;
+  hostelId: string;
+  hostelName: string;
+};
+
+export type StaffDutySchedule = {
+  generatedAt: string;
+  from: string;
+  to: string;
+  entries: StaffScheduleEntry[];
+  dutiesToday: number;
+};
+
+export type StaffAttendanceRecord = {
+  id: string;
+  workDate: string;
+  status: 'PRESENT' | 'ABSENT' | 'ON_LEAVE';
+  hostelName: string;
+};
+
+export type StaffAttendanceDesk = {
+  generatedAt: string;
+  from: string;
+  to: string;
+  summary: {
+    present: number;
+    absent: number;
+    onLeave: number;
+    total: number;
+    percent: number | null;
+  };
+  today: {
+    status: 'PRESENT' | 'ABSENT' | 'ON_LEAVE' | null;
+    dutyScheduled: boolean;
+    shiftLabel: string | null;
+    shiftWindow: string | null;
+    zone: string | null;
+    hostelName: string | null;
+  };
+  records: StaffAttendanceRecord[];
+  hostelStudentsToday: {
+    present: number;
+    absent: number;
+    onLeave: number;
+    percent: number | null;
+  };
+};
+
+export async function fetchStaffAttendanceDesk(options?: {
+  from?: string;
+  to?: string;
+}): Promise<{ desk?: StaffAttendanceDesk; error?: string }> {
+  const params = new URLSearchParams();
+  if (options?.from) params.set('from', options.from);
+  if (options?.to) params.set('to', options.to);
+  const qs = params.toString();
+  const response = await apiFetch(`/api/v1/dashboard/staff/attendance${qs ? `?${qs}` : ''}`);
+  const parsed = await parseApiResponse<{ desk: StaffAttendanceDesk }>(response);
+  if (!parsed.ok) return { error: parsed.message };
+  return { desk: parsed.data.desk };
+}
+
+export type StaffReportDesk = {
+  generatedAt: string;
+  hostelNames: string[];
+  defaultHostelName: string | null;
+  summary: {
+    myOpen: number;
+    myTotal: number;
+    hostelActive: number;
+  };
+  records: import('@/components/dashboard/incidents/incident-desk-data').IncidentDeskRecord[];
+};
+
+export type StaffReportIncidentInput = {
+  title: string;
+  description: string;
+  location: string;
+  incidentType: import('@/components/dashboard/incidents/incident-desk-data').IncidentType;
+  initialSeverity: import('@/components/dashboard/incidents/incident-desk-data').IncidentSeverity;
+};
+
+export async function fetchStaffReportDesk(): Promise<{ desk?: StaffReportDesk; error?: string }> {
+  const response = await apiFetch('/api/v1/dashboard/staff/report');
+  const parsed = await parseApiResponse<{ desk: StaffReportDesk }>(response);
+  if (!parsed.ok) return { error: parsed.message };
+  return { desk: parsed.data.desk };
+}
+
+export type StaffSettingsDesk = {
+  generatedAt: string;
+  security: {
+    mfaEnabled: boolean;
+    isVerified: boolean;
+    mustChangePassword: boolean;
+    email: string;
+  };
+  notifications: {
+    emailLeaves: boolean;
+    emailMaintenance: boolean;
+    emailFees: boolean;
+    emailNotices: boolean;
+  };
+  operations: {
+    dutiesToday: number;
+    myAssignedTickets: number;
+    openComplaints: number;
+  };
+  scope: {
+    hostelNames: string[];
+    unassigned: boolean;
+  };
+};
+
+export type StaffSettingsSession = {
+  id: string;
+  createdAt: string;
+  lastActivityAt: string | null;
+  expiresAt: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  isCurrent: boolean;
+};
+
+export async function fetchStaffSettingsDesk(): Promise<{
+  desk?: StaffSettingsDesk;
+  sessions?: StaffSettingsSession[];
+  error?: string;
+}> {
+  const response = await apiFetch('/api/v1/dashboard/staff/settings');
+  const parsed = await parseApiResponse<{ desk: StaffSettingsDesk; sessions: StaffSettingsSession[] }>(response);
+  if (!parsed.ok) return { error: parsed.message };
+  return { desk: parsed.data.desk, sessions: parsed.data.sessions };
+}
+
+export async function patchStaffNotificationPreferences(input: Partial<StaffSettingsDesk['notifications']>): Promise<{
+  notifications?: StaffSettingsDesk['notifications'];
+  error?: string;
+}> {
+  const response = await apiFetchMutating('/api/v1/dashboard/staff/settings/notifications', {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+  const parsed = await parseApiResponse<{ notifications: StaffSettingsDesk['notifications'] }>(response);
+  if (!parsed.ok) return { error: parsed.message };
+  return { notifications: parsed.data.notifications };
+}
+
+export async function revokeStaffOtherSessions(): Promise<{ error?: string }> {
+  const response = await apiFetchMutating('/api/v1/dashboard/staff/settings/sessions/revoke-others', {
+    method: 'POST',
+  });
+  const parsed = await parseApiResponse<{ revoked: boolean }>(response);
+  if (!parsed.ok) return { error: parsed.message };
+  return {};
+}
+
+export async function submitStaffReport(
+  input: StaffReportIncidentInput,
+): Promise<{ record?: StaffReportDesk['records'][number]; error?: string }> {
+  const response = await apiFetch('/api/v1/dashboard/staff/report', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  const parsed = await parseApiResponse<{ record: StaffReportDesk['records'][number] }>(response);
+  if (!parsed.ok) return { error: parsed.message };
+  return { record: parsed.data.record };
+}
+
+export async function fetchStaffDutySchedule(options?: {
+  from?: string;
+  to?: string;
+}): Promise<{ schedule?: StaffDutySchedule; error?: string }> {
+  const params = new URLSearchParams();
+  if (options?.from) params.set('from', options.from);
+  if (options?.to) params.set('to', options.to);
+  const qs = params.toString();
+  const response = await apiFetch(`/api/v1/dashboard/staff/schedule${qs ? `?${qs}` : ''}`);
+  const parsed = await parseApiResponse<{ schedule: StaffDutySchedule }>(response);
+  if (!parsed.ok) return { error: parsed.message };
+  return { schedule: parsed.data.schedule };
 }
 
 export type StudentDashboardOverview = {

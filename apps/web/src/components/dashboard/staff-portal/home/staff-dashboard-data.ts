@@ -1,5 +1,10 @@
+import type { ComplaintTicket } from '@/components/dashboard/complaints/admin-complaints-data';
+import { formatComplaintWhen } from '@/components/dashboard/complaints/admin-complaints-data';
+import type { AnnouncementRecord } from '@/components/dashboard/announcements/admin-announcements-data';
 import type { StaffDutyRole } from '@/components/dashboard/staff-portal/staff-nav-permissions';
-import type { StaffShiftState } from '@/components/dashboard/staff-portal/staff-topbar-data';
+import type { StaffShiftDisplay, StaffShiftState } from '@/components/dashboard/staff-portal/staff-topbar-data';
+import type { OperationalDashboardOverview } from '@/lib/api/dashboard';
+import { formatRelativeTimeFromIso } from '@/lib/format-relative-time';
 
 export type StaffTaskStatus = 'completed' | 'in_progress' | 'pending' | 'overdue';
 
@@ -66,7 +71,17 @@ export type StaffDashboardSnapshot = {
     checkOut: string | null;
   };
   announcements: StaffAnnouncement[];
+  liveMetrics?: boolean;
 };
+
+const UUID_PREFIX = /^[0-9a-f]{8}-[0-9a-f]{4}-/i;
+
+export function normalizeStaffWorkplaceName(name: string): string {
+  const stripped = name.replace(/^Hostel ·\s*/i, '').trim();
+  if (!stripped || stripped === 'Assigned hostel') return 'Assigned hostel';
+  if (UUID_PREFIX.test(stripped)) return 'Assigned hostel';
+  return stripped;
+}
 
 const STATUS_ORDER: Record<StaffTaskStatus, number> = {
   overdue: 0,
@@ -205,6 +220,265 @@ const SHARED_ANNOUNCEMENTS: StaffAnnouncement[] = [
   },
 ];
 
+function mapTicketToTaskStatus(ticket: ComplaintTicket): StaffTaskStatus {
+  if (ticket.slaBreached && !['Resolved', 'Rejected'].includes(ticket.status)) return 'overdue';
+  if (ticket.status === 'In Progress') return 'in_progress';
+  if (ticket.status === 'Resolved') return 'completed';
+  if (ticket.status === 'Assigned') return 'in_progress';
+  return 'pending';
+}
+
+function ticketMatchesStaff(ticket: ComplaintTicket, displayName: string): boolean {
+  const assignee = ticket.assignedStaff?.toLowerCase() ?? '';
+  if (!assignee) return false;
+  const parts = displayName
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((part) => part.length > 2);
+  return parts.some((part) => assignee.includes(part));
+}
+
+function openTicketsForHostel(tickets: ComplaintTicket[], hostelNames: string[]): ComplaintTicket[] {
+  const hostels = new Set(hostelNames.map((n) => n.toLowerCase()));
+  return tickets.filter((ticket) => {
+    if (['Resolved', 'Rejected'].includes(ticket.status)) return false;
+    if (hostels.size === 0) return true;
+    return hostels.has(ticket.hostel.toLowerCase());
+  });
+}
+
+function staffWorkQueue(
+  tickets: ComplaintTicket[],
+  overview: OperationalDashboardOverview,
+  displayName: string,
+): ComplaintTicket[] {
+  const mine = tickets.filter((ticket) => ticketMatchesStaff(ticket, displayName));
+  const openMine = mine.filter((ticket) => !['Resolved', 'Rejected'].includes(ticket.status));
+  if (openMine.length > 0) return openMine;
+
+  const quota = overview.operations.myAssignedTickets;
+  if (quota <= 0) return [];
+
+  return openTicketsForHostel(tickets, overview.scope.hostelNames)
+    .filter((ticket) => ['Assigned', 'In Progress', 'Under Review', 'Reopened', 'Submitted'].includes(ticket.status))
+    .slice(0, Math.max(quota, 6));
+}
+
+function mapTicketToStaffTask(ticket: ComplaintTicket): StaffDashboardTask {
+  return {
+    id: ticket.id,
+    title: ticket.title,
+    category: ticket.category,
+    area: ticket.location || ticket.hostel,
+    time: formatComplaintWhen(ticket.openedAt),
+    status: mapTicketToTaskStatus(ticket),
+  };
+}
+
+/** Zeroed baseline; filled by {@link mergeStaffSnapshotWithLiveData}. */
+export function createEmptyStaffSnapshot(
+  role: StaffDutyRole,
+  workplaceName: string,
+  shiftFromShell?: StaffShiftDisplay,
+): StaffDashboardSnapshot {
+  const profile = ROLE_PROFILE[role];
+  const windowParts = shiftFromShell?.timeWindow.split('–').map((s) => s.trim()) ?? [];
+  const start = windowParts[0] ?? '08:00 AM';
+  const end = windowParts[1] ?? '04:00 PM';
+
+  return {
+    roleFocus: profile.roleFocus,
+    tasksSectionTitle: profile.tasksSectionTitle,
+    workplace: { name: normalizeStaffWorkplaceName(workplaceName), status: 'Standby' },
+    kpis: { assigned: 0, completed: 0, inProgress: 0, overdue: 0 },
+    shift: {
+      state: shiftFromShell?.state ?? 'off_duty',
+      stateLabel: shiftFromShell?.label ?? 'Off duty',
+      start,
+      end,
+      elapsed: '—',
+      checkIn: '—',
+      checkOut: null,
+      location: profile.shiftLocation,
+    },
+    tasks: [],
+    tasksTotal: 0,
+    progress: {
+      percent: 0,
+      completed: 0,
+      assigned: 0,
+      message: 'No open assignments in your queue.',
+    },
+    attendance: {
+      presentDays: 0,
+      totalDays: 0,
+      percent: 0,
+      present: 0,
+      absent: 0,
+      leave: 0,
+      checkIn: '—',
+      checkOut: null,
+    },
+    announcements: [],
+  };
+}
+
+export function mergeStaffSnapshotWithLiveData(
+  base: StaffDashboardSnapshot,
+  overview: OperationalDashboardOverview | null,
+  tickets: ComplaintTicket[],
+  notices: AnnouncementRecord[],
+  displayName: string,
+  shiftFromShell?: StaffShiftDisplay,
+): StaffDashboardSnapshot {
+  if (!overview) return base;
+
+  const workplaceLabel =
+    overview.scope.unassigned || overview.scope.hostelNames.length === 0
+      ? 'No hostel assigned'
+      : overview.scope.hostelNames.length === 1
+        ? overview.scope.hostelNames[0]!
+        : overview.scope.hostelNames.join(' · ');
+
+  const mine = tickets.filter((ticket) => ticketMatchesStaff(ticket, displayName));
+  const openMine = mine.filter((ticket) => !['Resolved', 'Rejected'].includes(ticket.status));
+  const queue = staffWorkQueue(tickets, overview, displayName);
+  const dutiesToday = overview.operations.dutiesToday;
+  const assignedCount = Math.max(
+    overview.operations.myAssignedTickets + dutiesToday,
+    queue.length,
+    openMine.length,
+  );
+  const completedDistinct = mine.filter((t) => t.status === 'Resolved').length;
+  const ticketInProgress = queue.filter((t) => t.status === 'In Progress' || t.status === 'Assigned').length;
+  const inProgress = ticketInProgress + (dutiesToday > 0 ? 1 : 0);
+  const overdue = queue.filter((t) => t.slaBreached).length;
+
+  const dutyTasks: StaffDashboardTask[] =
+    dutiesToday > 0
+      ? [
+          {
+            id: 'duty-today',
+            title: 'Hostel duty roster',
+            category: 'Duty',
+            area: overview.scope.hostelNames[0] ?? 'Assigned hostel',
+            time: 'Today',
+            status: 'in_progress',
+          },
+        ]
+      : [];
+
+  const tasks = [...dutyTasks, ...queue.map(mapTicketToStaffTask)].sort(
+    (a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status],
+  );
+
+  const progressPercent =
+    assignedCount > 0 ? Math.round((completedDistinct / assignedCount) * 1000) / 10 : 0;
+
+  const windowParts = shiftFromShell?.timeWindow.split('–').map((s) => s.trim()) ?? [];
+  const start = windowParts[0] ?? '08:00 AM';
+  const end = windowParts[1] ?? '04:00 PM';
+  const onDuty = dutiesToday > 0 || shiftFromShell?.state === 'on_duty';
+
+  const scopeNoticeIds = new Set(overview.scope.hostelNames.map((n) => n.toLowerCase()));
+  const scopedNotices = notices.filter((notice) => {
+    if (notice.scope === 'University-wide') return true;
+    if (scopeNoticeIds.size === 0) return true;
+    return scopeNoticeIds.has(notice.scope.toLowerCase());
+  });
+
+  const announcements: StaffAnnouncement[] = scopedNotices.slice(0, 6).map((notice) => ({
+    id: notice.id,
+    title: notice.title,
+    body: notice.excerpt || notice.title,
+    author: notice.publishedBy || 'University Admin',
+    time: formatRelativeTimeFromIso(notice.publishedAt),
+  }));
+
+  const att = overview.attendanceToday;
+  const hostelStudentsToday = att.present + att.absent + att.onLeave;
+
+  return {
+    ...base,
+    liveMetrics: true,
+    workplace: {
+      name: normalizeStaffWorkplaceName(workplaceLabel),
+      status: onDuty ? 'Active' : 'Standby',
+    },
+    kpis: {
+      assigned: assignedCount,
+      completed: completedDistinct,
+      inProgress,
+      overdue,
+    },
+    shift: {
+      ...base.shift,
+      state: onDuty ? 'on_duty' : (shiftFromShell?.state ?? base.shift.state),
+      stateLabel: onDuty ? 'On Duty' : (shiftFromShell?.label ?? base.shift.stateLabel),
+      start,
+      end,
+      location: overview.scope.hostelNames[0] ?? base.shift.location,
+    },
+    tasks,
+    tasksTotal: assignedCount,
+    progress: {
+      percent: progressPercent,
+      completed: completedDistinct,
+      assigned: assignedCount,
+      message:
+        assignedCount === 0
+          ? 'No open work orders — check announcements or your schedule.'
+          : overdue > 0
+            ? `${overdue} assignment(s) are past SLA — prioritize those first.`
+            : 'Keep going! Complete your remaining tasks before the end of your shift.',
+    },
+    attendance: {
+      ...base.attendance,
+      present: att.present,
+      absent: att.absent,
+      leave: att.onLeave,
+      totalDays: hostelStudentsToday,
+      presentDays: att.present,
+      percent: att.percent ?? (hostelStudentsToday > 0 ? Math.round((att.present / hostelStudentsToday) * 1000) / 10 : 0),
+    },
+    announcements: announcements.length > 0 ? announcements : base.announcements,
+  };
+}
+
+/** Full assigned queue for the staff tasks desk (includes resolved tickets). */
+export function listStaffAssignedTasks(
+  overview: OperationalDashboardOverview | null,
+  tickets: ComplaintTicket[],
+  displayName: string,
+): StaffDashboardTask[] {
+  if (!overview) return [];
+
+  let mine = tickets.filter((ticket) => ticketMatchesStaff(ticket, displayName));
+  if (mine.length === 0 && overview.operations.myAssignedTickets > 0) {
+    const quota = overview.operations.myAssignedTickets;
+    mine = openTicketsForHostel(tickets, overview.scope.hostelNames).slice(0, Math.max(quota, 24));
+  }
+
+  const dutyTasks: StaffDashboardTask[] =
+    overview.operations.dutiesToday > 0
+      ? [
+          {
+            id: 'duty-today',
+            title: 'Hostel duty roster',
+            category: 'Duty',
+            area: overview.scope.hostelNames[0] ?? 'Assigned hostel',
+            time: 'Today',
+            status: 'in_progress',
+          },
+        ]
+      : [];
+
+  return [...dutyTasks, ...mine.map(mapTicketToStaffTask)].sort(
+    (a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status],
+  );
+}
+
+/** @deprecated Demo snapshot; use createEmptyStaffSnapshot + mergeStaffSnapshotWithLiveData. */
 export function buildStaffDashboardSnapshot(
   role: StaffDutyRole,
   workplaceName: string,
@@ -220,7 +494,7 @@ export function buildStaffDashboardSnapshot(
   return {
     roleFocus: profile.roleFocus,
     tasksSectionTitle: profile.tasksSectionTitle,
-    workplace: { name: workplaceName.replace(/^Hostel · /, '') || 'Sunrise Boys Hostel', status: 'Active' },
+    workplace: { name: normalizeStaffWorkplaceName(workplaceName), status: 'Active' },
     kpis: profile.kpis,
     shift: {
       state: shiftFromShell?.state ?? 'on_duty',
@@ -254,7 +528,7 @@ export function buildStaffQuickActions(role: StaffDutyRole): StaffQuickAction[] 
     { id: 'task', label: 'Update Task', description: 'Update task progress', href: '/staff/tasks' },
     { id: 'report', label: 'Report Issue', description: 'Notify the Warden', href: '/staff/report' },
     { id: 'schedule', label: 'View Schedule', description: 'Check upcoming shifts', href: '/staff/schedule' },
-    { id: 'message', label: 'Contact Warden', description: 'Send a message', href: '/staff/messages' },
+    { id: 'message', label: 'Messages', description: 'Notices & work alerts', href: '/staff/messages' },
   ];
 
   if (role === 'security_guard') {

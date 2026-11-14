@@ -6,12 +6,16 @@ import { RoleAuthSessionProvider } from '@/components/dashboard/role-auth-sessio
 import { StaffDashboardMobileNav } from '@/components/dashboard/staff-portal/staff-dashboard-mobile-nav';
 import { StaffDashboardSidebar } from '@/components/dashboard/staff-portal/staff-dashboard-sidebar';
 import { StaffDashboardTopbar } from '@/components/dashboard/staff-portal/staff-dashboard-topbar';
+import { StaffShellLiveBootstrap } from '@/components/dashboard/staff-portal/staff-shell-live-bootstrap';
 import { StaffShellProvider } from '@/components/dashboard/staff-portal/staff-shell-provider';
+import { StaffTopbarLiveProvider } from '@/components/dashboard/staff-portal/staff-topbar-live-provider';
 
 export function StaffDashboardShell({ children }: { children: ReactNode }) {
   return (
     <RoleAuthSessionProvider allowedRoles={['HOSTEL_STAFF']} homePath="/staff">
       <StaffShellProvider>
+        <StaffShellLiveBootstrap />
+        <StaffTopbarLiveProvider>
         <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-[color-mix(in_oklch,var(--nestora-cream)_12%,var(--muted))]">
           <StaffDashboardTopbar />
           <StaffDashboardMobileNav />
@@ -22,6 +26,7 @@ export function StaffDashboardShell({ children }: { children: ReactNode }) {
             </main>
           </div>
         </div>
+        </StaffTopbarLiveProvider>
       </StaffShellProvider>
     </RoleAuthSessionProvider>
   );

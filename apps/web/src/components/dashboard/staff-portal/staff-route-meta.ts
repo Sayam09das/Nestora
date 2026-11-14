@@ -25,7 +25,7 @@ const SEGMENT_LABELS: Record<string, string> = {
 
 export function getStaffRouteMeta(pathname: string): StaffRouteMeta {
   if (pathname === '/staff' || !pathname.startsWith('/staff')) {
-    return { title: 'Overview', breadcrumbs: [dashboardCrumb, { label: 'Overview', href: '/staff' }] };
+    return { title: 'Overview', breadcrumbs: [dashboardCrumb] };
   }
 
   const segments = pathname.replace(/^\/staff\/?/, '').split('/').filter(Boolean);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
   filterStaffNavGroups,
@@ -9,7 +9,8 @@ import {
   staffNavGroups,
 } from '@/components/dashboard/staff-portal/staff-nav-items';
 import { useStaffShell } from '@/components/dashboard/staff-portal/staff-shell-provider';
-import { SAMPLE_STAFF_SEARCH_HITS } from '@/components/dashboard/staff-portal/staff-topbar-data';
+import { useStaffTopbarLiveContext } from '@/components/dashboard/staff-portal/staff-topbar-live-provider';
+import type { StaffTopbarSearchHit } from '@/hooks/use-staff-topbar-live';
 import {
   CommandDialog,
   CommandEmpty,
@@ -25,28 +26,37 @@ type Props = { open: boolean; onOpenChange: (open: boolean) => void };
 export function StaffTopbarGlobalSearch({ open, onOpenChange }: Props) {
   const router = useRouter();
   const { navPermissions } = useStaffShell();
+  const { search } = useStaffTopbarLiveContext();
   const [query, setQuery] = useState('');
+  const [hits, setHits] = useState<StaffTopbarSearchHit[]>([]);
+  const [searching, setSearching] = useState(false);
 
   const allowedModules = useMemo(
     () => flattenStaffNavLinks(filterStaffNavGroups(staffNavGroups, navPermissions)),
     [navPermissions],
   );
 
-  const filteredHits = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return SAMPLE_STAFF_SEARCH_HITS;
-    return SAMPLE_STAFF_SEARCH_HITS.filter(
-      (hit) =>
-        hit.label.toLowerCase().includes(q) ||
-        hit.hint.toLowerCase().includes(q) ||
-        hit.category.toLowerCase().includes(q),
-    );
-  }, [query]);
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setHits([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const handle = window.setTimeout(() => {
+      void search(q).then((rows) => {
+        setHits(rows);
+        setSearching(false);
+      });
+    }, 280);
+    return () => window.clearTimeout(handle);
+  }, [query, search]);
 
-  const tasks = filteredHits.filter((h) => h.category === 'Tasks');
-  const visitors = filteredHits.filter((h) => h.category === 'Visitors');
-  const notices = filteredHits.filter((h) => h.category === 'Notices');
-  const maintenance = filteredHits.filter((h) => h.category === 'Maintenance');
+  const tasks = hits.filter((h) => h.category === 'Tasks');
+  const visitors = hits.filter((h) => h.category === 'Visitors');
+  const notices = hits.filter((h) => h.category === 'Notices');
+  const maintenance = hits.filter((h) => h.category === 'Maintenance');
 
   const go = (href: string) => {
     onOpenChange(false);
@@ -70,7 +80,7 @@ export function StaffTopbarGlobalSearch({ open, onOpenChange }: Props) {
         onValueChange={setQuery}
       />
       <CommandList>
-        <CommandEmpty>No matches in your scope.</CommandEmpty>
+        <CommandEmpty>{searching ? 'Searching…' : 'No matches in your scope.'}</CommandEmpty>
 
         {tasks.length > 0 ? (
           <CommandGroup heading="Tasks">

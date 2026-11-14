@@ -30,7 +30,9 @@ export function StaffDashboardAttendancePanel({ snapshot }: Props) {
           <h2 id="staff-attendance-heading" className="text-base font-semibold text-[var(--nestora-forest)]">
             Attendance summary
           </h2>
-          <p className="text-sm text-muted-foreground">My Attendance</p>
+          <p className="text-sm text-muted-foreground">
+            {snapshot.liveMetrics ? 'Student attendance in your hostel (today)' : 'My Attendance'}
+          </p>
         </div>
         <Link href="/staff/attendance" className={cn('text-xs font-medium text-[var(--nestora-sage)] hover:underline', focusRing)}>
           View records
@@ -42,7 +44,9 @@ export function StaffDashboardAttendancePanel({ snapshot }: Props) {
           <p className="text-2xl font-bold tabular-nums text-[var(--nestora-forest)]">
             {attendance.presentDays} / {attendance.totalDays}
           </p>
-          <p className="text-xs text-muted-foreground">Present days this month</p>
+          <p className="text-xs text-muted-foreground">
+            {snapshot.liveMetrics ? 'Present students today' : 'Present days this month'}
+          </p>
         </div>
         <span className="rounded-full bg-[color-mix(in_oklch,var(--nestora-sage)_15%,var(--muted))] px-2.5 py-1 text-sm font-bold text-[var(--nestora-forest)]">
           {attendance.percent}%
@@ -92,7 +96,9 @@ export function StaffDashboardAttendancePanel({ snapshot }: Props) {
         </p>
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <CalendarCheck className="size-3.5" aria-hidden />
-          Attendance synced for current pay cycle (preview data).
+          {snapshot.liveMetrics
+            ? 'Headline counts come from today’s hostel attendance API.'
+            : 'Attendance synced for current pay cycle (preview data).'}
         </p>
       </motion.div>
     </motion.section>

@@ -56,6 +56,7 @@ type StaffShellContextValue = {
   roleLabel: string;
   initials: string;
   workplaceName: string;
+  setWorkplaceName: (name: string) => void;
   shift: StaffShiftDisplay;
 };
 
@@ -67,7 +68,7 @@ export function StaffShellProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [dutyRole, setDutyRole] = useState<StaffDutyRole>('security_guard');
   const [displayName, setDisplayName] = useState('Rahul Sharma');
-  const [workplaceName, setWorkplaceName] = useState(STAFF_DEMO_WORKPLACE);
+  const [workplaceName, setWorkplaceName] = useState('Assigned hostel');
 
   useEffect(() => {
     setHydrated(true);
@@ -82,16 +83,26 @@ export function StaffShellProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    void fetchCurrentUser().then(({ user }) => {
-      if (cancelled || !user) return;
-      const name = `${user.firstName} ${user.lastName}`.trim() || 'Staff';
-      setDisplayName(name);
-      if (user.assignedHostelIds?.length) {
-        setWorkplaceName(`Hostel · ${user.assignedHostelIds[0]}`);
-      }
-    });
+    const refreshUser = () => {
+      void fetchCurrentUser().then(({ user }) => {
+        if (cancelled || !user) return;
+        const name = `${user.firstName} ${user.lastName}`.trim() || 'Staff';
+        setDisplayName(name);
+        if (user.role === 'SECURITY_GUARD') {
+          setDutyRole('security_guard');
+        }
+      });
+    };
+    refreshUser();
+    const interval = window.setInterval(refreshUser, 60_000);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refreshUser();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);
 
@@ -139,6 +150,7 @@ export function StaffShellProvider({ children }: { children: ReactNode }) {
       roleLabel,
       initials,
       workplaceName,
+      setWorkplaceName,
       shift,
     }),
     [
