@@ -79,16 +79,22 @@ export {
   incidentsDeskListQuerySchema,
   patchIncidentSeverityBodySchema,
   resolveIncidentBodySchema,
+  staffReportIncidentBodySchema,
   type IncidentActionBody,
   type IncidentsDeskListQuery,
   type PatchIncidentSeverityBody,
   type ResolveIncidentBody,
+  type StaffReportIncidentBody,
 } from './incidents.validator.js';
 export {
   announcementIdParamsSchema,
   announcementsDeskListQuerySchema,
   type AnnouncementsDeskListQuery,
 } from './announcements.validator.js';
+export {
+  staffNotificationPreferencesBodySchema,
+  type StaffNotificationPreferencesBody,
+} from './staff-settings.validator.js';
 export {
   reportIdParamsSchema,
   reportPreviewQuerySchema,

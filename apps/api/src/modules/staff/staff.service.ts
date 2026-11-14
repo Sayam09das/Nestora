@@ -437,7 +437,13 @@ export type AdminStaffProfile = {
     hostelName: string;
     assignedAt: string;
   };
+  assignments: Array<{
+    hostelId: string;
+    hostelName: string;
+    assignedAt: string;
+  }>;
   wardenOf: string | null;
+  wardenInCharge: Array<{ hostelId: string; hostelName: string }>;
 };
 
 export async function getAdminStaffProfile(
@@ -454,11 +460,10 @@ export async function getAdminStaffProfile(
         },
       },
       hostelAssignments: {
-        take: 1,
         orderBy: { assignedAt: 'desc' },
-        include: { hostel: { select: { name: true } } },
+        include: { hostel: { select: { id: true, name: true } } },
       },
-      wardenInChargeHostels: { take: 1, select: { name: true } },
+      wardenInChargeHostels: { select: { id: true, name: true } },
     },
   });
 
@@ -521,7 +526,16 @@ export async function getAdminStaffProfile(
           assignedAt: user.hostelAssignments[0].assignedAt.toISOString().slice(0, 10),
         }
       : null,
+    assignments: user.hostelAssignments.map((row) => ({
+      hostelId: row.hostelId,
+      hostelName: row.hostel.name,
+      assignedAt: row.assignedAt.toISOString().slice(0, 10),
+    })),
     wardenOf: user.wardenInChargeHostels[0]?.name ?? null,
+    wardenInCharge: user.wardenInChargeHostels.map((hostel) => ({
+      hostelId: hostel.id,
+      hostelName: hostel.name,
+    })),
   };
 }
 

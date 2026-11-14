@@ -21,6 +21,11 @@ import { bedsPlugin } from './modules/beds/index.js';
 import { roomTypesPlugin } from './modules/room-types/index.js';
 import { hostelsPlugin } from './modules/hostels/index.js';
 import { allocationsPlugin } from './modules/allocations/index.js';
+import { announcementsPlugin } from './modules/announcements/index.js';
+import { complaintsPlugin } from './modules/complaints/index.js';
+import { visitorsPlugin } from './modules/visitors/index.js';
+import { incidentsPlugin } from './modules/incidents/index.js';
+import { accountPlugin } from './modules/account/index.js';
 import { uploadsPlugin } from './modules/uploads/index.js';
 import { infrastructurePlugin } from './modules/infrastructure/index.js';
 import { configPluginWrapped } from './plugins/config.js';
@@ -221,6 +226,11 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
       await v1.register(roomTypesPlugin);
       await v1.register(hostelsPlugin);
       await v1.register(allocationsPlugin);
+      await v1.register(complaintsPlugin);
+      await v1.register(visitorsPlugin);
+      await v1.register(announcementsPlugin);
+      await v1.register(incidentsPlugin);
+      await v1.register(accountPlugin);
     },
     { prefix: '/api/v1' },
   );

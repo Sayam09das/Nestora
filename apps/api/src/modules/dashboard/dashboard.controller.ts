@@ -4,6 +4,16 @@ import { requireAuth } from '../../middleware/authenticate.js';
 import { assertRole } from '../../middleware/authorize.js';
 import { getAdminDashboardOverview } from './dashboard.service.js';
 import { getOperationalDashboardOverview } from './operational-dashboard.service.js';
+import {
+  defaultStaffAttendanceRange,
+  getStaffAttendanceDesk,
+  parseAttendanceDateParam,
+} from './staff-attendance.service.js';
+import {
+  defaultStaffScheduleRange,
+  getStaffDutySchedule,
+  parseScheduleDateParam,
+} from './staff-schedule.service.js';
 
 export async function getAdminDashboardOverviewHandler(
   request: FastifyRequest,
@@ -44,4 +54,35 @@ export async function getStaffDashboardOverviewHandler(
     'HOSTEL_STAFF',
   );
   reply.send(successResponse({ overview }, 'Staff dashboard overview.'));
+}
+
+export async function getStaffScheduleHandler(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'HOSTEL_STAFF');
+
+  const defaults = defaultStaffScheduleRange();
+  const query = request.query as { from?: string; to?: string };
+  const from = parseScheduleDateParam(query.from, defaults.from);
+  const to = parseScheduleDateParam(query.to, defaults.to);
+  const rangeEnd = from <= to ? to : from;
+
+  const schedule = await getStaffDutySchedule(request.server.prisma, user.id, from, rangeEnd);
+  reply.send(successResponse({ schedule }, 'Staff duty schedule.'));
+}
+
+export async function getStaffAttendanceHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'HOSTEL_STAFF');
+
+  const defaults = defaultStaffAttendanceRange();
+  const query = request.query as { from?: string; to?: string };
+  const from = parseAttendanceDateParam(query.from, defaults.from);
+  const to = parseAttendanceDateParam(query.to, defaults.to);
+  const rangeEnd = from <= to ? to : from;
+
+  const desk = await getStaffAttendanceDesk(request.server.prisma, user.id, from, rangeEnd);
+  reply.send(successResponse({ desk }, 'Staff attendance desk.'));
 }

@@ -27,7 +27,16 @@ export const resolveIncidentBodySchema = z.object({
   actionTaken: z.string().min(3).max(2000),
 });
 
+export const staffReportIncidentBodySchema = z.object({
+  title: z.string().trim().min(3).max(150),
+  description: z.string().trim().min(10).max(5000),
+  location: z.string().trim().min(2).max(150),
+  incidentType: z.enum(['Fire', 'Medical', 'Security', 'Missing student', 'Infrastructure', 'Other']),
+  initialSeverity: z.enum(['Low', 'Medium', 'High', 'Critical']),
+});
+
 export type IncidentsDeskListQuery = z.infer<typeof incidentsDeskListQuerySchema>;
 export type PatchIncidentSeverityBody = z.infer<typeof patchIncidentSeverityBodySchema>;
 export type IncidentActionBody = z.infer<typeof incidentActionBodySchema>;
 export type ResolveIncidentBody = z.infer<typeof resolveIncidentBodySchema>;
+export type StaffReportIncidentBody = z.infer<typeof staffReportIncidentBodySchema>;
