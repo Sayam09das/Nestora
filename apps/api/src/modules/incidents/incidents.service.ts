@@ -4,6 +4,7 @@ import type {
   IncidentsDeskListQuery,
   PatchIncidentSeverityBody,
   ResolveIncidentBody,
+  StaffReportIncidentBody,
 } from '@nestora/validators';
 import { createHash } from 'node:crypto';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../common/errors/index.js';
@@ -82,6 +83,15 @@ const SEVERITY_TO_DB: Record<IncidentUiSeverity, string> = {
   Medium: 'MEDIUM',
   High: 'HIGH',
   Critical: 'CRITICAL',
+};
+
+const TYPE_TO_DB: Record<IncidentUiType, string> = {
+  Fire: 'FIRE',
+  Medical: 'MEDICAL',
+  Security: 'SECURITY',
+  'Missing student': 'MISSING_STUDENT',
+  Infrastructure: 'INFRASTRUCTURE',
+  Other: 'OTHER',
 };
 
 const STATUS_TO_UI: Record<string, IncidentUiStatus> = {
@@ -394,4 +404,122 @@ export async function resolveIncident(
   const names = await loadUserNames(prisma, [row.reportedBy]);
   const updated = await getIncidentRowOrThrow(prisma, incidentId, scopeHostelNames);
   return mapRow(updated, names);
+}
+
+export type StaffReportDesk = {
+  generatedAt: string;
+  hostelNames: string[];
+  defaultHostelName: string | null;
+  summary: {
+    myOpen: number;
+    myTotal: number;
+    hostelActive: number;
+  };
+  records: IncidentDeskRecord[];
+};
+
+function startOfUtcDay(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+async function resolveStaffReportHostelId(
+  prisma: PrismaClient,
+  staffUserId: string,
+  hostelIds: string[],
+): Promise<string> {
+  if (hostelIds.length === 0) {
+    throw new ForbiddenError('You are not assigned to a hostel.');
+  }
+  const today = startOfUtcDay(new Date());
+  const duty = await prisma.dutyAssignment.findFirst({
+    where: {
+      staffId: staffUserId,
+      dutyDate: today,
+      hostelId: { in: hostelIds },
+    },
+    select: { hostelId: true },
+  });
+  if (duty) return duty.hostelId;
+  return hostelIds[0]!;
+}
+
+export async function getStaffReportDesk(
+  prisma: PrismaClient,
+  staffUserId: string,
+  hostelIds: string[],
+  hostelNames: string[],
+): Promise<StaffReportDesk> {
+  const scopedHostelWhere: Prisma.EmergencyIncidentWhereInput =
+    hostelIds.length === 0
+      ? { id: { equals: '00000000-0000-0000-0000-000000000000' } }
+      : hostelIds.length === 1
+        ? { hostelId: hostelIds[0] }
+        : { hostelId: { in: hostelIds } };
+
+  const [myRows, hostelActive] = await Promise.all([
+    prisma.emergencyIncident.findMany({
+      where: { ...scopedHostelWhere, reportedBy: staffUserId },
+      include: incidentInclude,
+      orderBy: { createdAt: 'desc' },
+      take: 40,
+    }),
+    prisma.emergencyIncident.count({
+      where: {
+        ...scopedHostelWhere,
+        status: { not: 'RESOLVED' },
+      },
+    }),
+  ]);
+
+  const names = await loadUserNames(prisma, [staffUserId]);
+  const records = myRows.map((row) => mapRow(row, names));
+  const myOpen = records.filter((r) => r.status !== 'Resolved').length;
+
+  let defaultHostelName: string | null = hostelNames[0] ?? null;
+  try {
+    const defaultHostelId = await resolveStaffReportHostelId(prisma, staffUserId, hostelIds);
+    const hostel = await prisma.hostel.findUnique({
+      where: { id: defaultHostelId },
+      select: { name: true },
+    });
+    defaultHostelName = hostel?.name ?? defaultHostelName;
+  } catch {
+    defaultHostelName = hostelNames[0] ?? null;
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    hostelNames,
+    defaultHostelName,
+    summary: {
+      myOpen,
+      myTotal: records.length,
+      hostelActive,
+    },
+    records,
+  };
+}
+
+export async function createStaffIncidentReport(
+  prisma: PrismaClient,
+  staffUserId: string,
+  hostelIds: string[],
+  body: StaffReportIncidentBody,
+): Promise<IncidentDeskRecord> {
+  const hostelId = await resolveStaffReportHostelId(prisma, staffUserId, hostelIds);
+  const row = await prisma.emergencyIncident.create({
+    data: {
+      hostelId,
+      reportedBy: staffUserId,
+      incidentType: TYPE_TO_DB[body.incidentType],
+      title: body.title.trim(),
+      description: body.description.trim(),
+      location: body.location.trim(),
+      initialSeverity: SEVERITY_TO_DB[body.initialSeverity],
+      status: 'REPORTED',
+    },
+    include: incidentInclude,
+  });
+  const names = await loadUserNames(prisma, [staffUserId]);
+  return mapRow(row, names);
 }
