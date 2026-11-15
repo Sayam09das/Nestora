@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@nestora/database';
-
+import { BadRequestError, ConflictError } from '../../common/errors/index.js';
 import { resolveHostelScope } from './operational-dashboard.service.js';
 import { parseScheduleDateParam, shiftDisplay } from './staff-schedule.service.js';
 
@@ -151,3 +151,44 @@ export async function getStaffAttendanceDesk(
 }
 
 export { parseScheduleDateParam as parseAttendanceDateParam };
+
+export async function recordStaffShiftCheckIn(
+  prisma: PrismaClient,
+  staffUserId: string,
+): Promise<StaffAttendanceDesk> {
+  const today = startOfUtcDay(new Date());
+
+  const dutyToday = await prisma.dutyAssignment.findFirst({
+    where: { staffId: staffUserId, dutyDate: today },
+    select: { hostelId: true },
+  });
+  if (!dutyToday) {
+    throw new BadRequestError('No duty assignment scheduled for today — check-in is not available.');
+  }
+
+  const existing = await prisma.staffAttendance.findFirst({
+    where: { staffId: staffUserId, workDate: today },
+  });
+  if (existing?.status === 'PRESENT') {
+    throw new ConflictError('You have already checked in for today.');
+  }
+  if (existing) {
+    await prisma.staffAttendance.update({
+      where: { id: existing.id },
+      data: { status: 'PRESENT', recordedBy: staffUserId, hostelId: dutyToday.hostelId },
+    });
+  } else {
+    await prisma.staffAttendance.create({
+      data: {
+        staffId: staffUserId,
+        hostelId: dutyToday.hostelId,
+        workDate: today,
+        status: 'PRESENT',
+        recordedBy: staffUserId,
+      },
+    });
+  }
+
+  const defaults = defaultStaffAttendanceRange();
+  return getStaffAttendanceDesk(prisma, staffUserId, defaults.from, defaults.to);
+}

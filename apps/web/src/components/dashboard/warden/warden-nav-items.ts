@@ -100,6 +100,16 @@ const workspace: WardenNavGroup = {
     },
     {
       kind: 'link',
+      id: 'outings',
+      href: '/warden/outings',
+      label: 'Outings',
+      description: 'Same-day outing approvals (MOD-08)',
+      icon: CalendarDays,
+      permission: 'workspace.leave',
+      isActive: pathActive('/warden/outings'),
+    },
+    {
+      kind: 'link',
       id: 'visitors',
       href: '/warden/visitors',
       label: 'Visitor Management',

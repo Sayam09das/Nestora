@@ -129,3 +129,101 @@ export async function notifyIncidentReported(
   const created = await createNotifications(prisma, inputs);
   scheduleNotificationEmails(prisma, created, 'incident');
 }
+
+export async function notifyOutingApplicationSubmitted(
+  prisma: PrismaClient,
+  params: { outingId: string; hostelId: string; studentName: string; destination: string },
+): Promise<void> {
+  const operatorIds = await resolveHostelOperatorUserIds(prisma, params.hostelId);
+  if (operatorIds.length === 0) return;
+
+  const inputs = operatorIds.map((userId) => ({
+    userId,
+    title: 'New outing request',
+    message: `${params.studentName} requested an outing to ${params.destination}.`,
+    category: 'leave',
+    actionLink: '/warden/outings',
+  }));
+
+  const created = await createNotifications(prisma, inputs);
+  scheduleNotificationEmails(prisma, created, 'leave');
+}
+
+export async function notifyOverdueGateReturn(
+  prisma: PrismaClient,
+  params: {
+    hostelId: string;
+    passId: string;
+    passToken: string;
+    studentName: string;
+    hostelName: string;
+    validUntil: string;
+    dedupeSince: Date;
+  },
+): Promise<number> {
+  const operatorIds = await resolveHostelOperatorUserIds(prisma, params.hostelId);
+  if (operatorIds.length === 0) return 0;
+
+  const inputs: Array<{
+    userId: string;
+    title: string;
+    message: string;
+    category: string;
+    actionLink: string;
+  }> = [];
+
+  for (const userId of operatorIds) {
+    const dup = await prisma.notification.findFirst({
+      where: {
+        userId,
+        category: 'movement',
+        message: { contains: params.passToken },
+        createdAt: { gte: params.dedupeSince },
+      },
+      select: { id: true },
+    });
+    if (dup) continue;
+
+    inputs.push({
+      userId,
+      title: 'Late gate return',
+      message: `${params.studentName} is overdue on pass ${params.passToken} (${params.hostelName}). Expected back by ${params.validUntil}.`,
+      category: 'movement',
+      actionLink: '/warden/leave',
+    });
+  }
+
+  if (inputs.length === 0) return 0;
+  const created = await createNotifications(prisma, inputs);
+  scheduleNotificationEmails(prisma, created, 'notice');
+  return created.length;
+}
+
+export async function notifyOutingDecision(
+  prisma: PrismaClient,
+  params: {
+    studentId: string;
+    decision: 'Approved' | 'Rejected';
+    outingId: string;
+    hostelName: string;
+    passToken?: string | null;
+  },
+): Promise<void> {
+  const userId = await studentUserIdForStudent(prisma, params.studentId);
+  if (!userId) return;
+
+  const approved = params.decision === 'Approved';
+  const passNote = approved && params.passToken ? ` Gate pass: ${params.passToken}.` : '';
+  const inputs = [
+    {
+      userId,
+      title: approved ? 'Outing approved' : 'Outing not approved',
+      message: `Your outing for ${params.hostelName} was ${approved ? 'approved' : 'rejected'}.${passNote}`,
+      category: 'leave',
+      actionLink: approved ? '/student/gate-passes' : '/student/outings',
+    },
+  ];
+
+  const created = await createNotifications(prisma, inputs);
+  scheduleNotificationEmails(prisma, created, 'leave');
+}

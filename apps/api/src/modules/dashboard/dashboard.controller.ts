@@ -11,6 +11,7 @@ import {
 } from './student-attendance.service.js';
 import { getStudentRoommatesDesk } from './student-roommates.service.js';
 import { createStudentLeaveApplication, getStudentLeaveDesk } from './student-leave.service.js';
+import { createStudentOutingRequest, getStudentOutingDesk } from './student-outing.service.js';
 import { getStudentGatePassesDesk } from './student-gate-passes.service.js';
 import {
   createStudentComplaintTicket,
@@ -41,6 +42,7 @@ import {
   createStudentMaintenanceBodySchema,
   createStudentVisitorBodySchema,
   createStudentLeaveBodySchema,
+  createStudentOutingBodySchema,
   studentAcknowledgeNoticeBodySchema,
   studentReportIncidentBodySchema,
   updateStudentSelfProfileBodySchema,
@@ -48,6 +50,7 @@ import {
 import {
   defaultStaffAttendanceRange,
   getStaffAttendanceDesk,
+  recordStaffShiftCheckIn,
   parseAttendanceDateParam,
 } from './staff-attendance.service.js';
 import {
@@ -290,6 +293,29 @@ export async function postStudentLeaveHandler(
   reply.send(successResponse({ desk }, 'Leave request submitted.'));
 }
 
+export async function getStudentOutingsHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'STUDENT');
+
+  const desk = await getStudentOutingDesk(request.server.prisma, user.id);
+  reply.send(successResponse({ desk }, 'Student outing desk.'));
+}
+
+export async function postStudentOutingHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'STUDENT');
+
+  const body = createStudentOutingBodySchema.parse(request.body);
+  const desk = await createStudentOutingRequest(request.server.prisma, user.id, body);
+  reply.send(successResponse({ desk }, 'Outing request submitted.'));
+}
+
 export async function getStudentRoommatesHandler(
   request: FastifyRequest,
   reply: FastifyReply,
@@ -375,4 +401,15 @@ export async function getStaffAttendanceHandler(
 
   const desk = await getStaffAttendanceDesk(request.server.prisma, user.id, from, rangeEnd);
   reply.send(successResponse({ desk }, 'Staff attendance desk.'));
+}
+
+export async function postStaffShiftCheckInHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'HOSTEL_STAFF');
+
+  const desk = await recordStaffShiftCheckIn(request.server.prisma, user.id);
+  reply.send(successResponse({ desk }, 'Shift check-in recorded.'));
 }

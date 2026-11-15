@@ -13,7 +13,7 @@ function withAdminOrWardenAuth() {
       async (request: FastifyRequest) => {
         requireAuth(request);
       },
-      requireRoles('UNIVERSITY_ADMINISTRATOR', 'HOSTEL_WARDEN', 'HOSTEL_STAFF'),
+      requireRoles('UNIVERSITY_ADMINISTRATOR', 'HOSTEL_WARDEN', 'HOSTEL_STAFF', 'ACCOUNTANT'),
     ],
   };
 }

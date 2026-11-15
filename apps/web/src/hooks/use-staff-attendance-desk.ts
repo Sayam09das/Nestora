@@ -43,5 +43,5 @@ export function useStaffAttendanceDesk() {
     };
   }, [load]);
 
-  return { desk, loading, error, refresh: load };
+  return { desk, loading, error, refresh: load, setDesk };
 }

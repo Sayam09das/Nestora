@@ -113,6 +113,7 @@ export function mapNotificationCategory(category: string): {
   const isMaintenance = c.includes('maintenance');
   const isFee = c.includes('fee');
   const isIncident = c.includes('incident') || c.includes('emergency');
+  const isMovement = c.includes('movement') || c.includes('gate');
   const isAnnouncement = c.includes('announcement') || c.includes('notice');
 
   return {
@@ -135,9 +136,11 @@ export function mapNotificationCategory(category: string): {
         ? 'complaint'
         : isIncident
           ? 'incident'
-          : isAnnouncement
-            ? 'notice'
-            : 'alert',
+          : isMovement
+            ? 'alert'
+            : isAnnouncement
+              ? 'notice'
+              : 'alert',
     staff: isMaintenance
       ? 'maintenance'
       : isComplaint

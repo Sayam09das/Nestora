@@ -19,7 +19,7 @@ export function StaffDashboardFootnote({ liveMetrics, overview }: Props) {
       {liveMetrics && generated ? (
         <>
           KPIs, work orders, and notices refresh from your assigned-hostel API (last updated {generated}). Tab focus
-          triggers an immediate sync. Personal shift check-in and monthly attendance sync are still on the roadmap.
+          triggers an immediate sync. Mark today&apos;s shift from Attendance &amp; Shifts when your duty roster is active.
         </>
       ) : (
         <>Connect to the API to load live work orders and hostel context.</>

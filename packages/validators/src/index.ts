@@ -69,6 +69,15 @@ export {
   type LeaveDeskListQuery,
 } from './leaves.validator.js';
 export {
+  createStudentOutingBodySchema,
+  outingDecisionBodySchema,
+  outingDeskListQuerySchema,
+  outingIdParamsSchema,
+  type CreateStudentOutingBody,
+  type OutingDecisionBody,
+  type OutingDeskListQuery,
+} from './outings.validator.js';
+export {
   createStudentVisitorBodySchema,
   registerVisitorBodySchema,
   studentVisitorIdProofSchema,

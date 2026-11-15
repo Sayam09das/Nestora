@@ -3,6 +3,7 @@ import { requireRoles } from '../../middleware/authorize.js';
 import {
   getAdminDashboardOverviewHandler,
   getStaffAttendanceHandler,
+  postStaffShiftCheckInHandler,
   getStaffDashboardOverviewHandler,
   getStaffScheduleHandler,
   getStudentDashboardOverviewHandler,
@@ -23,6 +24,8 @@ import {
   postStudentComplaintHandler,
   getStudentLeaveHandler,
   postStudentLeaveHandler,
+  getStudentOutingsHandler,
+  postStudentOutingHandler,
   getStudentGatePassesHandler,
   getStudentSelfProfileHandler,
   patchStudentSelfProfileHandler,
@@ -196,6 +199,20 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
     postStudentLeaveHandler,
   );
   app.get(
+    '/student/outings',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentOutingsHandler,
+  );
+  app.post(
+    '/student/outings',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    postStudentOutingHandler,
+  );
+  app.get(
     '/student/gate-passes',
     {
       preHandler: [requireRoles('STUDENT')],
@@ -264,6 +281,13 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
       preHandler: [requireRoles('HOSTEL_STAFF')],
     },
     getStaffAttendanceHandler,
+  );
+  app.post(
+    '/staff/attendance/check-in',
+    {
+      preHandler: [requireRoles('HOSTEL_STAFF')],
+    },
+    postStaffShiftCheckInHandler,
   );
   app.get(
     '/staff/report',
