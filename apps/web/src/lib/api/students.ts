@@ -135,10 +135,13 @@ export type AdminStudentProfile = {
     guardianRelation: string;
   };
   housing: null | {
+    allocationId: string;
     hostelName: string;
     roomNumber: string;
     bedNumber: string;
     allocatedSince: string;
+    checkedIn: boolean;
+    checkInTime: string | null;
   };
   admission: StudentAdmissionProfile | null;
 };

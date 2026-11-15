@@ -33,6 +33,8 @@ export const PANEL_FIELD_TEMPLATES: Record<string, SettingFieldTemplate[]> = {
   ],
   'cfg-attendance': [
     { key: 'roll_cutoff', label: 'Roll call lock (minutes after curfew)', type: 'number', defaultValue: 45 },
+    { key: 'absence_threshold', label: 'Consecutive absence alert threshold', type: 'number', defaultValue: 3, help: 'FR-051 / MOD-09' },
+    { key: 'extended_leave_admin_days', label: 'Extended leave admin threshold (days)', type: 'number', defaultValue: 7, help: 'ODR-002' },
     { key: 'open_discrepancies', label: 'Open attendance discrepancies', type: 'number', defaultValue: 0, help: 'FR-049' },
     { key: 'records_today', label: 'Attendance records today', type: 'number', defaultValue: 0 },
     { key: 'auto_escalate', label: 'Notify administrator on threshold', type: 'toggle', defaultValue: true, help: 'FR-051' },
@@ -56,6 +58,8 @@ export const PANEL_FIELD_TEMPLATES: Record<string, SettingFieldTemplate[]> = {
     { key: 'pending_adjustments', label: 'Pending fee adjustments', type: 'number', defaultValue: 0, help: 'FR-078' },
     { key: 'active_schedules', label: 'Active fee schedules', type: 'number', defaultValue: 0 },
     { key: 'auto_late', label: 'Apply late fee automatically', type: 'toggle', defaultValue: true },
+    { key: 'grace_days', label: 'Late fee grace period (days)', type: 'number', defaultValue: 7, help: 'FR-078' },
+    { key: 'late_fee_flat_amount', label: 'Automatic late fee amount (INR)', type: 'number', defaultValue: 500 },
   ],
   'cfg-security': [
     { key: 'mfa_enabled', label: 'Staff with MFA enabled', type: 'number', defaultValue: 0 },
@@ -65,6 +69,7 @@ export const PANEL_FIELD_TEMPLATES: Record<string, SettingFieldTemplate[]> = {
   'cfg-maintenance': [
     { key: 'open_tickets', label: 'Open maintenance tickets', type: 'number', defaultValue: 0, help: 'FR-072' },
     { key: 'assigned_tickets', label: 'Assigned in progress', type: 'number', defaultValue: 0 },
+    { key: 'auto_close_hours', label: 'Auto-close resolved tickets (hours)', type: 'number', defaultValue: 72, help: 'MOD-12' },
   ],
   'cfg-roles': [
     { key: 'staff_accounts', label: 'Hostel staff accounts', type: 'number', defaultValue: 0 },

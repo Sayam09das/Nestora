@@ -7,6 +7,11 @@ import {
   getAllocationDirectorySummary,
   listAllocationDirectoryHandler,
   listAllocationQueueHandler,
+  getRoomChangeRequestsHandler,
+  getStudentRoomConfigOptionsHandler,
+  postApproveRoomChangeHandler,
+  postRejectRoomChangeHandler,
+  postStudentRoomChangeHandler,
 } from './allocations.controller.js';
 
 function withAdminAuth() {
@@ -54,4 +59,9 @@ export const allocationsRoutes: FastifyPluginAsync = async (app) => {
   app.get('/directory/:allocationId', adminOrWarden, getAllocationDirectoryByIdHandler);
   app.get('/directory', adminOrWarden, listAllocationDirectoryHandler);
   app.post('/assign', adminOrWardenAssign, assignStudentToBedHandler);
+  app.get('/room-changes', adminOrWarden, getRoomChangeRequestsHandler);
+  app.get('/room-config-options', { preHandler: [requireRoles('STUDENT')] }, getStudentRoomConfigOptionsHandler);
+  app.post('/room-changes', { preHandler: [requireRoles('STUDENT')] }, postStudentRoomChangeHandler);
+  app.post('/room-changes/:requestId/approve', adminOrWardenAssign, postApproveRoomChangeHandler);
+  app.post('/room-changes/:requestId/reject', adminOrWardenAssign, postRejectRoomChangeHandler);
 };

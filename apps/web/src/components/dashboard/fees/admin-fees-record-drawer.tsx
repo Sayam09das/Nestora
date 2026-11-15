@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { SAMPLE_LEDGER_ACCOUNTS } from '@/components/dashboard/fees/admin-fees-data';
+import type { LedgerAccount } from '@/components/dashboard/fees/admin-fees-data';
+import { postOfflinePayment } from '@/lib/api/finance';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -12,9 +13,15 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-type Props = { open: boolean; onOpenChange: (o: boolean) => void; preselectAccountId?: string };
+type Props = {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  preselectAccountId?: string;
+  ledgers?: LedgerAccount[];
+  onRecorded?: () => void;
+};
 
-export function AdminFeesRecordDrawer({ open, onOpenChange, preselectAccountId }: Props) {
+export function AdminFeesRecordDrawer({ open, onOpenChange, preselectAccountId, ledgers = [], onRecorded }: Props) {
   const [accountId, setAccountId] = useState('');
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<'cash' | 'dd' | 'neft' | 'upi'>('neft');
@@ -34,7 +41,7 @@ export function AdminFeesRecordDrawer({ open, onOpenChange, preselectAccountId }
     setReceivedOn(new Date().toISOString().slice(0, 10));
   }, [open, preselectAccountId]);
 
-  const submit = () => {
+  const submit = async () => {
     if (!accountId) {
       toast.error('Select a student ledger.');
       return;
@@ -48,7 +55,24 @@ export function AdminFeesRecordDrawer({ open, onOpenChange, preselectAccountId }
       toast.error('Receipt reference is required for offline entry (FR-076).');
       return;
     }
-    toast.success(`Payment of ₹${n.toLocaleString('en-IN')} recorded (sample).`);
+    if (!receivedOn) {
+      toast.error('Payment date is required.');
+      return;
+    }
+    const mode = method.toUpperCase() as 'CASH' | 'DD' | 'NEFT' | 'UPI';
+    const result = await postOfflinePayment({
+      ledgerId: accountId,
+      amount: n,
+      paymentMode: mode,
+      transactionReference: reference.trim(),
+      paymentDate: receivedOn,
+    });
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success(`Payment ₹${n.toLocaleString('en-IN')} posted · receipt ${result.receiptNumber}`);
+    onRecorded?.();
     onOpenChange(false);
   };
 
@@ -64,7 +88,7 @@ export function AdminFeesRecordDrawer({ open, onOpenChange, preselectAccountId }
             <span className="text-xs font-medium">Student ledger</span>
             <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={cn('h-10 w-full rounded-xl border px-3 text-sm', focusRing)}>
               <option value="">Select student</option>
-              {SAMPLE_LEDGER_ACCOUNTS.map((a) => (
+              {ledgers.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.studentName} · {a.room}
                 </option>
@@ -98,7 +122,7 @@ export function AdminFeesRecordDrawer({ open, onOpenChange, preselectAccountId }
           </label>
         </div>
         <SheetFooter className="border-t p-5 sm:flex-col sm:space-x-0">
-          <Button type="button" className={cn('w-full rounded-xl bg-[var(--nestora-forest)] text-white', focusRing)} onClick={submit}>
+          <Button type="button" className={cn('w-full rounded-xl bg-[var(--nestora-forest)] text-white', focusRing)} onClick={() => void submit()}>
             Post payment
           </Button>
         </SheetFooter>

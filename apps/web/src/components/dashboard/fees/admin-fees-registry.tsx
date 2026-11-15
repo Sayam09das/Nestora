@@ -10,9 +10,9 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-type Props = { rows: LedgerAccount[]; hidden?: boolean };
+type Props = { rows: LedgerAccount[]; hidden?: boolean; ledgerBasePath?: string };
 
-export function AdminFeesRegistry({ rows, hidden }: Props) {
+export function AdminFeesRegistry({ rows, hidden, ledgerBasePath = '/admin/fees' }: Props) {
   const reduceMotion = useReducedMotion();
   if (hidden) return null;
 
@@ -40,7 +40,7 @@ export function AdminFeesRegistry({ rows, hidden }: Props) {
                 className="border-b last:border-0 hover:bg-muted/30"
               >
                 <td className="px-4 py-3">
-                  <Link href={`/admin/fees/${row.id}`} className={cn('font-medium text-[var(--nestora-forest)]', focusRing)}>
+                  <Link href={`${ledgerBasePath}/${row.id}`} className={cn('font-medium text-[var(--nestora-forest)]', focusRing)}>
                     <span className="block text-[11px] text-muted-foreground">
                       {row.code} · {row.regNo}
                     </span>

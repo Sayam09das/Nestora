@@ -1,5 +1,11 @@
 import type { Prisma, PrismaClient } from '@nestora/database';
-import type { FinanceDeskListQuery } from '@nestora/validators';
+import type {
+  DecideFeeAdjustmentBody,
+  FinanceDeskListQuery,
+  ProposeFeeWaiverBody,
+  RecordOfflinePaymentBody,
+} from '@nestora/validators';
+import { BadRequestError, ConflictError, NotFoundError } from '../../common/errors/index.js';
 import { DEFAULT_PAGE, DEFAULT_PAGE_LIMIT } from '../../common/constants/limits.js';
 import { buildPaginationMeta, normalizePagination } from '../../common/helpers/index.js';
 import { hostelNameInScope } from '../../common/helpers/warden-hostel-scope.js';
@@ -370,10 +376,41 @@ export async function getFinanceLedgerDetail(
   if (!ledger) return null;
 
   const alloc = await prisma.allocationRecord.findFirst({
-    where: { studentId: ledger.studentId, status: 'ACTIVE' },
+    where: { studentId: ledger.studentId, status: { in: ['ACTIVE', 'TRANSFERRED', 'TERMINATED'] } },
+    orderBy: { allocatedAt: 'desc' },
     include: residentInclude,
   });
-  if (!alloc) return null;
+  const ledgerStudentName =
+    ledger.student.user != null
+      ? `${ledger.student.user.firstName} ${ledger.student.user.lastName}`.trim()
+      : ledger.student.registrationNumber;
+
+  if (!alloc) {
+    const semesterLabel = await resolveSemesterLabel(prisma);
+    const last = ledger.student.paymentRecords[0];
+    const lastPayment = last ? last.paymentDate.toISOString() : null;
+    const outstanding = money(ledger.currentBalance);
+    const status = deriveStatus(outstanding, lastPayment);
+    const account: FinanceDeskLedgerRow = {
+      id: ledger.id,
+      code: ledgerCode(ledger.id),
+      studentName: ledgerStudentName,
+      regNo: ledger.student.registrationNumber,
+      hostel: '—',
+      room: 'Unassigned',
+      semester: semesterLabel,
+      assessed: money(ledger.totalAssessed),
+      paid: money(ledger.totalPaid),
+      outstanding,
+      status,
+      lastPayment,
+      frRef: frRefForStatus(status),
+      sparkline: buildSparkline(ledger.student.paymentRecords),
+    };
+    const lines = buildLedgerLines(ledger, semesterLabel);
+    const pendingWaivers = buildPendingWaivers(ledger.student.feeAdjustments, ledgerStudentName);
+    return { account, lines, pendingWaivers };
+  }
 
   const hostel = alloc.bed.room.floor.block.building.hostel.name;
   if (scopeHostelNames?.length && !hostelNameInScope(hostel, scopeHostelNames)) {
@@ -402,6 +439,29 @@ export async function getFinanceLedgerDetail(
     sparkline: buildSparkline(ledger.student.paymentRecords),
   };
 
+  const lines = buildLedgerLines(ledger, semesterLabel);
+  const pendingWaivers = buildPendingWaivers(ledger.student.feeAdjustments, account.studentName);
+
+  return { account, lines, pendingWaivers };
+}
+
+type LedgerDetailRow = {
+  lastRecalculated: Date;
+  totalAssessed: Prisma.Decimal;
+  student: {
+    paymentRecords: Array<{ paymentMode: string; transactionReference: string; amount: Prisma.Decimal; paymentDate: Date }>;
+    feeAdjustments: Array<{
+      id: string;
+      adjustmentType: string;
+      reason: string;
+      amount: Prisma.Decimal;
+      status: string;
+      createdAt: Date;
+    }>;
+  };
+};
+
+function buildLedgerLines(ledger: LedgerDetailRow, semesterLabel: string): FinanceLedgerLine[] {
   const lines: FinanceLedgerLine[] = [];
   const chargeDate = ledger.lastRecalculated.toISOString().slice(0, 10);
   if (money(ledger.totalAssessed) > 0) {
@@ -435,18 +495,281 @@ export async function getFinanceLedgerDetail(
     });
   }
 
-  const pendingWaivers: FinancePendingWaiver[] = ledger.student.feeAdjustments
-    .filter((a) =>
-      PENDING_ADJUSTMENT_STATUSES.includes(a.status as (typeof PENDING_ADJUSTMENT_STATUSES)[number]),
-    )
+  return lines;
+}
+
+function buildPendingWaivers(
+  adjustments: LedgerDetailRow['student']['feeAdjustments'],
+  studentLabel: string,
+): FinancePendingWaiver[] {
+  return adjustments
+    .filter((a) => PENDING_ADJUSTMENT_STATUSES.includes(a.status as (typeof PENDING_ADJUSTMENT_STATUSES)[number]))
     .map((a) => ({
       id: a.id,
-      student: studentName(alloc.student),
+      student: studentLabel,
       amount: money(a.amount),
       reason: a.reason,
       status: 'Pending',
       frRef: 'FR-080',
     }));
+}
 
-  return { account, lines, pendingWaivers };
+export async function queuePaymentReminderForLedger(
+  prisma: PrismaClient,
+  ledgerId: string,
+): Promise<{ notified: boolean }> {
+  const ledger = await prisma.studentLedger.findUnique({
+    where: { id: ledgerId },
+    select: {
+      currentBalance: true,
+      student: {
+        select: {
+          userId: true,
+          registrationNumber: true,
+          user: { select: { firstName: true, lastName: true } },
+        },
+      },
+    },
+  });
+  if (!ledger?.student.userId) {
+    throw new NotFoundError('Student ledger not found.');
+  }
+  const outstanding = money(ledger.currentBalance);
+  if (outstanding <= 0) {
+    throw new BadRequestError('No outstanding balance to remind.');
+  }
+
+  const name =
+    ledger.student.user != null
+      ? `${ledger.student.user.firstName} ${ledger.student.user.lastName}`.trim()
+      : ledger.student.registrationNumber;
+
+  const dedupeSince = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const dup = await prisma.notification.findFirst({
+    where: {
+      userId: ledger.student.userId,
+      category: 'fees',
+      createdAt: { gte: dedupeSince },
+      title: { contains: 'Payment reminder' },
+    },
+    select: { id: true },
+  });
+  if (dup) {
+    return { notified: false };
+  }
+
+  const { createNotifications } = await import('../notifications/notification.service.js');
+  const { scheduleNotificationEmails } = await import('../notifications/notification-email.service.js');
+  const created = await createNotifications(prisma, [
+    {
+      userId: ledger.student.userId,
+      title: 'Payment reminder',
+      message: `${name}, your hostel account has ₹${outstanding.toLocaleString('en-IN')} outstanding (FR-081). Please pay at the fees desk or online channel.`,
+      category: 'fees',
+      actionLink: '/student/fees',
+    },
+  ]);
+  scheduleNotificationEmails(prisma, created, 'notice');
+  return { notified: true };
+}
+
+function nextReceiptNumber(): string {
+  const stamp = Date.now().toString(36).toUpperCase();
+  return `RCP-${stamp}`;
+}
+
+async function recalcLedger(
+  tx: Prisma.TransactionClient,
+  studentId: string,
+): Promise<void> {
+  const ledger = await tx.studentLedger.findUnique({ where: { studentId } });
+  if (!ledger) return;
+  const balance = Number(ledger.totalAssessed) - Number(ledger.totalPaid) - Number(ledger.totalWaived);
+  await tx.studentLedger.update({
+    where: { studentId },
+    data: {
+      currentBalance: balance,
+      lastRecalculated: new Date(),
+    },
+  });
+}
+
+export async function recordOfflinePayment(
+  prisma: PrismaClient,
+  actorUserId: string,
+  body: RecordOfflinePaymentBody,
+): Promise<{ receiptNumber: string; outstanding: number }> {
+  const ledger = await prisma.studentLedger.findUnique({
+    where: { id: body.ledgerId },
+    select: { id: true, studentId: true, currentBalance: true },
+  });
+  if (!ledger) {
+    throw new NotFoundError('Student ledger not found.');
+  }
+
+  const paymentDate = new Date(`${body.paymentDate}T00:00:00.000Z`);
+  const receiptNumber = nextReceiptNumber();
+
+  await prisma.$transaction(async (tx) => {
+    await tx.paymentRecord.create({
+      data: {
+        receiptNumber,
+        studentId: ledger.studentId,
+        amount: body.amount,
+        paymentMode: body.paymentMode,
+        transactionReference: body.transactionReference,
+        paymentDate,
+        recordedBy: actorUserId,
+      },
+    });
+    await tx.studentLedger.update({
+      where: { id: ledger.id },
+      data: {
+        totalPaid: { increment: body.amount },
+      },
+    });
+    await recalcLedger(tx, ledger.studentId);
+  });
+
+  const updated = await prisma.studentLedger.findUnique({
+    where: { id: ledger.id },
+    select: { currentBalance: true },
+  });
+
+  return {
+    receiptNumber,
+    outstanding: money(updated?.currentBalance),
+  };
+}
+
+export async function proposeFeeWaiver(
+  prisma: PrismaClient,
+  actorUserId: string,
+  body: ProposeFeeWaiverBody,
+): Promise<{ adjustmentId: string }> {
+  const ledger = await prisma.studentLedger.findUnique({
+    where: { id: body.ledgerId },
+    select: { studentId: true, currentBalance: true },
+  });
+  if (!ledger) {
+    throw new NotFoundError('Student ledger not found.');
+  }
+  if (money(ledger.currentBalance) < body.amount) {
+    throw new BadRequestError('Waiver amount cannot exceed outstanding balance.');
+  }
+
+  const row = await prisma.feeAdjustment.create({
+    data: {
+      studentId: ledger.studentId,
+      adjustmentType: 'WAIVER',
+      amount: body.amount,
+      reason: body.reason,
+      status: 'PENDING_ADMIN_APPROVAL',
+      proposedBy: actorUserId,
+    },
+    select: { id: true },
+  });
+
+  return { adjustmentId: row.id };
+}
+
+export async function assessStudentLedgerFromSchedule(
+  prisma: PrismaClient,
+  ledgerId: string,
+): Promise<{ assessed: number; outstanding: number }> {
+  const ledger = await prisma.studentLedger.findUnique({
+    where: { id: ledgerId },
+    select: { id: true, studentId: true, totalPaid: true, totalWaived: true },
+  });
+  if (!ledger) throw new NotFoundError('Student ledger not found.');
+
+  const allocation = await prisma.allocationRecord.findFirst({
+    where: { studentId: ledger.studentId, status: 'ACTIVE' },
+    include: {
+      bed: { include: { room: { select: { configId: true } } } },
+      student: { select: { academicYear: true } },
+    },
+  });
+  if (!allocation) {
+    throw new BadRequestError('Student must have an active allocation to assess fees from schedule.');
+  }
+
+  const schedule = await prisma.feeSchedule.findFirst({
+    where: {
+      configId: allocation.bed.room.configId,
+      status: { in: [...SCHEDULE_ACTIVE_STATUSES] },
+    },
+    include: { items: true },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (!schedule || schedule.items.length === 0) {
+    throw new BadRequestError('No active fee schedule found for this room configuration.');
+  }
+
+  const assessed = schedule.items.reduce((sum, item) => sum + money(item.amount), 0);
+  const balance = assessed - money(ledger.totalPaid) - money(ledger.totalWaived);
+
+  await prisma.studentLedger.update({
+    where: { id: ledger.id },
+    data: {
+      totalAssessed: assessed,
+      currentBalance: balance,
+      lastRecalculated: new Date(),
+    },
+  });
+
+  return { assessed, outstanding: balance };
+}
+
+export async function decideFeeAdjustment(
+  prisma: PrismaClient,
+  actorUserId: string,
+  adjustmentId: string,
+  body: DecideFeeAdjustmentBody,
+): Promise<void> {
+  const adjustment = await prisma.feeAdjustment.findUnique({
+    where: { id: adjustmentId },
+    include: { student: { include: { studentLedger: true } } },
+  });
+  if (!adjustment) {
+    throw new NotFoundError('Fee adjustment not found.');
+  }
+  if (
+    !PENDING_ADJUSTMENT_STATUSES.includes(adjustment.status as (typeof PENDING_ADJUSTMENT_STATUSES)[number])
+  ) {
+    throw new ConflictError('Adjustment is no longer pending.');
+  }
+
+  const approved = body.decision === 'APPROVED';
+  const now = new Date();
+
+  await prisma.$transaction(async (tx) => {
+    await tx.feeAdjustment.update({
+      where: { id: adjustmentId },
+      data: {
+        status: approved ? 'APPROVED' : 'REJECTED',
+        approvedBy: actorUserId,
+        approvedAt: now,
+        reason: body.remarks?.trim()
+          ? `${adjustment.reason} — ${body.remarks.trim()}`
+          : adjustment.reason,
+      },
+    });
+
+    if (approved) {
+      const type = adjustment.adjustmentType.toUpperCase();
+      if (type.includes('WAIVER')) {
+        await tx.studentLedger.update({
+          where: { studentId: adjustment.studentId },
+          data: { totalWaived: { increment: adjustment.amount } },
+        });
+      } else {
+        await tx.studentLedger.update({
+          where: { studentId: adjustment.studentId },
+          data: { totalAssessed: { increment: adjustment.amount } },
+        });
+      }
+      await recalcLedger(tx, adjustment.studentId);
+    }
+  });
 }

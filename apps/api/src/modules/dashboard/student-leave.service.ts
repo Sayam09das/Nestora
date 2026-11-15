@@ -1,7 +1,11 @@
 import type { PrismaClient } from '@nestora/database';
 import type { CreateStudentLeaveBody } from '@nestora/validators';
 import { BadRequestError } from '../../common/errors/index.js';
-import { notifyLeaveApplicationSubmitted } from '../notifications/notification-events.service.js';
+import { CONFIG_KEYS, getConfigNumber } from '../settings/system-config.service.js';
+import {
+  notifyExtendedLeaveReview,
+  notifyLeaveApplicationSubmitted,
+} from '../notifications/notification-events.service.js';
 import { ensureStudentProfileForUser } from '../students/student-profile-ensure.service.js';
 
 const PENDING_LEAVE_STATUSES = ['SUBMITTED', 'PENDING', 'PENDING_APPROVAL'] as const;
@@ -271,6 +275,18 @@ export async function createStudentLeaveApplication(
     studentName,
     leaveType: body.leaveType,
   });
+
+  const durationMs = expectedReturn.getTime() - departure.getTime();
+  const durationDays = Math.max(1, Math.ceil(durationMs / (24 * 60 * 60 * 1000)));
+  const leaveThreshold = await getConfigNumber(prisma, CONFIG_KEYS.extended_leave_admin_days);
+  if (durationDays > leaveThreshold) {
+    await notifyExtendedLeaveReview(prisma, {
+      leaveId: created.id,
+      studentName,
+      durationDays,
+      thresholdDays: leaveThreshold,
+    });
+  }
 
   return getStudentLeaveDesk(prisma, userId);
 }

@@ -2,7 +2,8 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRightLeft, BedDouble, LayoutGrid } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { fetchRoomChangeQueue, type RoomChangeRequestRow } from '@/lib/api/room-changes';
 
 import type { AllocationRecord } from '@/components/dashboard/allocation/admin-allocation-data';
 import type { RoomRecord } from '@/components/dashboard/rooms/admin-rooms-data';
@@ -64,6 +65,8 @@ export function WardenRoomsPage() {
   const [allocateOpen, setAllocateOpen] = useState(false);
   const [allocateRoom, setAllocateRoom] = useState<RoomRecord | null>(null);
   const [allocateQueueRecord, setAllocateQueueRecord] = useState<AllocationRecord | null>(null);
+  const [roomChangeTarget, setRoomChangeTarget] = useState<RoomChangeRequestRow | null>(null);
+  const [roomChanges, setRoomChanges] = useState<RoomChangeRequestRow[]>([]);
   const [detailRoom, setDetailRoom] = useState<RoomRecord | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -187,9 +190,26 @@ export function WardenRoomsPage() {
   const roomTotalPages = Math.max(1, Math.ceil(roomTotal / roomPageSize));
   const bedTotalPages = Math.max(1, Math.ceil(bedTotal / bedPageSize));
 
+  const loadRoomChanges = useCallback(async () => {
+    const result = await fetchRoomChangeQueue();
+    if (result.requests) setRoomChanges(result.requests);
+  }, []);
+
+  useEffect(() => {
+    void loadRoomChanges();
+  }, [loadRoomChanges]);
+
   const openAssign = (opts?: { room?: RoomRecord | null; record?: AllocationRecord | null }) => {
+    setRoomChangeTarget(null);
     setAllocateRoom(opts?.room ?? null);
     setAllocateQueueRecord(opts?.record ?? null);
+    setAllocateOpen(true);
+  };
+
+  const openRoomChangeAssign = (row: RoomChangeRequestRow) => {
+    setRoomChangeTarget(row);
+    setAllocateQueueRecord(null);
+    setAllocateRoom(null);
     setAllocateOpen(true);
   };
 
@@ -360,8 +380,11 @@ export function WardenRoomsPage() {
           <WardenRoomsRequests
             queue={hostelQueue}
             pendingChanges={pendingChanges}
+            roomChanges={roomChanges}
             loading={loadingQueue || loadingAlloc}
             onAssign={(record) => openAssign({ record })}
+            onApproveRoomChange={openRoomChangeAssign}
+            onRoomChangesUpdated={() => void loadRoomChanges()}
           />
         ) : null}
       </motion.div>
@@ -409,18 +432,23 @@ export function WardenRoomsPage() {
           if (!open) {
             setAllocateRoom(null);
             setAllocateQueueRecord(null);
+            setRoomChangeTarget(null);
             void refreshRooms();
             void refreshBeds();
             void refreshAlloc();
+            void loadRoomChanges();
           }
         }}
         hostelName={hostelDisplay}
         presetRoom={allocateRoom}
+        presetStudentId={roomChangeTarget?.studentUserId ?? allocateQueueRecord?.studentId}
         queueRecord={allocateQueueRecord}
+        roomChangeRequestId={roomChangeTarget?.id ?? null}
         onAssigned={() => {
           void refreshRooms();
           void refreshBeds();
           void refreshAlloc();
+          void loadRoomChanges();
         }}
       />
 

@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { PENDING_WAIVERS } from '@/components/dashboard/fees/admin-fees-data';
+import type { FinancePendingWaiver } from '@/lib/api/finance';
+import { postFeeWaiverDecision } from '@/lib/api/finance';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -11,12 +12,18 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-type Props = { open: boolean; onOpenChange: (o: boolean) => void };
+type Props = {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  pendingWaivers?: FinancePendingWaiver[];
+  onDecided?: () => void;
+};
 
-export function AdminFeesWaiverDrawer({ open, onOpenChange }: Props) {
+export function AdminFeesWaiverDrawer({ open, onOpenChange, pendingWaivers = [], onDecided }: Props) {
   const [waiverId, setWaiverId] = useState('');
   const [decision, setDecision] = useState<'approve' | 'reject'>('approve');
   const [note, setNote] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -26,7 +33,7 @@ export function AdminFeesWaiverDrawer({ open, onOpenChange }: Props) {
     }
   }, [open]);
 
-  const submit = () => {
+  const submit = async () => {
     if (!waiverId) {
       toast.error('Select a waiver request.');
       return;
@@ -35,7 +42,18 @@ export function AdminFeesWaiverDrawer({ open, onOpenChange }: Props) {
       toast.error('Add an approval note for the audit trail (FR-079).');
       return;
     }
-    toast.success(`Waiver ${decision === 'approve' ? 'approved' : 'rejected'} (sample).`);
+    setSubmitting(true);
+    const result = await postFeeWaiverDecision(waiverId, {
+      decision: decision === 'approve' ? 'APPROVED' : 'REJECTED',
+      remarks: note.trim(),
+    });
+    setSubmitting(false);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success(`Waiver ${decision === 'approve' ? 'approved' : 'rejected'}.`);
+    onDecided?.();
     onOpenChange(false);
   };
 
@@ -51,13 +69,16 @@ export function AdminFeesWaiverDrawer({ open, onOpenChange }: Props) {
             <span className="text-xs font-medium">Request</span>
             <select value={waiverId} onChange={(e) => setWaiverId(e.target.value)} className={cn('h-10 w-full rounded-xl border px-3 text-sm', focusRing)}>
               <option value="">Select waiver</option>
-              {PENDING_WAIVERS.map((w) => (
+              {pendingWaivers.map((w) => (
                 <option key={w.id} value={w.id}>
-                  {w.student} — {w.reason}
+                  {w.student} — ₹{w.amount.toLocaleString('en-IN')} — {w.reason.slice(0, 40)}
                 </option>
               ))}
             </select>
           </label>
+          {pendingWaivers.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No pending waivers on the selected ledger desk view.</p>
+          ) : null}
           <fieldset className="space-y-2">
             <legend className="text-xs font-medium">Decision</legend>
             <div className="flex gap-2">
@@ -90,7 +111,7 @@ export function AdminFeesWaiverDrawer({ open, onOpenChange }: Props) {
           </label>
         </div>
         <SheetFooter className="border-t p-5 sm:flex-col sm:space-x-0">
-          <Button type="button" className={cn('w-full rounded-xl bg-[var(--nestora-forest)] text-white', focusRing)} onClick={submit}>
+          <Button type="button" className={cn('w-full rounded-xl bg-[var(--nestora-forest)] text-white', focusRing)} disabled={submitting} onClick={() => void submit()}>
             Submit decision
           </Button>
         </SheetFooter>

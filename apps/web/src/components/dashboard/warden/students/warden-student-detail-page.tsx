@@ -32,7 +32,9 @@ import { useOperationalDashboardOverview } from '@/hooks/use-operational-dashboa
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { recordWardenCheckIn } from '@/lib/api/checkin-out';
 import { type AdminStudentProfile, fetchAdminStudentProfile } from '@/lib/api/students';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
@@ -361,7 +363,35 @@ export function WardenStudentDetailPage({ userId }: Props) {
               <span className="text-muted-foreground">Bed assigned</span>
               <span className="font-semibold">{housing ? 'Yes' : 'No'}</span>
             </li>
+            <li className="flex justify-between gap-2">
+              <span className="text-muted-foreground">Formal check-in</span>
+              <span className="font-semibold">
+                {housing?.checkedIn ? 'Logged' : housing ? 'Pending' : 'N/A'}
+              </span>
+            </li>
           </ul>
+          {housing && !housing.checkedIn ? (
+            <Button
+              type="button"
+              size="sm"
+              className="mt-3 rounded-xl bg-[var(--nestora-forest)]"
+              onClick={() => {
+                void recordWardenCheckIn({
+                  allocationId: housing.allocationId,
+                  keysIssued: true,
+                }).then((result) => {
+                  if (result.error) toast.error(result.error);
+                  else {
+                    toast.success('Check-in recorded with keys issued.');
+                    void load();
+                  }
+                });
+              }}
+            >
+              <ClipboardCheck className="size-4" aria-hidden />
+              Record check-in
+            </Button>
+          ) : null}
         </article>
       </motion.section>
 

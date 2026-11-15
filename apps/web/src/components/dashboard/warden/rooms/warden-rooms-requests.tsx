@@ -13,6 +13,7 @@ import {
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { rejectRoomChange, type RoomChangeRequestRow } from '@/lib/api/room-changes';
 import { cn } from '@/lib/utils';
 
 const focusRing =
@@ -21,11 +22,22 @@ const focusRing =
 type Props = {
   queue: AllocationRecord[];
   pendingChanges: AllocationRecord[];
+  roomChanges: RoomChangeRequestRow[];
   loading: boolean;
   onAssign: (record: AllocationRecord) => void;
+  onApproveRoomChange: (row: RoomChangeRequestRow) => void;
+  onRoomChangesUpdated: () => void;
 };
 
-export function WardenRoomsRequests({ queue, pendingChanges, loading, onAssign }: Props) {
+export function WardenRoomsRequests({
+  queue,
+  pendingChanges,
+  roomChanges,
+  loading,
+  onAssign,
+  onApproveRoomChange,
+  onRoomChangesUpdated,
+}: Props) {
   const reduceMotion = useReducedMotion();
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -99,12 +111,12 @@ export function WardenRoomsRequests({ queue, pendingChanges, loading, onAssign }
         </h2>
         <p className="text-xs text-muted-foreground">Approve or reject with atomic reallocation (FR-030).</p>
         <ul className="mt-4 space-y-2">
-          {pendingChanges.length === 0 ? (
+          {roomChanges.length === 0 ? (
             <li className="rounded-xl border border-dashed border-border/80 px-4 py-8 text-center text-sm text-muted-foreground">
               No pending room changes.
             </li>
           ) : (
-            pendingChanges.map((row) => (
+            roomChanges.map((row) => (
               <li
                 key={row.id}
                 data-warden-req-row
@@ -114,9 +126,9 @@ export function WardenRoomsRequests({ queue, pendingChanges, loading, onAssign }
                   <div>
                     <p className="text-sm font-semibold">{row.studentName}</p>
                     <p className="text-xs text-muted-foreground">
-                      Current {row.roomNumber ?? '—'} → requested {row.preferenceRoomType}
+                      {row.currentHostel} {row.currentRoom} bed {row.currentBed} → {row.preferredConfigLabel}
                     </p>
-                    {row.reason ? <p className="mt-1 text-xs italic text-muted-foreground">&ldquo;{row.reason}&rdquo;</p> : null}
+                    <p className="mt-1 text-xs italic text-muted-foreground">&ldquo;{row.reason}&rdquo;</p>
                   </div>
                   <Badge variant="outline" className="rounded-full font-semibold">
                     {row.status}
@@ -128,9 +140,17 @@ export function WardenRoomsRequests({ queue, pendingChanges, loading, onAssign }
                     size="sm"
                     variant="outline"
                     className={cn('rounded-xl', focusRing)}
-                    onClick={() =>
-                      toast.message('Rejection draft', { description: `Room change for ${row.studentName} — remarks required.` })
-                    }
+                    onClick={() => {
+                      const remarks = window.prompt('Rejection remarks (min 8 chars)');
+                      if (!remarks || remarks.trim().length < 8) return;
+                      void rejectRoomChange(row.id, remarks.trim()).then((result) => {
+                        if (result.error) toast.error(result.error);
+                        else {
+                          toast.message('Room change rejected');
+                          onRoomChangesUpdated();
+                        }
+                      });
+                    }}
                   >
                     <X className="size-3.5" aria-hidden />
                     Reject
@@ -139,10 +159,10 @@ export function WardenRoomsRequests({ queue, pendingChanges, loading, onAssign }
                     type="button"
                     size="sm"
                     className="rounded-xl bg-[var(--nestora-forest)]"
-                    onClick={() => onAssign(row)}
+                    onClick={() => onApproveRoomChange(row)}
                   >
                     <Check className="size-3.5" aria-hidden />
-                    Approve &amp; assign
+                    Approve &amp; assign bed
                   </Button>
                 </motion.div>
               </li>

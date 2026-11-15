@@ -48,6 +48,28 @@ export {
   type AdmissionTierVerificationBody,
 } from './admissions.validator.js';
 export {
+  accountantClearanceBodySchema,
+  checkOutRequestIdParamsSchema,
+  createCheckOutRequestBodySchema,
+  finalizeCheckOutBodySchema,
+  rejectCheckOutBodySchema,
+  wardenCheckInBodySchema,
+  wardenCheckOutListQuerySchema,
+  type AccountantClearanceBody,
+  type CreateCheckOutRequestBody,
+  type FinalizeCheckOutBody,
+  type RejectCheckOutBody,
+  type WardenCheckInBody,
+} from './checkin-out.validator.js';
+export {
+  approveRoomChangeBodySchema,
+  createRoomChangeBodySchema,
+  rejectRoomChangeBodySchema,
+  roomChangeIdParamsSchema,
+  type ApproveRoomChangeBody,
+  type CreateRoomChangeBody,
+} from './room-change.validator.js';
+export {
   allocationDirectoryListQuerySchema,
   allocationDirectoryStatusSchema,
   allocationDirectoryTypeSchema,
@@ -161,9 +183,16 @@ export {
   type ReportsDeskListQuery,
 } from './reports.validator.js';
 export {
+  decideFeeAdjustmentBodySchema,
+  feeAdjustmentIdParamsSchema,
   financeDeskListQuerySchema,
   financeLedgerIdParamsSchema,
+  proposeFeeWaiverBodySchema,
+  recordOfflinePaymentBodySchema,
+  type DecideFeeAdjustmentBody,
   type FinanceDeskListQuery,
+  type ProposeFeeWaiverBody,
+  type RecordOfflinePaymentBody,
 } from './finance.validator.js';
 export {
   roleIdParamsSchema,

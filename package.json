@@ -19,6 +19,7 @@
     "db:migrate:deploy": "pnpm --filter @nestora/database db:migrate:deploy",
     "db:seed": "pnpm --filter @nestora/database db:seed",
     "db:validate": "pnpm --filter @nestora/database db:validate",
+    "smoke:mod-slices": "node --env-file=apps/api/.env scripts/smoke-mod-slices.mjs",
     "neon:storage-smoke": "node --env-file=apps/api/.env scripts/neon-object-storage-smoke.mjs",
     "neon:list-student-buckets": "node scripts/list-student-buckets.mjs",
     "neon:e2e-student": "node scripts/e2e-student-neon-upload.mjs",

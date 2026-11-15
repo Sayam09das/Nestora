@@ -95,3 +95,72 @@ export async function fetchFinanceLedgerDetail(ledgerId: string): Promise<{
     pendingWaivers: parsed.data.pendingWaivers,
   };
 }
+
+export async function postOfflinePayment(payload: {
+  ledgerId: string;
+  amount: number;
+  paymentMode: 'CASH' | 'DD' | 'NEFT' | 'UPI';
+  transactionReference: string;
+  paymentDate: string;
+}): Promise<{ receiptNumber?: string; outstanding?: number; error?: string }> {
+  const response = await apiFetch('/api/v1/finance/desk/payments', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const parsed = await parseApiResponse<{ receiptNumber: string; outstanding: number }>(response);
+  if (!parsed.ok) return { error: parsed.message };
+  return { receiptNumber: parsed.data.receiptNumber, outstanding: parsed.data.outstanding };
+}
+
+export async function postProposeFeeWaiver(payload: {
+  ledgerId: string;
+  amount: number;
+  reason: string;
+}): Promise<{ adjustmentId?: string; error?: string }> {
+  const response = await apiFetch('/api/v1/finance/desk/waivers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const parsed = await parseApiResponse<{ adjustmentId: string }>(response);
+  if (!parsed.ok) return { error: parsed.message };
+  return { adjustmentId: parsed.data.adjustmentId };
+}
+
+export async function postPaymentReminder(ledgerId: string): Promise<{ notified?: boolean; error?: string }> {
+  const response = await apiFetch(`/api/v1/finance/desk/ledgers/${encodeURIComponent(ledgerId)}/reminder`, {
+    method: 'POST',
+  });
+  const parsed = await parseApiResponse<{ notified: boolean }>(response);
+  if (!parsed.ok) return { error: parsed.message };
+  return { notified: parsed.data.notified };
+}
+
+export async function postAssessLedgerFromSchedule(
+  ledgerId: string,
+): Promise<{ assessed?: number; outstanding?: number; error?: string }> {
+  const response = await apiFetch(`/api/v1/finance/desk/ledgers/${encodeURIComponent(ledgerId)}/assess`, {
+    method: 'POST',
+  });
+  const parsed = await parseApiResponse<{ assessed: number; outstanding: number }>(response);
+  if (!parsed.ok) return { error: parsed.message };
+  return { assessed: parsed.data.assessed, outstanding: parsed.data.outstanding };
+}
+
+export async function postFeeWaiverDecision(
+  adjustmentId: string,
+  payload: { decision: 'APPROVED' | 'REJECTED'; remarks?: string },
+): Promise<{ error?: string }> {
+  const response = await apiFetch(
+    `/api/v1/finance/desk/adjustments/${encodeURIComponent(adjustmentId)}/decide`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+  const parsed = await parseApiResponse(response);
+  if (!parsed.ok) return { error: parsed.message };
+  return {};
+}

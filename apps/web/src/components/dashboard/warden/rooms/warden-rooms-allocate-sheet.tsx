@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useAllocationAssignOptions } from '@/hooks/use-allocation-assign-options';
 import { assignStudentToBed } from '@/lib/api/allocations';
+import { approveRoomChange } from '@/lib/api/room-changes';
 import { cn } from '@/lib/utils';
 
 const focusRing =
@@ -23,6 +24,7 @@ type Props = {
   presetStudentId?: string;
   presetRoom?: RoomRecord | null;
   queueRecord?: AllocationRecord | null;
+  roomChangeRequestId?: string | null;
   onAssigned?: () => void;
 };
 
@@ -33,6 +35,7 @@ export function WardenRoomsAllocateSheet({
   presetStudentId,
   presetRoom,
   queueRecord,
+  roomChangeRequestId,
   onAssigned,
 }: Props) {
   const [studentUserId, setStudentUserId] = useState('');
@@ -76,18 +79,22 @@ export function WardenRoomsAllocateSheet({
       return;
     }
     setSubmitting(true);
-    const result = await assignStudentToBed({
-      studentUserId,
-      bedId,
-      startDate: effectiveDate,
-    });
+    const result = roomChangeRequestId
+      ? await approveRoomChange(roomChangeRequestId, { bedId })
+      : await assignStudentToBed({
+          studentUserId,
+          bedId,
+          startDate: effectiveDate,
+        });
     setSubmitting(false);
     if (result.error) {
       toast.error(result.error);
       return;
     }
     toast.success(`${student?.studentName ?? 'Student'} → ${bed?.label ?? 'Bed'}`, {
-      description: 'Bed marked occupied and allocation saved (MOD-05).',
+      description: roomChangeRequestId
+        ? 'Room change approved with atomic transfer (MOD-05).'
+        : 'Bed marked occupied and allocation saved (MOD-05).',
     });
     onAssigned?.();
     onOpenChange(false);

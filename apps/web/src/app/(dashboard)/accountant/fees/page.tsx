@@ -1,4 +1,5 @@
 import { AdminFeesPage } from '@/components/dashboard/fees/admin-fees-page';
+import { ACCOUNTANT_FINANCE_DESK } from '@/components/dashboard/fees/finance-desk-config';
 import { createPrivatePageMetadata } from '@/lib/seo/metadata';
 
 export const metadata = createPrivatePageMetadata(
@@ -8,5 +9,5 @@ export const metadata = createPrivatePageMetadata(
 );
 
 export default function AccountantFeesListPage() {
-  return <AdminFeesPage />;
+  return <AdminFeesPage desk={ACCOUNTANT_FINANCE_DESK} />;
 }

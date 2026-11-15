@@ -49,6 +49,12 @@ import {
   patchStudentSettingsNotificationsHandler,
   postStudentRevokeOtherSessionsHandler,
 } from './student-settings.controller.js';
+import {
+  getAdminSettingsNotificationsHandler,
+  getWardenSettingsNotificationsHandler,
+  patchAdminSettingsNotificationsHandler,
+  patchWardenSettingsNotificationsHandler,
+} from './operator-settings.controller.js';
 import { getStudentHelpHandler, postStudentHelpRequestHandler } from './student-help.controller.js';
 
 export const dashboardRoutes: FastifyPluginAsync = async (app) => {
@@ -331,6 +337,26 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
       preHandler: [requireRoles('HOSTEL_STAFF')],
     },
     postStaffRevokeOtherSessionsHandler,
+  );
+  app.get(
+    '/warden/settings/notifications',
+    { preHandler: [requireRoles('HOSTEL_WARDEN')] },
+    getWardenSettingsNotificationsHandler,
+  );
+  app.patch(
+    '/warden/settings/notifications',
+    { preHandler: [requireRoles('HOSTEL_WARDEN')] },
+    patchWardenSettingsNotificationsHandler,
+  );
+  app.get(
+    '/admin/settings/notifications',
+    { preHandler: [requireRoles('UNIVERSITY_ADMINISTRATOR')] },
+    getAdminSettingsNotificationsHandler,
+  );
+  app.patch(
+    '/admin/settings/notifications',
+    { preHandler: [requireRoles('UNIVERSITY_ADMINISTRATOR')] },
+    patchAdminSettingsNotificationsHandler,
   );
   app.get(
     '/guard/gate-console',

@@ -1,4 +1,4 @@
-import { CreditCard, LayoutDashboard } from 'lucide-react';
+import { CreditCard, DoorOpen, LayoutDashboard } from 'lucide-react';
 
 export const accountantNavLinks = [
   {
@@ -14,5 +14,12 @@ export const accountantNavLinks = [
     label: 'Fees & ledgers',
     icon: CreditCard,
     isActive: (pathname: string) => pathname.startsWith('/accountant/fees'),
+  },
+  {
+    id: 'checkout',
+    href: '/accountant/checkout',
+    label: 'Vacate clearance',
+    icon: DoorOpen,
+    isActive: (pathname: string) => pathname.startsWith('/accountant/checkout'),
   },
 ] as const;

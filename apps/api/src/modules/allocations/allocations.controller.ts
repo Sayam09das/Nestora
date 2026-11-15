@@ -1,4 +1,11 @@
-import { allocationDirectoryListQuerySchema, assignStudentToBedBodySchema } from '@nestora/validators';
+import {
+  allocationDirectoryListQuerySchema,
+  approveRoomChangeBodySchema,
+  assignStudentToBedBodySchema,
+  createRoomChangeBodySchema,
+  rejectRoomChangeBodySchema,
+  roomChangeIdParamsSchema,
+} from '@nestora/validators';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { NotFoundError } from '../../common/errors/index.js';
 import { paginatedSuccessResponse, successResponse } from '../../common/api-response.js';
@@ -13,6 +20,7 @@ import {
 import { requireAuth } from '../../middleware/authenticate.js';
 import { assertRole } from '../../middleware/authorize.js';
 import * as service from './allocations.service.js';
+import * as roomChange from './room-change.service.js';
 
 export async function getAllocationDirectorySummary(
   request: FastifyRequest,
@@ -136,4 +144,84 @@ export async function assignStudentToBedHandler(
   const body = assignStudentToBedBodySchema.parse(request.body);
   const result = await service.assignStudentToBed(request.server.prisma, user.id, body);
   reply.status(201).send(successResponse(result, 'Student assigned to bed.'));
+}
+
+export async function getRoomChangeRequestsHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'HOSTEL_WARDEN', 'UNIVERSITY_ADMINISTRATOR');
+  const hostelNames = isHostelOperationalRole(user.role)
+    ? await resolveOperationalHostelNames(request.server.prisma, user)
+    : null;
+  const list = await roomChange.listWardenRoomChangeRequests(request.server.prisma, hostelNames);
+  reply.send(successResponse(list, 'Room change queue loaded.'));
+}
+
+export async function postApproveRoomChangeHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'HOSTEL_WARDEN', 'UNIVERSITY_ADMINISTRATOR');
+  const { requestId } = roomChangeIdParamsSchema.parse(request.params);
+  const body = approveRoomChangeBodySchema.parse(request.body);
+  const hostelNames = isHostelOperationalRole(user.role)
+    ? await resolveOperationalHostelNames(request.server.prisma, user)
+    : null;
+  await roomChange.approveRoomChangeRequest(
+    request.server.prisma,
+    user.id,
+    requestId,
+    body,
+    hostelNames,
+  );
+  reply.send(successResponse({ requestId }, 'Room change approved and transfer completed.'));
+}
+
+export async function postRejectRoomChangeHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'HOSTEL_WARDEN', 'UNIVERSITY_ADMINISTRATOR');
+  const { requestId } = roomChangeIdParamsSchema.parse(request.params);
+  const body = rejectRoomChangeBodySchema.parse(request.body);
+  const hostelNames = isHostelOperationalRole(user.role)
+    ? await resolveOperationalHostelNames(request.server.prisma, user)
+    : null;
+  await roomChange.rejectRoomChangeRequest(
+    request.server.prisma,
+    user.id,
+    requestId,
+    body.remarks,
+    hostelNames,
+  );
+  reply.send(successResponse({ requestId }, 'Room change rejected.'));
+}
+
+export async function getStudentRoomConfigOptionsHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'STUDENT');
+  const result = await roomChange.listStudentRoomConfigurationOptions(request.server.prisma, user.id);
+  reply.send(successResponse(result, 'Room configuration options loaded.'));
+}
+
+export async function postStudentRoomChangeHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'STUDENT');
+  const body = createRoomChangeBodySchema.parse(request.body);
+  const created = await roomChange.createStudentRoomChangeRequest(
+    request.server.prisma,
+    user.id,
+    body,
+  );
+  reply.status(201).send(successResponse(created, 'Room change request submitted.'));
 }

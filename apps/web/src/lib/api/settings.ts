@@ -78,3 +78,16 @@ export async function patchSettingsPanel(
   if (!parsed.success) return { error: parsed.error.message };
   return { detail: parsed.data };
 }
+
+export async function patchWardenSettingsPanel(
+  panelId: string,
+  body: { hostel?: string; fields: Record<string, string | number | boolean> },
+): Promise<{ detail?: SettingsPanelDetail; error?: string }> {
+  const response = await apiFetchMutating(`/api/v1/settings/warden/desk/panels/${encodeURIComponent(panelId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  const parsed = (await response.json()) as ApiSuccessResponse<SettingsPanelDetail> | ApiErrorResponse;
+  if (!parsed.success) return { error: parsed.error.message };
+  return { detail: parsed.data };
+}
