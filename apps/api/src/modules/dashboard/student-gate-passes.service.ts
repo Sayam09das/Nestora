@@ -11,8 +11,9 @@ export type StudentGatePassRow = {
   validFrom: string;
   validUntil: string;
   isUsed: boolean;
-  status: 'active' | 'expired' | 'used';
+  status: 'active' | 'expired' | 'used' | 'overdue';
   statusLabel: string;
+  isOutOnPass: boolean;
 };
 
 export type StudentGatePassesDesk = {
@@ -23,6 +24,7 @@ export type StudentGatePassesDesk = {
     active: number;
     expired: number;
     used: number;
+    overdue: number;
   };
   passes: StudentGatePassRow[];
 };
@@ -33,24 +35,49 @@ function formatRange(start: Date, end: Date): string {
   return `${a} – ${b}`;
 }
 
+type OpenMovement = {
+  actualDeparture: Date | null;
+  actualReturn: Date | null;
+  isLateReturn: boolean;
+};
+
 function resolvePassStatus(
   pass: { isUsed: boolean; validUntil: Date },
+  openMovement: OpenMovement | null,
   now: Date,
-): { status: StudentGatePassRow['status']; statusLabel: string } {
+): { status: StudentGatePassRow['status']; statusLabel: string; isOutOnPass: boolean } {
+  const isOut =
+    Boolean(openMovement?.actualDeparture) && !openMovement?.actualReturn && !pass.isUsed;
+
+  if (isOut) {
+    if (pass.validUntil.getTime() < now.getTime() || openMovement?.isLateReturn) {
+      return {
+        status: 'overdue',
+        statusLabel: 'Overdue — return to hostel immediately',
+        isOutOnPass: true,
+      };
+    }
+    return {
+      status: 'active',
+      statusLabel: 'Currently out — return before pass expires',
+      isOutOnPass: true,
+    };
+  }
+
   if (pass.isUsed) {
-    return { status: 'used', statusLabel: 'Used at gate' };
+    return { status: 'used', statusLabel: 'Used at gate', isOutOnPass: false };
   }
   if (pass.validUntil.getTime() < now.getTime()) {
-    return { status: 'expired', statusLabel: 'Expired' };
+    return { status: 'expired', statusLabel: 'Expired', isOutOnPass: false };
   }
-  return { status: 'active', statusLabel: 'Valid — show at gate' };
+  return { status: 'active', statusLabel: 'Valid — show at gate', isOutOnPass: false };
 }
 
 const emptyDesk = (now: Date): StudentGatePassesDesk => ({
   generatedAt: now.toISOString(),
   profileLinked: false,
   hostelName: null,
-  summary: { active: 0, expired: 0, used: 0 },
+  summary: { active: 0, expired: 0, used: 0, overdue: 0 },
   passes: [],
 });
 
@@ -106,18 +133,30 @@ export async function getStudentGatePassesDesk(
           expectedReturnDate: true,
         },
       },
+      outing: { select: { destination: true } },
+      movementLogs: {
+        where: { actualReturn: null },
+        orderBy: { actualDeparture: 'desc' },
+        take: 1,
+        select: {
+          actualDeparture: true,
+          actualReturn: true,
+          isLateReturn: true,
+        },
+      },
     },
   });
 
   const passes: StudentGatePassRow[] = rows.map((row) => {
-    const { status, statusLabel } = resolvePassStatus(row, now);
+    const openMovement = row.movementLogs[0] ?? null;
+    const { status, statusLabel, isOutOnPass } = resolvePassStatus(row, openMovement, now);
     const leave = row.leave;
     return {
       id: row.id,
       passToken: row.passToken,
       leaveId: leave?.id ?? row.leaveId,
-      leaveType: leave?.leaveType ?? null,
-      destination: leave?.destination ?? null,
+      leaveType: leave?.leaveType ?? (row.outingId ? 'Outing' : null),
+      destination: leave?.destination ?? row.outing?.destination ?? null,
       dateRange: leave
         ? formatRange(leave.departureDate, leave.expectedReturnDate)
         : formatRange(row.validFrom, row.validUntil),
@@ -126,6 +165,7 @@ export async function getStudentGatePassesDesk(
       isUsed: row.isUsed,
       status,
       statusLabel,
+      isOutOnPass,
     };
   });
 
@@ -133,6 +173,7 @@ export async function getStudentGatePassesDesk(
     active: passes.filter((p) => p.status === 'active').length,
     expired: passes.filter((p) => p.status === 'expired').length,
     used: passes.filter((p) => p.status === 'used').length,
+    overdue: passes.filter((p) => p.status === 'overdue').length,
   };
 
   return {

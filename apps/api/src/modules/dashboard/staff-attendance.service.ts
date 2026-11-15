@@ -28,6 +28,9 @@ export type StaffAttendanceDesk = {
     shiftWindow: string | null;
     zone: string | null;
     hostelName: string | null;
+    checkInAt: string | null;
+    checkOutAt: string | null;
+    canCheckOut: boolean;
   };
   records: StaffAttendanceRecord[];
   hostelStudentsToday: {
@@ -44,6 +47,15 @@ function startOfUtcDay(date: Date): Date {
 
 function toIsoDate(date: Date): string {
   return startOfUtcDay(date).toISOString().slice(0, 10);
+}
+
+export function formatStaffShiftClock(iso: string | null): string | null {
+  if (!iso) return null;
+  return new Intl.DateTimeFormat('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  }).format(new Date(iso));
 }
 
 function attendanceRatePercent(present: number, absent: number, onLeave: number): number | null {
@@ -70,7 +82,7 @@ export async function getStaffAttendanceDesk(
   const { hostelIds } = await resolveHostelScope(prisma, staffId, 'HOSTEL_STAFF');
   const hostelWhere = hostelIds.length === 1 ? hostelIds[0] : { in: hostelIds };
 
-  const [rows, dutyToday, attendanceGroups] = await Promise.all([
+  const [rows, dutyToday, attendanceGroups, todayAttendanceRow] = await Promise.all([
     prisma.staffAttendance.findMany({
       where: {
         staffId,
@@ -81,6 +93,8 @@ export async function getStaffAttendanceDesk(
         id: true,
         workDate: true,
         status: true,
+        checkedInAt: true,
+        checkedOutAt: true,
         hostel: { select: { name: true } },
       },
     }),
@@ -99,6 +113,10 @@ export async function getStaffAttendanceDesk(
           where: { hostelId: hostelWhere, attendanceDate: today },
           _count: { _all: true },
         }),
+    prisma.staffAttendance.findFirst({
+      where: { staffId, workDate: today },
+      select: { checkedInAt: true, checkedOutAt: true, status: true },
+    }),
   ]);
 
   const records: StaffAttendanceRecord[] = rows.map((row) => ({
@@ -115,6 +133,13 @@ export async function getStaffAttendanceDesk(
 
   const todayRow = records.find((r) => r.workDate === toIsoDate(today));
   const shiftMeta = dutyToday ? shiftDisplay(dutyToday.shiftType) : null;
+  const checkInAt = todayAttendanceRow?.checkedInAt?.toISOString() ?? null;
+  const checkOutAt = todayAttendanceRow?.checkedOutAt?.toISOString() ?? null;
+  const canCheckOut =
+    Boolean(dutyToday) &&
+    todayAttendanceRow?.status === 'PRESENT' &&
+    Boolean(checkInAt) &&
+    !checkOutAt;
 
   const attendanceMap = new Map(attendanceGroups.map((g) => [g.status, g._count._all]));
   const studentsPresent = attendanceMap.get('PRESENT') ?? 0;
@@ -139,6 +164,9 @@ export async function getStaffAttendanceDesk(
       shiftWindow: shiftMeta?.timeWindow ?? null,
       zone: dutyToday?.zone ?? null,
       hostelName: dutyToday?.hostel.name ?? todayRow?.hostelName ?? null,
+      checkInAt,
+      checkOutAt,
+      canCheckOut,
     },
     records,
     hostelStudentsToday: {
@@ -172,10 +200,17 @@ export async function recordStaffShiftCheckIn(
   if (existing?.status === 'PRESENT') {
     throw new ConflictError('You have already checked in for today.');
   }
+  const stamp = new Date();
   if (existing) {
     await prisma.staffAttendance.update({
       where: { id: existing.id },
-      data: { status: 'PRESENT', recordedBy: staffUserId, hostelId: dutyToday.hostelId },
+      data: {
+        status: 'PRESENT',
+        recordedBy: staffUserId,
+        hostelId: dutyToday.hostelId,
+        checkedInAt: existing.checkedInAt ?? stamp,
+        checkedOutAt: null,
+      },
     });
   } else {
     await prisma.staffAttendance.create({
@@ -185,9 +220,43 @@ export async function recordStaffShiftCheckIn(
         workDate: today,
         status: 'PRESENT',
         recordedBy: staffUserId,
+        checkedInAt: stamp,
       },
     });
   }
+
+  const defaults = defaultStaffAttendanceRange();
+  return getStaffAttendanceDesk(prisma, staffUserId, defaults.from, defaults.to);
+}
+
+export async function recordStaffShiftCheckOut(
+  prisma: PrismaClient,
+  staffUserId: string,
+): Promise<StaffAttendanceDesk> {
+  const today = startOfUtcDay(new Date());
+
+  const dutyToday = await prisma.dutyAssignment.findFirst({
+    where: { staffId: staffUserId, dutyDate: today },
+    select: { id: true },
+  });
+  if (!dutyToday) {
+    throw new BadRequestError('No duty assignment scheduled for today — check-out is not available.');
+  }
+
+  const existing = await prisma.staffAttendance.findFirst({
+    where: { staffId: staffUserId, workDate: today },
+  });
+  if (!existing || existing.status !== 'PRESENT' || !existing.checkedInAt) {
+    throw new BadRequestError('Check in for today’s shift before recording check-out.');
+  }
+  if (existing.checkedOutAt) {
+    throw new ConflictError('You have already checked out for today.');
+  }
+
+  await prisma.staffAttendance.update({
+    where: { id: existing.id },
+    data: { checkedOutAt: new Date() },
+  });
 
   const defaults = defaultStaffAttendanceRange();
   return getStaffAttendanceDesk(prisma, staffUserId, defaults.from, defaults.to);

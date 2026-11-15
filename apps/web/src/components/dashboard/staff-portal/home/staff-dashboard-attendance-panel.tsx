@@ -97,7 +97,7 @@ export function StaffDashboardAttendancePanel({ snapshot }: Props) {
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <CalendarCheck className="size-3.5" aria-hidden />
           {snapshot.liveMetrics
-            ? 'Headline counts come from today’s hostel attendance API.'
+            ? 'Student counts are hostel-wide; check-in/out times are your shift record.'
             : 'Attendance synced for current pay cycle (preview data).'}
         </p>
       </motion.div>

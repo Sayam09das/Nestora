@@ -398,10 +398,7 @@ export async function recordGuardGateReturn(
     throw new BadRequestError('Return cannot be recorded — student is not marked out on this pass.');
   }
 
-  const expectedReturn = pass.leave?.expectedReturnDate;
-  const isLate =
-    Boolean(expectedReturn) &&
-    startOfUtcDay(now).getTime() > startOfUtcDay(expectedReturn!).getTime();
+  const isLate = now.getTime() > pass.validUntil.getTime();
 
   await prisma.$transaction([
     prisma.gateMovementLog.update({

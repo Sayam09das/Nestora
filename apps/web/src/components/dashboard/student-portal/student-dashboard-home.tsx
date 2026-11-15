@@ -1,6 +1,7 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import { useMemo } from 'react';
 
 import { STUDENT_QUICK_ACTIONS } from '@/components/dashboard/student-portal/home/student-dashboard-data';
@@ -55,6 +56,21 @@ export function StudentDashboardHome() {
           <Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={() => void refresh()}>
             Retry
           </Button>
+        </div>
+      ) : null}
+
+      {overview?.gateMovement.alert ? (
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[color-mix(in_oklch,#c2410c_40%,var(--border))] bg-[color-mix(in_oklch,#c2410c_8%,var(--card))] px-4 py-3 text-sm text-[#9a3412]"
+          role="alert"
+        >
+          <span className="flex items-center gap-2 font-medium">
+            <AlertTriangle className="size-4 shrink-0" aria-hidden />
+            {overview.gateMovement.alert}
+          </span>
+          <Link href="/student/gate-passes" className="text-sm font-semibold underline-offset-2 hover:underline">
+            View gate passes
+          </Link>
         </div>
       ) : null}
 

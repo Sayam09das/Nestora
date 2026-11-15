@@ -11,8 +11,9 @@ export type StudentGatePassRow = {
   validFrom: string;
   validUntil: string;
   isUsed: boolean;
-  status: 'active' | 'expired' | 'used';
+  status: 'active' | 'expired' | 'used' | 'overdue';
   statusLabel: string;
+  isOutOnPass: boolean;
 };
 
 export type StudentGatePassesDesk = {
@@ -23,6 +24,7 @@ export type StudentGatePassesDesk = {
     active: number;
     expired: number;
     used: number;
+    overdue: number;
   };
   passes: StudentGatePassRow[];
 };

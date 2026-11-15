@@ -440,6 +440,8 @@ export function mergeStaffSnapshotWithLiveData(
       totalDays: hostelStudentsToday,
       presentDays: att.present,
       percent: att.percent ?? (hostelStudentsToday > 0 ? Math.round((att.present / hostelStudentsToday) * 1000) / 10 : 0),
+      checkIn: overview.staffShift?.checkInLabel ?? (overview.staffShift?.checkInAt ? 'Recorded' : '—'),
+      checkOut: overview.staffShift?.checkOutLabel ?? (overview.staffShift?.checkOutAt ? 'Recorded' : null),
     },
     announcements: announcements.length > 0 ? announcements : base.announcements,
   };

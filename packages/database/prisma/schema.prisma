@@ -853,12 +853,14 @@ model DutyAssignment {
 }
 
 model StaffAttendance {
-  id         String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  staffId    String                @map("staff_id") @db.Uuid
-  hostelId   String                @map("hostel_id") @db.Uuid
-  workDate   DateTime              @map("work_date") @db.Date
-  status     StaffAttendanceStatus
-  recordedBy String                @map("recorded_by") @db.Uuid
+  id           String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  staffId      String                @map("staff_id") @db.Uuid
+  hostelId     String                @map("hostel_id") @db.Uuid
+  workDate     DateTime              @map("work_date") @db.Date
+  status       StaffAttendanceStatus
+  recordedBy   String                @map("recorded_by") @db.Uuid
+  checkedInAt  DateTime?             @map("checked_in_at") @db.Timestamptz(6)
+  checkedOutAt DateTime?             @map("checked_out_at") @db.Timestamptz(6)
 
   hostel Hostel @relation(fields: [hostelId], references: [id], onDelete: Restrict)
 

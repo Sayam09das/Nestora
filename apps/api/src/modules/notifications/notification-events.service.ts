@@ -195,7 +195,7 @@ export async function notifyOverdueGateReturn(
 
   if (inputs.length === 0) return 0;
   const created = await createNotifications(prisma, inputs);
-  scheduleNotificationEmails(prisma, created, 'notice');
+  scheduleNotificationEmails(prisma, created, 'movement');
   return created.length;
 }
 

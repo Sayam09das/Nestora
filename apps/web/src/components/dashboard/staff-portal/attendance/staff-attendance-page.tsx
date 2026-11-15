@@ -8,7 +8,7 @@ import { StaffDashboardLiveStatus } from '@/components/dashboard/staff-portal/ho
 import { useStaffShell } from '@/components/dashboard/staff-portal/staff-shell-provider';
 import { Button } from '@/components/ui/button';
 import { useStaffAttendanceDesk } from '@/hooks/use-staff-attendance-desk';
-import { postStaffShiftCheckIn, type StaffAttendanceRecord } from '@/lib/api/dashboard';
+import { postStaffShiftCheckIn, postStaffShiftCheckOut, type StaffAttendanceRecord } from '@/lib/api/dashboard';
 import { cn } from '@/lib/utils';
 
 const focusRing =
@@ -42,6 +42,11 @@ function formatIsoDate(isoDate: string): string {
   });
 }
 
+function formatClock(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  return new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(iso));
+}
+
 function todayStatusLabel(status: StaffAttendanceRecord['status'] | null, dutyScheduled: boolean): string {
   if (status === 'PRESENT') return 'Marked present';
   if (status === 'ABSENT') return 'Marked absent';
@@ -54,6 +59,7 @@ export function StaffAttendancePage() {
   const { workplaceName, shift } = useStaffShell();
   const { desk, loading, error, refresh, setDesk } = useStaffAttendanceDesk();
   const [checkingIn, setCheckingIn] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
 
   const summary = desk?.summary;
   const today = desk?.today;
@@ -64,7 +70,8 @@ export function StaffAttendancePage() {
     ? (today.shiftWindow?.split('–')[1]?.trim() ?? 'Shift end')
     : 'Not scheduled';
 
-  const canCheckIn = Boolean(today?.dutyScheduled && today?.status !== 'PRESENT');
+  const canCheckIn = Boolean(today?.dutyScheduled && !today?.checkInAt);
+  const canCheckOut = Boolean(today?.canCheckOut);
 
   const onCheckIn = async () => {
     setCheckingIn(true);
@@ -75,6 +82,18 @@ export function StaffAttendancePage() {
       toast.success('Shift check-in recorded.');
     } else {
       toast.error(result.error ?? 'Check-in failed.');
+    }
+  };
+
+  const onCheckOut = async () => {
+    setCheckingOut(true);
+    const result = await postStaffShiftCheckOut();
+    setCheckingOut(false);
+    if (result.desk) {
+      setDesk(result.desk);
+      toast.success('Shift check-out recorded.');
+    } else {
+      toast.error(result.error ?? 'Check-out failed.');
     }
   };
 
@@ -116,27 +135,45 @@ export function StaffAttendancePage() {
             {today?.shiftLabel ?? 'Shift'} · {today?.hostelName ?? workplaceName}
             {today?.zone ? ` · ${today.zone}` : ''}
           </p>
-          {canCheckIn ? (
-            <Button
-              type="button"
-              className={cn('mt-4 w-full gap-2', focusRing)}
-              disabled={checkingIn}
-              onClick={() => void onCheckIn()}
-            >
-              {checkingIn ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <LogIn className="size-4" aria-hidden />}
-              Check in for today&apos;s shift
-            </Button>
-          ) : null}
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            {canCheckIn ? (
+              <Button
+                type="button"
+                className={cn('w-full gap-2 sm:flex-1', focusRing)}
+                disabled={checkingIn}
+                onClick={() => void onCheckIn()}
+              >
+                {checkingIn ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <LogIn className="size-4" aria-hidden />}
+                Check in
+              </Button>
+            ) : null}
+            {canCheckOut ? (
+              <Button
+                type="button"
+                variant="outline"
+                className={cn('w-full gap-2 sm:flex-1', focusRing)}
+                disabled={checkingOut}
+                onClick={() => void onCheckOut()}
+              >
+                {checkingOut ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <LogOut className="size-4" aria-hidden />}
+                Check out
+              </Button>
+            ) : null}
+          </div>
           <div className="mt-4 space-y-2 rounded-xl border border-dashed border-[color-mix(in_oklch,var(--nestora-sage)_25%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-cream)_20%,var(--card))] p-3">
             <p className="flex items-center gap-2 text-sm">
               <LogIn className="size-4 text-[var(--nestora-sage)]" aria-hidden />
-              <span className="text-muted-foreground">Expected check-in</span>
-              <span className="ml-auto font-semibold text-foreground">{checkInHint}</span>
+              <span className="text-muted-foreground">Actual check-in</span>
+              <span className="ml-auto font-semibold text-foreground">
+                {today?.checkInAt ? formatClock(today.checkInAt) : `Expected ${checkInHint}`}
+              </span>
             </p>
             <p className="flex items-center gap-2 text-sm">
               <LogOut className="size-4 text-muted-foreground" aria-hidden />
-              <span className="text-muted-foreground">Expected check-out</span>
-              <span className="ml-auto font-medium text-muted-foreground">{checkOutHint}</span>
+              <span className="text-muted-foreground">Actual check-out</span>
+              <span className="ml-auto font-medium text-muted-foreground">
+                {today?.checkOutAt ? formatClock(today.checkOutAt) : today?.checkInAt ? `Expected ${checkOutHint}` : 'Not checked out'}
+              </span>
             </p>
           </div>
         </section>

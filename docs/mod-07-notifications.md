@@ -16,7 +16,7 @@ All routes require an authenticated session (`requireAuth`).
 - Leave approved or rejected → student
 - Complaint submitted → warden / admin operators
 - Incident reported → warden / admin operators
-- Late gate return (MOD-10 job, every 5m) → warden / admin when a pass is overdue and the student has not returned
+- Late gate return (MOD-10 job, every 5m) → warden / admin when a pass is overdue and the student has not returned (sets `is_late_return` on `gate_movement_logs`; optional email category `movement`)
 
 Optional SMTP email is sent in-process when `SMTP_*` env vars are set and the user’s notification preference allows email for that category.
 

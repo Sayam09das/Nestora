@@ -4,6 +4,7 @@ import {
   getAdminDashboardOverviewHandler,
   getStaffAttendanceHandler,
   postStaffShiftCheckInHandler,
+  postStaffShiftCheckOutHandler,
   getStaffDashboardOverviewHandler,
   getStaffScheduleHandler,
   getStudentDashboardOverviewHandler,
@@ -288,6 +289,13 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
       preHandler: [requireRoles('HOSTEL_STAFF')],
     },
     postStaffShiftCheckInHandler,
+  );
+  app.post(
+    '/staff/attendance/check-out',
+    {
+      preHandler: [requireRoles('HOSTEL_STAFF')],
+    },
+    postStaffShiftCheckOutHandler,
   );
   app.get(
     '/staff/report',

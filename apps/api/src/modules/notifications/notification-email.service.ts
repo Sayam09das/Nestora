@@ -3,7 +3,7 @@ import type { NotificationRow } from './notification.service.js';
 import { loadEnv } from '../../config/env.js';
 import { sendTransactionalNotificationEmail } from '../auth/mail.service.js';
 
-type EmailCategoryKey = 'leave' | 'complaint' | 'incident' | 'notice' | 'fee';
+type EmailCategoryKey = 'leave' | 'complaint' | 'incident' | 'notice' | 'fee' | 'movement';
 
 function preferenceAllows(
   prefs: {
@@ -23,6 +23,7 @@ function preferenceAllows(
       return prefs.emailFees;
     case 'incident':
     case 'notice':
+    case 'movement':
     default:
       return prefs.emailNotices;
   }
@@ -34,6 +35,7 @@ function mapNotificationCategory(category: string): EmailCategoryKey {
   if (c.includes('complaint') || c.includes('maintenance')) return 'complaint';
   if (c.includes('fee')) return 'fee';
   if (c.includes('incident') || c.includes('emergency')) return 'incident';
+  if (c.includes('movement') || c.includes('gate')) return 'movement';
   return 'notice';
 }
 

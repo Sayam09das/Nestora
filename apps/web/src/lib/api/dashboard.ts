@@ -149,6 +149,13 @@ export type OperationalDashboardOverview = {
       }>;
     };
   };
+  staffShift?: {
+    checkInAt: string | null;
+    checkOutAt: string | null;
+    checkInLabel: string | null;
+    checkOutLabel: string | null;
+    dutyScheduled: boolean;
+  };
 };
 
 export async function fetchWardenDashboardOverview(options?: {
@@ -221,6 +228,9 @@ export type StaffAttendanceDesk = {
     shiftWindow: string | null;
     zone: string | null;
     hostelName: string | null;
+    checkInAt: string | null;
+    checkOutAt: string | null;
+    canCheckOut: boolean;
   };
   records: StaffAttendanceRecord[];
   hostelStudentsToday: {
@@ -247,6 +257,16 @@ export async function fetchStaffAttendanceDesk(options?: {
 
 export async function postStaffShiftCheckIn(): Promise<{ desk?: StaffAttendanceDesk; error?: string }> {
   const response = await apiFetch('/api/v1/dashboard/staff/attendance/check-in', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const parsed = await parseApiResponse<{ desk: StaffAttendanceDesk }>(response);
+  if (!parsed.ok) return { error: parsed.message };
+  return { desk: parsed.data.desk };
+}
+
+export async function postStaffShiftCheckOut(): Promise<{ desk?: StaffAttendanceDesk; error?: string }> {
+  const response = await apiFetch('/api/v1/dashboard/staff/attendance/check-out', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
   });
@@ -496,6 +516,10 @@ export type StudentDashboardOverview = {
     fees: number;
     announcements: number;
     visitors: number;
+  };
+  gateMovement: {
+    overdueOutCount: number;
+    alert: string | null;
   };
 };
 

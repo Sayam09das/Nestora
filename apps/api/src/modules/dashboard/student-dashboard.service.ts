@@ -125,6 +125,10 @@ export type StudentDashboardOverview = {
     announcements: number;
     visitors: number;
   };
+  gateMovement: {
+    overdueOutCount: number;
+    alert: string | null;
+  };
 };
 
 function startOfUtcMonth(date: Date): Date {
@@ -287,6 +291,7 @@ const emptyOverview = (now: Date): StudentDashboardOverview => ({
   events: [],
   roommates: [],
   navBadges: { leave: 0, complaints: 0, maintenance: 0, fees: 0, announcements: 0, visitors: 0 },
+  gateMovement: { overdueOutCount: 0, alert: null },
 });
 
 export async function getStudentDashboardOverview(
@@ -586,6 +591,15 @@ export async function getStudentDashboardOverview(
     },
   });
 
+  const overdueOutCount = await prisma.gateMovementLog.count({
+    where: {
+      studentId: student.id,
+      actualDeparture: { not: null },
+      actualReturn: null,
+      OR: [{ isLateReturn: true }, { pass: { validUntil: { lt: now } } }],
+    },
+  });
+
   return {
     generatedAt: now.toISOString(),
     profile: {
@@ -654,6 +668,13 @@ export async function getStudentDashboardOverview(
       fees: outstanding > 0 ? 1 : 0,
       announcements: unackedNotices,
       visitors: visitorPending,
+    },
+    gateMovement: {
+      overdueOutCount,
+      alert:
+        overdueOutCount > 0
+          ? 'You are marked out past your gate pass window — return to the hostel immediately.'
+          : null,
     },
   };
 }

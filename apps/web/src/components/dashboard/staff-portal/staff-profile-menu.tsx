@@ -11,8 +11,6 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef, useState } from 'react';
-import { toast } from 'sonner';
-
 import { useStaffShell } from '@/components/dashboard/staff-portal/staff-shell-provider';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import {
@@ -150,7 +148,10 @@ export function StaffProfileMenu({ className }: Props) {
             </DropdownMenuItem>
             <DropdownMenuItem
               className="rounded-lg"
-              onClick={() => toast.message('Change password', { description: 'Use Account Settings when the flow is connected.' })}
+              onClick={() => {
+                setOpen(false);
+                router.push('/change-password');
+              }}
             >
               <KeyRound className="size-4" />
               Change Password

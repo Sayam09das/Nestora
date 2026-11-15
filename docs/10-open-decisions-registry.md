@@ -21,7 +21,7 @@ When a decision is finalized:
 | **ODR-002** | Extended leave escalation threshold             | **Open** | `system_configurations` key read by `mod08-leaves`; workflow can route to University Administrator when duration exceeds threshold                      | Calendar-day threshold (e.g. >7 or >14 consecutive days) and whether guardian consent is required |
 | **ODR-003** | Fee schedule scope (uniform vs hostel-specific) | **Open** | `fee_schedules.hostel_id` nullable — NULL = university-wide; non-NULL = hostel-specific schedule                                                        | Whether all hostels share one schedule per room config or may differ by amenities                 |
 | **ODR-004** | Attendance workflow ownership & sign-off        | **Open** | Warden-primary model with optional staff delegation (`FR-047`, `AUTH` matrix); correction audit trail regardless of entry role                          | Whether staff may finalize nightly rosters without mandatory warden countersignature              |
-| **ODR-005** | Security Guard shift & duty tracking            | **Open** | Both `staff_profiles` / `duty_assignments` / `staff_attendances` (department `SECURITY`) and gate-centric credentials via movement logs exist in schema | Formal shift rosters vs gate-checkpoint-only accounts and handover logging                        |
+| **ODR-005** | Security Guard shift & duty tracking            | **Decided (interim)** | Guards: hostel assignment + gate logs; shift check-in/out API is **HOSTEL_STAFF** + `duty_assignments` only | Gate-first for guards; staff rosters for operational personnel until policy adds guard duty rows |
 
 ---
 
@@ -64,7 +64,7 @@ When a decision is finalized:
 | Field                     | Value                                                                                                                         |
 | :------------------------ | :---------------------------------------------------------------------------------------------------------------------------- |
 | **Impact if wrong**       | Staff module scope for guards, duty UI, attendance of security personnel                                                      |
-| **Default until decided** | Implement **gate operations (MOD-10, MOD-11)** first; wire duty rosters only if policy selects roster model                   |
+| **Default until decided** | **Applied in code:** gate operations (MOD-10, MOD-11) for guards; `duty_assignments` + shift check-in/out for **HOSTEL_STAFF** only. Extend to SECURITY guards only after formal roster policy. |
 | **Document references**   | [07-database-design.md](./07-database-design.md) §17; [09-monorepo-architecture.md](./09-monorepo-architecture.md) §13 item 4 |
 
 ---

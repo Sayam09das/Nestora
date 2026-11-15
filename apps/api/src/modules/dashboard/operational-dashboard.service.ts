@@ -1,5 +1,6 @@
 import type { BedStatus, Prisma, PrismaClient } from '@nestora/database';
 import type { RoleCode } from '../../middleware/authorize.js';
+import { formatStaffShiftClock } from './staff-attendance.service.js';
 
 const TERMINAL_COMPLAINT_STATUSES = ['RESOLVED', 'CLOSED', 'REJECTED'] as const;
 const WARDEN_COMPLAINT_QUEUE_STATUSES = ['SUBMITTED', 'UNDER_REVIEW', 'REOPENED'] as const;
@@ -96,10 +97,43 @@ export type OperationalDashboardOverview = {
       items: OperationalDashboardIncidentRow[];
     };
   };
+  staffShift?: {
+    checkInAt: string | null;
+    checkOutAt: string | null;
+    checkInLabel: string | null;
+    checkOutLabel: string | null;
+    dutyScheduled: boolean;
+  };
 };
 
 function startOfUtcDay(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+async function loadStaffShiftPanel(
+  prisma: PrismaClient,
+  userId: string,
+  today: Date,
+): Promise<OperationalDashboardOverview['staffShift']> {
+  const [dutyToday, attendanceToday] = await Promise.all([
+    prisma.dutyAssignment.findFirst({
+      where: { staffId: userId, dutyDate: today },
+      select: { id: true },
+    }),
+    prisma.staffAttendance.findFirst({
+      where: { staffId: userId, workDate: today },
+      select: { checkedInAt: true, checkedOutAt: true },
+    }),
+  ]);
+  const checkInAt = attendanceToday?.checkedInAt?.toISOString() ?? null;
+  const checkOutAt = attendanceToday?.checkedOutAt?.toISOString() ?? null;
+  return {
+    dutyScheduled: Boolean(dutyToday),
+    checkInAt,
+    checkOutAt,
+    checkInLabel: formatStaffShiftClock(checkInAt),
+    checkOutLabel: formatStaffShiftClock(checkOutAt),
+  };
 }
 
 function attendanceRatePercent(present: number, absent: number, onLeave: number): number | null {
@@ -280,6 +314,7 @@ export async function getOperationalDashboardOverview(
         totalPending: 0,
       },
       panels: emptyPanels(),
+      staffShift: role === 'HOSTEL_STAFF' ? await loadStaffShiftPanel(prisma, userId, today) : undefined,
     };
   }
 
@@ -601,5 +636,6 @@ export async function getOperationalDashboardOverview(
           },
         }
       : emptyPanels(),
+    staffShift: role === 'HOSTEL_STAFF' ? await loadStaffShiftPanel(prisma, userId, today) : undefined,
   };
 }
