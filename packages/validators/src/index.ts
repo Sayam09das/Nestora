@@ -1,4 +1,8 @@
-export { auditListQuerySchema, type AuditListQuery } from './audit.validator.js';
+export {
+  auditListQuerySchema,
+  auditLogIdParamsSchema,
+  type AuditListQuery,
+} from './audit.validator.js';
 export {
   registerStaffBodySchema,
   staffDirectoryListQuerySchema,
@@ -41,7 +45,9 @@ export {
   allocationDirectoryListQuerySchema,
   allocationDirectoryStatusSchema,
   allocationDirectoryTypeSchema,
+  assignStudentToBedBodySchema,
   type AllocationDirectoryListQuery,
+  type AssignStudentToBedBody,
 } from './allocations.validator.js';
 export {
   clearNightAttendanceMarkBodySchema,
@@ -53,6 +59,7 @@ export {
 } from './attendance.validator.js';
 export {
   createStudentLeaveBodySchema,
+  leaveApplicationIdParamsSchema,
   leaveDecisionBodySchema,
   leaveDeskListQuerySchema,
   leaveIdParamsSchema,
@@ -123,9 +130,20 @@ export {
 export {
   reportIdParamsSchema,
   reportPreviewQuerySchema,
+  reportTemplateIdParamsSchema,
   reportsDeskListQuerySchema,
   type ReportsDeskListQuery,
 } from './reports.validator.js';
+export {
+  financeDeskListQuerySchema,
+  financeLedgerIdParamsSchema,
+  type FinanceDeskListQuery,
+} from './finance.validator.js';
+export {
+  roleIdParamsSchema,
+  rolesDeskListQuerySchema,
+  type RolesDeskListQuery,
+} from './roles.validator.js';
 export {
   dailyRegisterDeskQuerySchema,
   type DailyRegisterDeskQuery,

@@ -1,10 +1,16 @@
 import { z } from 'zod';
 
 export const leaveDeskListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
   q: z.string().optional(),
   hostel: z.string().optional(),
   category: z.string().optional(),
   status: z.string().optional(),
+});
+
+export const leaveApplicationIdParamsSchema = z.object({
+  leaveId: z.string().uuid(),
 });
 
 export const leaveDecisionBodySchema = z.object({

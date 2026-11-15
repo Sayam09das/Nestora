@@ -18,4 +18,11 @@ export const allocationDirectoryListQuerySchema = z.object({
   hostel: z.string().max(150).trim().optional(),
 });
 
+export const assignStudentToBedBodySchema = z.object({
+  studentUserId: z.string().uuid(),
+  bedId: z.string().uuid(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
+
 export type AllocationDirectoryListQuery = z.infer<typeof allocationDirectoryListQuerySchema>;
+export type AssignStudentToBedBody = z.infer<typeof assignStudentToBedBodySchema>;

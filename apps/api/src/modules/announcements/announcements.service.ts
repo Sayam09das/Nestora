@@ -69,7 +69,10 @@ export function mapCategory(raw: string): NoticeUiCategory {
   return 'General';
 }
 
-export function deriveNoticeStatus(row: NoticeRow, now = new Date()): NoticeUiStatus {
+export function deriveNoticeStatus(
+  row: Pick<NoticeRow, 'publishedAt' | 'expiresAt'>,
+  now = new Date(),
+): NoticeUiStatus {
   if (row.publishedAt.getTime() > now.getTime()) return 'Scheduled';
   if (row.expiresAt && row.expiresAt.getTime() <= now.getTime()) return 'Expired';
   return 'Live';

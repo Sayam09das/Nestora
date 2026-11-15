@@ -11,6 +11,8 @@ export const reportIdParamsSchema = z.object({
   reportId: z.string().min(1),
 });
 
+export const reportTemplateIdParamsSchema = reportIdParamsSchema;
+
 export const reportPreviewQuerySchema = z.object({
   hostel: z.string().optional(),
   period: z.string().optional(),
