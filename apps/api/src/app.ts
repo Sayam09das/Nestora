@@ -29,6 +29,9 @@ import { notificationsPlugin } from './modules/notifications/index.js';
 import { accountPlugin } from './modules/account/index.js';
 import { uploadsPlugin } from './modules/uploads/index.js';
 import { infrastructurePlugin } from './modules/infrastructure/index.js';
+import { financePlugin } from './modules/finance/index.js';
+import { leavesPlugin } from './modules/leaves/index.js';
+import { outingsPlugin } from './modules/outings/index.js';
 import { configPluginWrapped } from './plugins/config.js';
 import { cookiePluginWrapped } from './plugins/cookie.js';
 import { corsPluginWrapped } from './plugins/cors.js';
@@ -233,6 +236,9 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
       await v1.register(incidentsPlugin);
       await v1.register(notificationsPlugin);
       await v1.register(accountPlugin);
+      await v1.register(financePlugin);
+      await v1.register(leavesPlugin);
+      await v1.register(outingsPlugin);
     },
     { prefix: '/api/v1' },
   );

@@ -15,7 +15,7 @@ export async function getFinanceDeskSummaryHandler(
   reply: FastifyReply,
 ): Promise<void> {
   const user = requireAuth(request);
-  assertRole(user, 'UNIVERSITY_ADMINISTRATOR', 'HOSTEL_WARDEN', 'HOSTEL_STAFF');
+  assertRole(user, 'UNIVERSITY_ADMINISTRATOR', 'HOSTEL_WARDEN', 'HOSTEL_STAFF', 'ACCOUNTANT');
 
   if (isHostelOperationalRole(user.role)) {
     const hostelNames = await resolveOperationalHostelNames(request.server.prisma, user);
@@ -33,7 +33,7 @@ export async function listFinanceDeskLedgersHandler(
   reply: FastifyReply,
 ): Promise<void> {
   const user = requireAuth(request);
-  assertRole(user, 'UNIVERSITY_ADMINISTRATOR', 'HOSTEL_WARDEN', 'HOSTEL_STAFF');
+  assertRole(user, 'UNIVERSITY_ADMINISTRATOR', 'HOSTEL_WARDEN', 'HOSTEL_STAFF', 'ACCOUNTANT');
 
   const query = financeDeskListQuerySchema.parse(request.query);
 
@@ -65,7 +65,7 @@ export async function getFinanceLedgerDetailHandler(
   reply: FastifyReply,
 ): Promise<void> {
   const user = requireAuth(request);
-  assertRole(user, 'UNIVERSITY_ADMINISTRATOR', 'HOSTEL_WARDEN', 'HOSTEL_STAFF');
+  assertRole(user, 'UNIVERSITY_ADMINISTRATOR', 'HOSTEL_WARDEN', 'HOSTEL_STAFF', 'ACCOUNTANT');
 
   const { ledgerId } = financeLedgerIdParamsSchema.parse(request.params);
 
