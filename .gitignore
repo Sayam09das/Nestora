@@ -67,3 +67,9 @@ temp/
 
 .agents/
 .cursor/
+
+# Local Neon / agent tooling (not part of the app)
+.neon
+.neon/
+neon.ts
+skills-lock.json

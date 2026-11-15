@@ -302,8 +302,9 @@ export async function listFinanceDeskLedgers(
   if (query.status) {
     rows = rows.filter((r) => r.status === query.status);
   }
-  if (query.q?.trim()) {
-    rows = rows.filter((r) => matchesQuery(r, query.q!.trim()));
+  const q = query.q?.trim();
+  if (q) {
+    rows = rows.filter((r) => matchesQuery(r, q));
   }
 
   const total = rows.length;

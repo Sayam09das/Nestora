@@ -351,12 +351,24 @@ export async function rejectRoomChangeRequest(
     throw new NotFoundError('Request not found.');
   }
 
-  await prisma.roomChangeRequest.update({
-    where: { id: requestId },
-    data: {
-      status: 'REJECTED',
-      reviewedBy: actorUserId,
-      reviewedAt: new Date(),
-    },
-  });
+  await prisma.$transaction([
+    prisma.roomChangeRequest.update({
+      where: { id: requestId },
+      data: {
+        status: 'REJECTED',
+        reviewedBy: actorUserId,
+        reviewedAt: new Date(),
+      },
+    }),
+    prisma.auditLog.create({
+      data: {
+        actorUserId,
+        actorRole: 'HOSTEL_WARDEN',
+        actionName: 'ROOM_CHANGE_REJECTED',
+        entityType: 'ROOM_CHANGE_REQUEST',
+        entityId: requestId,
+        newState: { remarks, studentReason: request.reason },
+      },
+    }),
+  ]);
 }
