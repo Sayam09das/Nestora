@@ -149,6 +149,56 @@ export async function notifyOutingApplicationSubmitted(
   scheduleNotificationEmails(prisma, created, 'leave');
 }
 
+export async function notifyOverdueGateReturn(
+  prisma: PrismaClient,
+  params: {
+    hostelId: string;
+    passId: string;
+    passToken: string;
+    studentName: string;
+    hostelName: string;
+    validUntil: string;
+    dedupeSince: Date;
+  },
+): Promise<number> {
+  const operatorIds = await resolveHostelOperatorUserIds(prisma, params.hostelId);
+  if (operatorIds.length === 0) return 0;
+
+  const inputs: Array<{
+    userId: string;
+    title: string;
+    message: string;
+    category: string;
+    actionLink: string;
+  }> = [];
+
+  for (const userId of operatorIds) {
+    const dup = await prisma.notification.findFirst({
+      where: {
+        userId,
+        category: 'movement',
+        message: { contains: params.passToken },
+        createdAt: { gte: params.dedupeSince },
+      },
+      select: { id: true },
+    });
+    if (dup) continue;
+
+    inputs.push({
+      userId,
+      title: 'Late gate return',
+      message: `${params.studentName} is overdue on pass ${params.passToken} (${params.hostelName}). Expected back by ${params.validUntil}.`,
+      category: 'movement',
+      actionLink: '/warden/leave',
+    });
+  }
+
+  if (inputs.length === 0) return 0;
+  const created = await createNotifications(prisma, inputs);
+  scheduleNotificationEmails(prisma, created, 'notice');
+  return created.length;
+}
+
 export async function notifyOutingDecision(
   prisma: PrismaClient,
   params: {

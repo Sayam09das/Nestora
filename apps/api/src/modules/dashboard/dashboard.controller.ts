@@ -50,6 +50,7 @@ import {
 import {
   defaultStaffAttendanceRange,
   getStaffAttendanceDesk,
+  recordStaffShiftCheckIn,
   parseAttendanceDateParam,
 } from './staff-attendance.service.js';
 import {
@@ -400,4 +401,15 @@ export async function getStaffAttendanceHandler(
 
   const desk = await getStaffAttendanceDesk(request.server.prisma, user.id, from, rangeEnd);
   reply.send(successResponse({ desk }, 'Staff attendance desk.'));
+}
+
+export async function postStaffShiftCheckInHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'HOSTEL_STAFF');
+
+  const desk = await recordStaffShiftCheckIn(request.server.prisma, user.id);
+  reply.send(successResponse({ desk }, 'Shift check-in recorded.'));
 }

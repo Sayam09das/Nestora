@@ -245,6 +245,16 @@ export async function fetchStaffAttendanceDesk(options?: {
   return { desk: parsed.data.desk };
 }
 
+export async function postStaffShiftCheckIn(): Promise<{ desk?: StaffAttendanceDesk; error?: string }> {
+  const response = await apiFetch('/api/v1/dashboard/staff/attendance/check-in', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const parsed = await parseApiResponse<{ desk: StaffAttendanceDesk }>(response);
+  if (!parsed.ok) return { error: parsed.message };
+  return { desk: parsed.data.desk };
+}
+
 export type StaffReportDesk = {
   generatedAt: string;
   hostelNames: string[];

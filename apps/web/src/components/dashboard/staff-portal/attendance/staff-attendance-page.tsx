@@ -1,12 +1,14 @@
 'use client';
 
-import { CalendarCheck, LogIn, LogOut, RefreshCw } from 'lucide-react';
+import { CalendarCheck, Loader2, LogIn, LogOut, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 import { StaffDashboardLiveStatus } from '@/components/dashboard/staff-portal/home/staff-dashboard-live-status';
 import { useStaffShell } from '@/components/dashboard/staff-portal/staff-shell-provider';
 import { Button } from '@/components/ui/button';
 import { useStaffAttendanceDesk } from '@/hooks/use-staff-attendance-desk';
-import type { StaffAttendanceRecord } from '@/lib/api/dashboard';
+import { postStaffShiftCheckIn, type StaffAttendanceRecord } from '@/lib/api/dashboard';
 import { cn } from '@/lib/utils';
 
 const focusRing =
@@ -50,7 +52,8 @@ function todayStatusLabel(status: StaffAttendanceRecord['status'] | null, dutySc
 
 export function StaffAttendancePage() {
   const { workplaceName, shift } = useStaffShell();
-  const { desk, loading, error, refresh } = useStaffAttendanceDesk();
+  const { desk, loading, error, refresh, setDesk } = useStaffAttendanceDesk();
+  const [checkingIn, setCheckingIn] = useState(false);
 
   const summary = desk?.summary;
   const today = desk?.today;
@@ -60,6 +63,20 @@ export function StaffAttendancePage() {
   const checkOutHint = today?.dutyScheduled
     ? (today.shiftWindow?.split('–')[1]?.trim() ?? 'Shift end')
     : 'Not scheduled';
+
+  const canCheckIn = Boolean(today?.dutyScheduled && today?.status !== 'PRESENT');
+
+  const onCheckIn = async () => {
+    setCheckingIn(true);
+    const result = await postStaffShiftCheckIn();
+    setCheckingIn(false);
+    if (result.desk) {
+      setDesk(result.desk);
+      toast.success('Shift check-in recorded.');
+    } else {
+      toast.error(result.error ?? 'Check-in failed.');
+    }
+  };
 
   return (
     <div className="space-y-6 pb-4">
@@ -99,6 +116,17 @@ export function StaffAttendancePage() {
             {today?.shiftLabel ?? 'Shift'} · {today?.hostelName ?? workplaceName}
             {today?.zone ? ` · ${today.zone}` : ''}
           </p>
+          {canCheckIn ? (
+            <Button
+              type="button"
+              className={cn('mt-4 w-full gap-2', focusRing)}
+              disabled={checkingIn}
+              onClick={() => void onCheckIn()}
+            >
+              {checkingIn ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <LogIn className="size-4" aria-hidden />}
+              Check in for today&apos;s shift
+            </Button>
+          ) : null}
           <div className="mt-4 space-y-2 rounded-xl border border-dashed border-[color-mix(in_oklch,var(--nestora-sage)_25%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-cream)_20%,var(--card))] p-3">
             <p className="flex items-center gap-2 text-sm">
               <LogIn className="size-4 text-[var(--nestora-sage)]" aria-hidden />
