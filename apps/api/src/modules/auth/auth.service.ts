@@ -165,6 +165,12 @@ export async function provisionUser(
     throw new BadRequestError('hostelId is required for Hostel Staff and Security Guard accounts.');
   }
 
+  if (input.role === 'STUDENT') {
+    throw new BadRequestError(
+      'Student accounts must be registered from Students → Register student so hostel profile, allocation, and directory stay in sync.',
+    );
+  }
+
   if (input.hostelId) {
     await repo.assertHostelExists(prisma, input.hostelId);
   }

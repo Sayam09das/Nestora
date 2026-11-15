@@ -52,17 +52,23 @@ export {
   type UpsertNightAttendanceMarkBody,
 } from './attendance.validator.js';
 export {
+  createStudentLeaveBodySchema,
   leaveDecisionBodySchema,
   leaveDeskListQuerySchema,
   leaveIdParamsSchema,
+  studentLeaveTypeSchema,
+  type CreateStudentLeaveBody,
   type LeaveDecisionBody,
   type LeaveDeskListQuery,
 } from './leaves.validator.js';
 export {
+  createStudentVisitorBodySchema,
   registerVisitorBodySchema,
+  studentVisitorIdProofSchema,
   visitorDeskListQuerySchema,
   visitorIdParamsSchema,
   visitorRejectBodySchema,
+  type CreateStudentVisitorBody,
   type RegisterVisitorBody,
   type VisitorDeskListQuery,
 } from './visitors.validator.js';
@@ -70,8 +76,15 @@ export {
   assignComplaintTicketBodySchema,
   complaintTicketIdParamsSchema,
   complaintsDeskListQuerySchema,
+  createStudentComplaintBodySchema,
+  createStudentMaintenanceBodySchema,
+  studentComplaintCategorySchema,
+  studentComplaintPrioritySchema,
+  studentMaintenanceCategorySchema,
   type AssignComplaintTicketBody,
   type ComplaintsDeskListQuery,
+  type CreateStudentComplaintBody,
+  type CreateStudentMaintenanceBody,
 } from './complaints.validator.js';
 export {
   incidentActionBodySchema,
@@ -80,21 +93,33 @@ export {
   patchIncidentSeverityBodySchema,
   resolveIncidentBodySchema,
   staffReportIncidentBodySchema,
+  studentReportIncidentBodySchema,
   type IncidentActionBody,
   type IncidentsDeskListQuery,
   type PatchIncidentSeverityBody,
   type ResolveIncidentBody,
   type StaffReportIncidentBody,
+  type StudentReportIncidentBody,
 } from './incidents.validator.js';
 export {
   announcementIdParamsSchema,
   announcementsDeskListQuerySchema,
+  studentAcknowledgeNoticeBodySchema,
   type AnnouncementsDeskListQuery,
+  type StudentAcknowledgeNoticeBody,
 } from './announcements.validator.js';
 export {
   staffNotificationPreferencesBodySchema,
   type StaffNotificationPreferencesBody,
 } from './staff-settings.validator.js';
+export {
+  studentNotificationPreferencesBodySchema,
+  type StudentNotificationPreferencesBody,
+} from './student-settings.validator.js';
+export {
+  createStudentHelpRequestBodySchema,
+  type CreateStudentHelpRequestBody,
+} from './help.validator.js';
 export {
   reportIdParamsSchema,
   reportPreviewQuerySchema,
@@ -109,6 +134,10 @@ export {
   updateSelfProfileBodySchema,
   type UpdateSelfProfileBody,
 } from './account.validator.js';
+export {
+  updateStudentSelfProfileBodySchema,
+  type UpdateStudentSelfProfileBody,
+} from './student-self-profile.validator.js';
 export {
   patchSettingsPanelBodySchema,
   settingsDeskListQuerySchema,
