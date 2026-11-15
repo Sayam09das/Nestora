@@ -3,6 +3,7 @@ import type { LeaveDeskListQuery } from '@nestora/validators';
 import { createHash, randomBytes } from 'node:crypto';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../common/errors/index.js';
 import { hostelNameInScope } from '../../common/helpers/warden-hostel-scope.js';
+import { notifyLeaveDecision } from '../notifications/notification-events.service.js';
 const PENDING_DB = ['SUBMITTED', 'PENDING', 'PENDING_APPROVAL'] as const;
 const APPROVED_DB = 'APPROVED';
 const REJECTED_DB = 'REJECTED';
@@ -470,14 +471,16 @@ export async function decideLeaveApplication(
     },
   });
 
+  let issuedPassToken: string | null = null;
   if (params.decision === 'Approved') {
     const validFrom = new Date(row.departureDate);
     validFrom.setUTCHours(0, 0, 0, 0);
     const validUntil = new Date(row.expectedReturnDate);
     validUntil.setUTCHours(23, 59, 59, 999);
+    issuedPassToken = gatePassToken();
     await prisma.gatePass.create({
       data: {
-        passToken: gatePassToken(),
+        passToken: issuedPassToken,
         studentId: row.studentId,
         leaveId: row.id,
         validFrom,
@@ -485,6 +488,14 @@ export async function decideLeaveApplication(
       },
     });
   }
+
+  await notifyLeaveDecision(prisma, {
+    studentId: row.studentId,
+    decision: params.decision,
+    leaveId: row.id,
+    hostelName: row.hostel.name,
+    passToken: issuedPassToken,
+  });
 
   void params.feedback;
 

@@ -9,6 +9,7 @@ import type {
 import { createHash } from 'node:crypto';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../common/errors/index.js';
 import { hostelNameInScope } from '../../common/helpers/warden-hostel-scope.js';
+import { notifyIncidentReported } from '../notifications/notification-events.service.js';
 
 export type IncidentUiType =
   | 'Fire'
@@ -521,7 +522,15 @@ export async function createStaffIncidentReport(
     include: incidentInclude,
   });
   const names = await loadUserNames(prisma, [staffUserId]);
-  return mapRow(row, names);
+  const mapped = mapRow(row, names);
+  await notifyIncidentReported(prisma, {
+    hostelId,
+    incidentId: row.id,
+    title: mapped.title,
+    severity: mapped.initialSeverity,
+    reporterName: mapped.reportedByName,
+  });
+  return mapped;
 }
 
 export async function createStudentIncidentReport(
@@ -544,5 +553,13 @@ export async function createStudentIncidentReport(
     include: incidentInclude,
   });
   const names = await loadUserNames(prisma, [studentUserId]);
-  return mapRow(row, names);
+  const mapped = mapRow(row, names);
+  await notifyIncidentReported(prisma, {
+    hostelId,
+    incidentId: row.id,
+    title: mapped.title,
+    severity: mapped.initialSeverity,
+    reporterName: mapped.reportedByName,
+  });
+  return mapped;
 }
