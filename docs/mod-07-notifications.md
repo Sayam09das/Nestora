@@ -1,31 +1,42 @@
-# MOD-07 — Notification engine (in-app + email)
+# MOD-07 — Notification engine
 
-## API (`/api/v1/notifications`)
+## API
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/` | List inbox for current user (`page`, `limit`, `unreadOnly`) |
-| GET | `/unread-count` | Unread count |
-| PATCH | `/:notificationId/read` | Mark one read |
-| POST | `/read-all` | Mark all read |
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `GET` | `/api/v1/notifications` | Paginated inbox (`limit`, `unreadOnly`) |
+| `PATCH` | `/api/v1/notifications/:id/read` | Mark one read |
+| `POST` | `/api/v1/notifications/read-all` | Mark all read |
 
-Rows are stored in `notifications` with server-side `is_read`.
+All routes require an authenticated session (`requireAuth`).
 
-## Event wiring
+## Event sources (today)
 
-| Event | Recipients | Category |
-|-------|------------|----------|
-| Student submits leave | Wardens/admins on hostel | `leave` |
-| Leave approved/rejected | Student | `leave` |
-| Student files complaint | Wardens/admins on hostel | `complaint` |
-| Student/staff reports incident | Wardens/admins on hostel | `incident` |
+- Leave submitted → warden / admin operators for the hostel
+- Leave approved or rejected → student
+- Complaint submitted → warden / admin operators
+- Incident reported → warden / admin operators
 
-## Email (optional)
+Optional SMTP email is sent in-process when `SMTP_*` env vars are set and the user’s notification preference allows email for that category.
 
-When `SMTP_USER` / `SMTP_PASS` are set in `apps/api/.env`, new notifications trigger **async** email via `notification-email.service.ts`, respecting `notification_preferences` (`email_leaves`, `email_maintenance`, `email_notices`, etc.).
+## Web top bars
 
-MailHog (docker compose) is enough for local dev.
+Role top bars poll the inbox every ~20s and merge **MOD-07 store rows first**, then role-specific derived alerts (dashboard queues, assigned tickets, etc.).
 
-## Web
+| Role | Hook / component | Read persistence |
+| ---- | ---------------- | ---------------- |
+| Student | `use-student-topbar-live` | localStorage + API mark-read for UUID ids |
+| Warden | `use-warden-topbar-live` | same |
+| Staff | `use-staff-topbar-live` | same |
+| Admin | `AdminNotificationsPanel` | same |
 
-Student top bar merges **MOD-07 inbox** items (UUID ids) with derived dashboard alerts. Marking read on a store notification calls the API.
+UUID notification ids are persisted server-side when marked read; synthetic ids (e.g. `pending-leave`) remain client-only.
+
+## Local smoke
+
+1. `pnpm --filter @nestora/api dev` and `pnpm --filter @nestora/web dev`
+2. Student submits leave → warden bell shows **New leave request** from the store
+3. Warden approves → student bell shows **Leave approved**
+4. Mark read → `PATCH` fires for store rows; badge count drops
+
+See also [local-smoke-student-guard.md](./local-smoke-student-guard.md).

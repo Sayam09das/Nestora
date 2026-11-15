@@ -1,50 +1,18 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { Bell, ChevronRight, FileCheck, ShieldAlert } from 'lucide-react';
+import { Bell, ChevronRight, FileCheck, Loader2, MessageSquareWarning, Plane, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useAdminNotificationsLive, type AdminTopbarNotification } from '@/hooks/use-admin-notifications-live';
 import { cn } from '@/lib/utils';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
 
-type NotificationKind = 'alert' | 'audit';
-
-type AdminNotification = {
-  id: string;
-  title: string;
-  body: string;
-  time: string;
-  kind: NotificationKind;
-  href?: string;
-  actionLabel?: string;
-};
-
-const initialNotifications: AdminNotification[] = [
-  {
-    id: '1',
-    title: 'Gate pass spike',
-    body: '12 pending approvals at North Hostel.',
-    time: '4m ago',
-    kind: 'alert',
-    href: '/admin',
-    actionLabel: 'Review queue',
-  },
-  {
-    id: '2',
-    title: 'Audit export ready',
-    body: 'Weekly FR-002 bundle is available.',
-    time: '1h ago',
-    kind: 'audit',
-    href: '/admin/audit-logs',
-    actionLabel: 'Open logs',
-  },
-];
-
 const kindStyles: Record<
-  NotificationKind,
+  AdminTopbarNotification['kind'],
   { icon: typeof ShieldAlert; iconClass: string; surfaceClass: string }
 > = {
   alert: {
@@ -58,6 +26,24 @@ const kindStyles: Record<
     iconClass: 'text-[var(--nestora-sage)]',
     surfaceClass:
       'border-[color-mix(in_oklch,var(--nestora-sage)_25%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-sage)_8%,var(--card))]',
+  },
+  leave: {
+    icon: Plane,
+    iconClass: 'text-[var(--nestora-forest)]',
+    surfaceClass:
+      'border-[color-mix(in_oklch,var(--nestora-forest)_22%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-forest)_6%,var(--card))]',
+  },
+  complaint: {
+    icon: MessageSquareWarning,
+    iconClass: 'text-amber-700',
+    surfaceClass:
+      'border-[color-mix(in_oklch,var(--nestora-gold)_22%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-gold)_8%,var(--card))]',
+  },
+  incident: {
+    icon: ShieldAlert,
+    iconClass: 'text-destructive',
+    surfaceClass:
+      'border-[color-mix(in_oklch,var(--destructive)_28%,var(--border))] bg-[color-mix(in_oklch,var(--destructive)_8%,var(--card))]',
   },
 };
 
@@ -76,21 +62,7 @@ const listItem = {
 export function AdminNotificationsPanel() {
   const reduceMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState(initialNotifications);
-  const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
-
-  const unreadCount = useMemo(
-    () => items.filter((item) => !readIds.has(item.id)).length,
-    [items, readIds],
-  );
-
-  const markAllRead = useCallback(() => {
-    setReadIds(new Set(items.map((item) => item.id)));
-  }, [items]);
-
-  const markRead = useCallback((id: string) => {
-    setReadIds((current) => new Set(current).add(id));
-  }, []);
+  const { notifications, unreadCount, readIds, markRead, markAllRead, loading } = useAdminNotificationsLive();
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -109,7 +81,7 @@ export function AdminNotificationsPanel() {
             animate={{ scale: 1 }}
             className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-[var(--nestora-gold)] text-[9px] font-bold text-[var(--nestora-forest-dark)] shadow-sm"
           >
-            {unreadCount}
+            {unreadCount > 9 ? '9+' : unreadCount}
           </motion.span>
         ) : null}
       </PopoverTrigger>
@@ -122,12 +94,8 @@ export function AdminNotificationsPanel() {
         <div className="border-b border-border bg-[color-mix(in_oklch,var(--nestora-cream)_35%,var(--card))] px-4 py-3">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-sm font-semibold tracking-tight text-[var(--nestora-forest)]">
-                Notifications
-              </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Alerts and important updates
-              </p>
+              <p className="text-sm font-semibold tracking-tight text-[var(--nestora-forest)]">Notifications</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">MOD-07 inbox + university queue (~20s refresh)</p>
             </div>
             {unreadCount > 0 ? (
               <button
@@ -150,7 +118,16 @@ export function AdminNotificationsPanel() {
         </div>
 
         <ul className="max-h-72 space-y-2 overflow-y-auto p-3">
-          {items.map((item, index) => {
+          {loading && notifications.length === 0 ? (
+            <li className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Syncing…
+            </li>
+          ) : null}
+          {!loading && notifications.length === 0 ? (
+            <li className="py-6 text-center text-sm text-muted-foreground">No new alerts right now.</li>
+          ) : null}
+          {notifications.map((item, index) => {
             const unread = !readIds.has(item.id);
             const style = kindStyles[item.kind];
             const Icon = style.icon;
@@ -190,16 +167,10 @@ export function AdminNotificationsPanel() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
-                        <h3 className="text-caption font-semibold leading-snug text-foreground">
-                          {item.title}
-                        </h3>
-                        <time className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
-                          {item.time}
-                        </time>
+                        <h3 className="text-caption font-semibold leading-snug text-foreground">{item.title}</h3>
+                        <time className="shrink-0 text-[10px] tabular-nums text-muted-foreground">{item.time}</time>
                       </div>
-                      <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                        {item.body}
-                      </p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{item.body}</p>
                       <div className="mt-2.5 flex flex-wrap items-center gap-2">
                         {item.href && item.actionLabel ? (
                           <Link
@@ -249,7 +220,7 @@ export function AdminNotificationsPanel() {
               focusRing,
             )}
           >
-            View all activity
+            View audit activity
             <ChevronRight className="size-3.5" aria-hidden />
           </Link>
         </div>

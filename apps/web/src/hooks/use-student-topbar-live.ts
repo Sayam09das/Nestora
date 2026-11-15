@@ -3,12 +3,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { fetchStudentDashboardOverview, type StudentDashboardOverview } from '@/lib/api/dashboard';
+import { fetchNotificationInbox, type NotificationRow } from '@/lib/api/notifications';
 import {
-  fetchNotificationInbox,
-  isStoreNotificationId,
-  markNotificationReadApi,
-  type NotificationRow,
-} from '@/lib/api/notifications';
+  formatTopbarNotificationTime,
+  loadTopbarReadSet,
+  mapNotificationCategory,
+  markTopbarNotificationRead,
+  mergeInboxById,
+  saveTopbarReadSet,
+  syncReadIdsFromStoreItems,
+} from '@/lib/topbar/notification-store-inbox';
 
 const LIVE_POLL_MS = 20_000;
 const NOTIFICATIONS_READ_KEY = 'nestora-student-notifications-read';
@@ -41,55 +45,15 @@ export type StudentTopbarSearchHit = {
   href: string;
 };
 
-function loadReadSet(key: string): Set<string> {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw) as string[];
-    return new Set(Array.isArray(parsed) ? parsed : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function mapCategoryToKind(category: string): StudentTopbarNotification['kind'] {
-  const c = category.toLowerCase();
-  if (c.includes('leave')) return 'leave';
-  if (c.includes('complaint')) return 'complaint';
-  if (c.includes('maintenance')) return 'maintenance';
-  if (c.includes('fee')) return 'fee';
-  if (c.includes('incident') || c.includes('emergency')) return 'notice';
-  if (c.includes('announcement') || c.includes('notice')) return 'announcement';
-  return 'notice';
-}
-
-function formatNotificationTime(iso: string): string {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(iso));
-}
-
 function mapStoreNotification(row: NotificationRow): StudentTopbarNotification {
   return {
     id: row.id,
     title: row.title,
     body: row.message,
-    time: formatNotificationTime(row.createdAt),
-    kind: mapCategoryToKind(row.category),
+    time: formatTopbarNotificationTime(row.createdAt),
+    kind: mapNotificationCategory(row.category).student,
     href: row.actionLink ?? undefined,
   };
-}
-
-function saveReadSet(key: string, ids: Set<string>) {
-  try {
-    localStorage.setItem(key, JSON.stringify([...ids]));
-  } catch {
-    // ignore
-  }
 }
 
 function buildInboxFromOverview(overview: StudentDashboardOverview): {
@@ -234,9 +198,9 @@ export function useStudentTopbarLive() {
   const [messages, setMessages] = useState<StudentTopbarMessage[]>([]);
   const [defaultSearchHits, setDefaultSearchHits] = useState<StudentTopbarSearchHit[]>([]);
   const [readNotificationIds, setReadNotificationIds] = useState<Set<string>>(() =>
-    loadReadSet(NOTIFICATIONS_READ_KEY),
+    loadTopbarReadSet(NOTIFICATIONS_READ_KEY),
   );
-  const [readMessageIds, setReadMessageIds] = useState<Set<string>>(() => loadReadSet(MESSAGES_READ_KEY));
+  const [readMessageIds, setReadMessageIds] = useState<Set<string>>(() => loadTopbarReadSet(MESSAGES_READ_KEY));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [latestOverview, setLatestOverview] = useState<StudentDashboardOverview | null>(null);
@@ -257,22 +221,10 @@ export function useStudentTopbarLive() {
       setLatestOverview(overview);
       const inbox = buildInboxFromOverview(overview);
       const storeItems = (storeRes.inbox?.items ?? []).map(mapStoreNotification);
-      const storeIds = new Set(storeItems.map((n) => n.id));
-      const merged = [...storeItems, ...inbox.notifications.filter((n) => !storeIds.has(n.id))];
-      setNotifications(merged);
+      setNotifications(mergeInboxById(storeItems, inbox.notifications));
       setMessages(inbox.messages);
       setDefaultSearchHits(inbox.defaultSearchHits);
-
-      if (storeRes.inbox?.items.length) {
-        setReadNotificationIds((current) => {
-          const next = new Set(current);
-          for (const row of storeRes.inbox!.items) {
-            if (row.isRead) next.add(row.id);
-          }
-          saveReadSet(NOTIFICATIONS_READ_KEY, next);
-          return next;
-        });
-      }
+      syncReadIdsFromStoreItems(storeRes.inbox?.items ?? [], NOTIFICATIONS_READ_KEY, setReadNotificationIds);
     } catch {
       setError('Unable to reach the API.');
     } finally {
@@ -309,20 +261,13 @@ export function useStudentTopbarLive() {
   );
 
   const markNotificationRead = useCallback((id: string) => {
-    if (isStoreNotificationId(id)) {
-      void markNotificationReadApi(id);
-    }
-    setReadNotificationIds((current) => {
-      const next = new Set(current).add(id);
-      saveReadSet(NOTIFICATIONS_READ_KEY, next);
-      return next;
-    });
+    markTopbarNotificationRead(id, NOTIFICATIONS_READ_KEY, setReadNotificationIds);
   }, []);
 
   const markMessageRead = useCallback((id: string) => {
     setReadMessageIds((current) => {
       const next = new Set(current).add(id);
-      saveReadSet(MESSAGES_READ_KEY, next);
+      saveTopbarReadSet(MESSAGES_READ_KEY, next);
       return next;
     });
   }, []);

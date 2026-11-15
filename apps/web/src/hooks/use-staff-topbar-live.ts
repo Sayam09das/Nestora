@@ -5,7 +5,18 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchAnnouncementsDeskNotices } from '@/lib/api/announcements';
 import { fetchComplaintsDeskTickets } from '@/lib/api/complaints';
 import { fetchStaffDashboardOverview } from '@/lib/api/dashboard';
+import { fetchNotificationInbox, type NotificationRow } from '@/lib/api/notifications';
 import { formatRelativeTimeFromIso } from '@/lib/format-relative-time';
+import {
+  formatTopbarNotificationTime,
+  loadTopbarReadSet,
+  mapNotificationCategory,
+  markAllTopbarNotificationsRead,
+  markTopbarNotificationRead,
+  mergeInboxById,
+  saveTopbarReadSet,
+  syncReadIdsFromStoreItems,
+} from '@/lib/topbar/notification-store-inbox';
 
 const LIVE_POLL_MS = 20_000;
 const NOTIFICATIONS_READ_KEY = 'nestora-staff-notifications-read';
@@ -16,7 +27,7 @@ export type StaffTopbarNotification = {
   title: string;
   body: string;
   time: string;
-  kind: 'duty' | 'shift' | 'alert' | 'maintenance' | 'announcement';
+  kind: 'duty' | 'shift' | 'alert' | 'maintenance' | 'announcement' | 'complaint' | 'leave' | 'incident';
   href?: string;
 };
 
@@ -38,24 +49,16 @@ export type StaffTopbarSearchHit = {
   href: string;
 };
 
-function loadReadSet(key: string): Set<string> {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw) as string[];
-    return new Set(Array.isArray(parsed) ? parsed : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function saveReadSet(key: string, ids: Set<string>) {
-  try {
-    localStorage.setItem(key, JSON.stringify([...ids]));
-  } catch {
-    // ignore
-  }
+function mapStoreNotification(row: NotificationRow): StaffTopbarNotification {
+  const kinds = mapNotificationCategory(row.category);
+  return {
+    id: row.id,
+    title: row.title,
+    body: row.message,
+    time: formatTopbarNotificationTime(row.createdAt),
+    kind: kinds.staff,
+    href: row.actionLink ?? undefined,
+  };
 }
 
 type Options = {
@@ -67,9 +70,9 @@ export function useStaffTopbarLive({ workplaceName, displayName }: Options) {
   const [notifications, setNotifications] = useState<StaffTopbarNotification[]>([]);
   const [messages, setMessages] = useState<StaffTopbarMessage[]>([]);
   const [readNotificationIds, setReadNotificationIds] = useState<Set<string>>(() =>
-    loadReadSet(NOTIFICATIONS_READ_KEY),
+    loadTopbarReadSet(NOTIFICATIONS_READ_KEY),
   );
-  const [readMessageIds, setReadMessageIds] = useState<Set<string>>(() => loadReadSet(MESSAGES_READ_KEY));
+  const [readMessageIds, setReadMessageIds] = useState<Set<string>>(() => loadTopbarReadSet(MESSAGES_READ_KEY));
   const [loading, setLoading] = useState(true);
 
   const hostelFilter =
@@ -79,10 +82,11 @@ export function useStaffTopbarLive({ workplaceName, displayName }: Options) {
 
   const loadInbox = useCallback(async () => {
     try {
-      const [overviewRes, complaintsRes, noticesRes] = await Promise.all([
+      const [overviewRes, complaintsRes, noticesRes, storeRes] = await Promise.all([
         fetchStaffDashboardOverview(),
         fetchComplaintsDeskTickets({ limit: 12, hostel: hostelFilter, status: 'All Status' }),
         fetchAnnouncementsDeskNotices({ limit: 10, status: 'Live' }),
+        fetchNotificationInbox({ limit: 20 }),
       ]);
 
       const overview = overviewRes.overview;
@@ -134,7 +138,9 @@ export function useStaffTopbarLive({ workplaceName, displayName }: Options) {
         if (nextNotifications.length >= 8) break;
       }
 
-      setNotifications(nextNotifications);
+      const storeItems = (storeRes.inbox?.items ?? []).map(mapStoreNotification);
+      setNotifications(mergeInboxById(storeItems, nextNotifications));
+      syncReadIdsFromStoreItems(storeRes.inbox?.items ?? [], NOTIFICATIONS_READ_KEY, setReadNotificationIds);
 
       const scopeNames = new Set(
         (overview?.scope.hostelNames ?? []).map((name) => name.toLowerCase()),
@@ -190,17 +196,21 @@ export function useStaffTopbarLive({ workplaceName, displayName }: Options) {
   );
 
   const markNotificationRead = useCallback((id: string) => {
-    setReadNotificationIds((current) => {
-      const next = new Set(current).add(id);
-      saveReadSet(NOTIFICATIONS_READ_KEY, next);
-      return next;
-    });
+    markTopbarNotificationRead(id, NOTIFICATIONS_READ_KEY, setReadNotificationIds);
   }, []);
+
+  const markAllNotificationsRead = useCallback(() => {
+    markAllTopbarNotificationsRead(
+      notifications.map((item) => item.id),
+      NOTIFICATIONS_READ_KEY,
+      setReadNotificationIds,
+    );
+  }, [notifications]);
 
   const markMessageRead = useCallback((id: string) => {
     setReadMessageIds((current) => {
       const next = new Set(current).add(id);
-      saveReadSet(MESSAGES_READ_KEY, next);
+      saveTopbarReadSet(MESSAGES_READ_KEY, next);
       return next;
     });
   }, []);
@@ -245,6 +255,7 @@ export function useStaffTopbarLive({ workplaceName, displayName }: Options) {
     readNotificationIds,
     readMessageIds,
     markNotificationRead,
+    markAllNotificationsRead,
     markMessageRead,
     search,
     loading,

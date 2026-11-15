@@ -1,7 +1,17 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { Bell, ChevronRight, ClipboardList, Loader2, Megaphone, ShieldAlert, Wrench } from 'lucide-react';
+import {
+  Bell,
+  ChevronRight,
+  ClipboardList,
+  Loader2,
+  Megaphone,
+  MessageSquareWarning,
+  Plane,
+  ShieldAlert,
+  Wrench,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -21,6 +31,9 @@ const kindStyles: Record<
   alert: { icon: ShieldAlert, iconClass: 'text-[var(--nestora-forest)]' },
   maintenance: { icon: Wrench, iconClass: 'text-amber-600' },
   announcement: { icon: Megaphone, iconClass: 'text-[var(--nestora-sage)]' },
+  complaint: { icon: MessageSquareWarning, iconClass: 'text-[var(--nestora-gold)]' },
+  leave: { icon: Plane, iconClass: 'text-[var(--nestora-forest)]' },
+  incident: { icon: ShieldAlert, iconClass: 'text-destructive' },
 };
 
 const focusRing =
@@ -28,8 +41,14 @@ const focusRing =
 
 export function StaffNotificationsPanel() {
   const reduceMotion = useReducedMotion();
-  const { notifications, notificationUnreadCount, readNotificationIds, markNotificationRead, loading } =
-    useStaffTopbarLiveContext();
+  const {
+    notifications,
+    notificationUnreadCount,
+    readNotificationIds,
+    markNotificationRead,
+    markAllNotificationsRead,
+    loading,
+  } = useStaffTopbarLiveContext();
   const [open, setOpen] = useState(false);
 
   return (
@@ -60,8 +79,21 @@ export function StaffNotificationsPanel() {
         className="w-[min(100vw-2rem,22.5rem)] overflow-hidden rounded-2xl border p-0 shadow-[0_24px_48px_-28px_color-mix(in_srgb,var(--nestora-forest)_45%,transparent)]"
       >
         <div className="border-b bg-[color-mix(in_oklch,var(--nestora-cream)_35%,var(--card))] px-4 py-3">
-          <p className="text-sm font-semibold text-[var(--nestora-forest)]">Duty &amp; alerts</p>
-          <p className="text-xs text-muted-foreground">Live assignments, duties, and work orders (~20s refresh)</p>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-[var(--nestora-forest)]">Duty &amp; alerts</p>
+              <p className="text-xs text-muted-foreground">MOD-07 inbox + assignments (~20s refresh)</p>
+            </div>
+            {notificationUnreadCount > 0 ? (
+              <button
+                type="button"
+                onClick={markAllNotificationsRead}
+                className={cn('rounded-full px-2.5 py-1 text-[10px] font-semibold', focusRing)}
+              >
+                Mark all read
+              </button>
+            ) : null}
+          </div>
         </div>
         <ul className="max-h-[min(60vh,20rem)] divide-y overflow-y-auto p-1">
           {loading && notifications.length === 0 ? (

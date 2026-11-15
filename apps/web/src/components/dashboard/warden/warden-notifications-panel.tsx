@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { Bell, ChevronRight, Loader2, MessageSquareWarning, ShieldAlert } from 'lucide-react';
+import { Bell, ChevronRight, Loader2, MessageSquareWarning, Plane, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -17,6 +17,24 @@ const kindStyles = {
     iconClass: 'text-[var(--nestora-gold)]',
     surfaceClass:
       'border-[color-mix(in_oklch,var(--nestora-gold)_28%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-gold)_10%,var(--card))]',
+  },
+  leave: {
+    icon: Plane,
+    iconClass: 'text-[var(--nestora-forest)]',
+    surfaceClass:
+      'border-[color-mix(in_oklch,var(--nestora-forest)_22%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-forest)_6%,var(--card))]',
+  },
+  incident: {
+    icon: ShieldAlert,
+    iconClass: 'text-destructive',
+    surfaceClass:
+      'border-[color-mix(in_oklch,var(--destructive)_28%,var(--border))] bg-[color-mix(in_oklch,var(--destructive)_8%,var(--card))]',
+  },
+  notice: {
+    icon: Bell,
+    iconClass: 'text-[var(--nestora-sage)]',
+    surfaceClass:
+      'border-[color-mix(in_oklch,var(--nestora-sage)_20%,var(--border))] bg-[color-mix(in_oklch,var(--nestora-sage)_6%,var(--card))]',
   },
   alert: {
     icon: ShieldAlert,
@@ -72,7 +90,7 @@ export function WardenNotificationsPanel() {
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="text-sm font-semibold text-[var(--nestora-forest)]">Notifications</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Live complaints & pending actions</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">MOD-07 inbox + live queue (~20s refresh)</p>
             </div>
             {notificationUnreadCount > 0 ? (
               <button type="button" onClick={markAllNotificationsRead} className={cn('rounded-full px-2.5 py-1 text-[10px] font-semibold', focusRing)}>
