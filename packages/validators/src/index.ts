@@ -134,6 +134,11 @@ export {
   type GuardGatePassActionBody,
 } from './guard-gate.validator.js';
 export {
+  notificationIdParamsSchema,
+  notificationListQuerySchema,
+  type NotificationListQuery,
+} from './notifications.validator.js';
+export {
   reportIdParamsSchema,
   reportPreviewQuerySchema,
   reportTemplateIdParamsSchema,

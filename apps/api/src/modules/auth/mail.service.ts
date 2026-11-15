@@ -98,6 +98,27 @@ export async function sendOtpEmail(
   });
 }
 
+export async function sendTransactionalNotificationEmail(
+  env: Env,
+  to: string,
+  payload: { title: string; message: string; actionUrl: string },
+): Promise<void> {
+  if (!env.SMTP_USER || !env.SMTP_PASS) {
+    return;
+  }
+  const transport = getTransport(env);
+  await transport.sendMail({
+    from: env.SMTP_FROM,
+    to,
+    subject: `Nestora — ${payload.title}`,
+    text: `${payload.message}\n\nOpen: ${payload.actionUrl}`,
+    html: [
+      `<p>${payload.message}</p>`,
+      `<p><a href="${payload.actionUrl}">Open in Nestora</a></p>`,
+    ].join(''),
+  });
+}
+
 export async function sendPasswordChangedNotice(env: Env, to: string): Promise<void> {
   if (!env.SMTP_USER || !env.SMTP_PASS) {
     return;

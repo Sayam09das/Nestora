@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@nestora/database';
 import type { CreateStudentLeaveBody } from '@nestora/validators';
 import { BadRequestError } from '../../common/errors/index.js';
+import { notifyLeaveApplicationSubmitted } from '../notifications/notification-events.service.js';
 import { ensureStudentProfileForUser } from '../students/student-profile-ensure.service.js';
 
 const PENDING_LEAVE_STATUSES = ['SUBMITTED', 'PENDING', 'PENDING_APPROVAL'] as const;
@@ -243,7 +244,7 @@ export async function createStudentLeaveApplication(
     throw new BadRequestError('You already have a pending or approved leave overlapping these dates.');
   }
 
-  await prisma.leaveApplication.create({
+  const created = await prisma.leaveApplication.create({
     data: {
       studentId: student.id,
       hostelId,
@@ -255,6 +256,20 @@ export async function createStudentLeaveApplication(
       emergencyContact: body.emergencyContact,
       status: 'SUBMITTED',
     },
+    select: { id: true },
+  });
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { firstName: true, lastName: true },
+  });
+  const studentName =
+    `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || 'A resident';
+  await notifyLeaveApplicationSubmitted(prisma, {
+    leaveId: created.id,
+    hostelId,
+    studentName,
+    leaveType: body.leaveType,
   });
 
   return getStudentLeaveDesk(prisma, userId);

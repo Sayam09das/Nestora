@@ -25,6 +25,7 @@ import { announcementsPlugin } from './modules/announcements/index.js';
 import { complaintsPlugin } from './modules/complaints/index.js';
 import { visitorsPlugin } from './modules/visitors/index.js';
 import { incidentsPlugin } from './modules/incidents/index.js';
+import { notificationsPlugin } from './modules/notifications/index.js';
 import { accountPlugin } from './modules/account/index.js';
 import { uploadsPlugin } from './modules/uploads/index.js';
 import { infrastructurePlugin } from './modules/infrastructure/index.js';
@@ -230,6 +231,7 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
       await v1.register(visitorsPlugin);
       await v1.register(announcementsPlugin);
       await v1.register(incidentsPlugin);
+      await v1.register(notificationsPlugin);
       await v1.register(accountPlugin);
     },
     { prefix: '/api/v1' },

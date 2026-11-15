@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { fetchStudentDashboardOverview, type StudentDashboardOverview } from '@/lib/api/dashboard';
+import {
+  fetchNotificationInbox,
+  isStoreNotificationId,
+  markNotificationReadApi,
+  type NotificationRow,
+} from '@/lib/api/notifications';
 
 const LIVE_POLL_MS = 20_000;
 const NOTIFICATIONS_READ_KEY = 'nestora-student-notifications-read';
@@ -45,6 +51,37 @@ function loadReadSet(key: string): Set<string> {
   } catch {
     return new Set();
   }
+}
+
+function mapCategoryToKind(category: string): StudentTopbarNotification['kind'] {
+  const c = category.toLowerCase();
+  if (c.includes('leave')) return 'leave';
+  if (c.includes('complaint')) return 'complaint';
+  if (c.includes('maintenance')) return 'maintenance';
+  if (c.includes('fee')) return 'fee';
+  if (c.includes('incident') || c.includes('emergency')) return 'notice';
+  if (c.includes('announcement') || c.includes('notice')) return 'announcement';
+  return 'notice';
+}
+
+function formatNotificationTime(iso: string): string {
+  return new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(iso));
+}
+
+function mapStoreNotification(row: NotificationRow): StudentTopbarNotification {
+  return {
+    id: row.id,
+    title: row.title,
+    body: row.message,
+    time: formatNotificationTime(row.createdAt),
+    kind: mapCategoryToKind(row.category),
+    href: row.actionLink ?? undefined,
+  };
 }
 
 function saveReadSet(key: string, ids: Set<string>) {
@@ -206,7 +243,10 @@ export function useStudentTopbarLive() {
 
   const loadInbox = useCallback(async () => {
     try {
-      const res = await fetchStudentDashboardOverview();
+      const [res, storeRes] = await Promise.all([
+        fetchStudentDashboardOverview(),
+        fetchNotificationInbox({ limit: 20 }),
+      ]);
       if (res.overview) {
         setError(null);
       } else if (res.error) {
@@ -216,9 +256,23 @@ export function useStudentTopbarLive() {
       if (!overview) return;
       setLatestOverview(overview);
       const inbox = buildInboxFromOverview(overview);
-      setNotifications(inbox.notifications);
+      const storeItems = (storeRes.inbox?.items ?? []).map(mapStoreNotification);
+      const storeIds = new Set(storeItems.map((n) => n.id));
+      const merged = [...storeItems, ...inbox.notifications.filter((n) => !storeIds.has(n.id))];
+      setNotifications(merged);
       setMessages(inbox.messages);
       setDefaultSearchHits(inbox.defaultSearchHits);
+
+      if (storeRes.inbox?.items.length) {
+        setReadNotificationIds((current) => {
+          const next = new Set(current);
+          for (const row of storeRes.inbox!.items) {
+            if (row.isRead) next.add(row.id);
+          }
+          saveReadSet(NOTIFICATIONS_READ_KEY, next);
+          return next;
+        });
+      }
     } catch {
       setError('Unable to reach the API.');
     } finally {
@@ -255,6 +309,9 @@ export function useStudentTopbarLive() {
   );
 
   const markNotificationRead = useCallback((id: string) => {
+    if (isStoreNotificationId(id)) {
+      void markNotificationReadApi(id);
+    }
     setReadNotificationIds((current) => {
       const next = new Set(current).add(id);
       saveReadSet(NOTIFICATIONS_READ_KEY, next);

@@ -2,6 +2,7 @@ import type { PrismaClient } from '@nestora/database';
 import type { CreateStudentComplaintBody } from '@nestora/validators';
 import { BadRequestError } from '../../common/errors/index.js';
 import { ensureStudentProfileForUser } from '../students/student-profile-ensure.service.js';
+import { notifyComplaintSubmitted } from '../notifications/notification-events.service.js';
 
 const TERMINAL_COMPLAINT_STATUSES = ['RESOLVED', 'CLOSED', 'REJECTED'] as const;
 const IN_PROGRESS_COMPLAINT_STATUSES = ['IN_PROGRESS', 'ASSIGNED', 'WORKING', 'IN_REVIEW'] as const;
@@ -283,7 +284,7 @@ export async function createStudentComplaintTicket(
       suggestedPriority: body.suggestedPriority,
       status: 'SUBMITTED',
     },
-    select: { id: true },
+    select: { id: true, ticketNumber: true },
   });
 
   await prisma.ticketStatusHistory.create({
@@ -293,6 +294,19 @@ export async function createStudentComplaintTicket(
       changedBy: userId,
       notes: 'Submitted by student.',
     },
+  });
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { firstName: true, lastName: true },
+  });
+  const studentName =
+    `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || 'A student';
+  await notifyComplaintSubmitted(prisma, {
+    hostelId,
+    ticketNumber: created.ticketNumber,
+    title: body.title,
+    studentName,
   });
 
   return getStudentComplaintsDesk(prisma, userId);
