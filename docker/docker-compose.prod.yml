@@ -1,36 +1,18 @@
-# Production orchestration scaffold — wire application services after container images are published.
+# Full stack locally: Postgres + API + Web (production-style images).
+# Browser calls the API at NEXT_PUBLIC_API_URL (host), not the Docker service name `api`.
+name: nestora-prod
+
 services:
-  api:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.api
-    env_file:
-      - ../apps/api/.env.example
-    ports:
-      - "4000:4000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-
-  web:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.web
-    environment:
-      NEXT_PUBLIC_API_URL: http://api:4000
-    ports:
-      - "3000:3000"
-    depends_on:
-      - api
-    restart: unless-stopped
-
   postgres:
     image: postgres:16-alpine
+    container_name: nestora-postgres-prod
+    restart: unless-stopped
     environment:
       POSTGRES_USER: nestora
       POSTGRES_PASSWORD: nestora_dev_pw
       POSTGRES_DB: nestora_db
+    ports:
+      - "5432:5432"
     volumes:
       - nestora_postgres_prod_data:/var/lib/postgresql/data
     healthcheck:
@@ -39,5 +21,60 @@ services:
       timeout: 5s
       retries: 10
 
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: nestora-mailhog-prod
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    container_name: nestora-api
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 4000
+      DATABASE_URL: postgresql://nestora:nestora_dev_pw@postgres:5432/nestora_db?schema=public&connection_limit=10
+      API_URL: http://localhost:4000
+      WEB_URL: http://localhost:3000
+      CORS_ORIGIN: http://localhost:3000
+      COOKIE_SECRET: change_me_to_a_32_byte_secure_random_string_ci_only
+      MFA_ENCRYPTION_SECRET: change_me_to_a_32_byte_secure_mfa_random_secret_prod
+      STORAGE_DRIVER: local
+      UPLOAD_LOCAL_PATH: /tmp/uploads
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_FROM: "Nestora <no-reply@localhost>"
+      TRUST_PROXY: "false"
+    volumes:
+      - nestora_api_uploads:/tmp/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:4000
+        NEXT_PUBLIC_SITE_URL: http://localhost:3000
+    container_name: nestora-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+    depends_on:
+      - api
+
 volumes:
   nestora_postgres_prod_data:
+  nestora_api_uploads:

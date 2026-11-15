@@ -33,3 +33,6 @@ jobs:
           push: false
           tags: nestora-web:ci
           load: true
+          build-args: |
+            NEXT_PUBLIC_API_URL=http://localhost:4000
+            NEXT_PUBLIC_SITE_URL=http://localhost:3000

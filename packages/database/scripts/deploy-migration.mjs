@@ -11,6 +11,10 @@ import { fileURLToPath } from 'node:url';
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const envPath = join(packageRoot, '.env');
 
+/** Shell-provided URLs must win over packages/database/.env (incl. DIRECT_DATABASE_URL). */
+const explicitDatabaseUrl = process.env.DATABASE_URL;
+const explicitDirectUrl = process.env.DIRECT_DATABASE_URL;
+
 function loadEnvFile(path) {
   if (!existsSync(path)) {
     return;
@@ -51,6 +55,16 @@ function normalizeDatabaseUrl(url) {
 }
 
 loadEnvFile(envPath);
+
+if (explicitDatabaseUrl !== undefined) {
+  process.env.DATABASE_URL = explicitDatabaseUrl;
+  if (explicitDirectUrl === undefined) {
+    process.env.DIRECT_DATABASE_URL = explicitDatabaseUrl;
+  }
+}
+if (explicitDirectUrl !== undefined) {
+  process.env.DIRECT_DATABASE_URL = explicitDirectUrl;
+}
 
 const direct = normalizeDatabaseUrl(process.env.DIRECT_DATABASE_URL);
 const primary = normalizeDatabaseUrl(process.env.DATABASE_URL);
