@@ -37,5 +37,8 @@ jobs:
       - name: Build validators (API runtime schemas)
         run: pnpm --filter @nestora/validators build
 
+      - name: Generate Prisma client
+        run: pnpm --filter @nestora/database db:generate
+
       - name: Typecheck and build
         run: pnpm typecheck && pnpm build
