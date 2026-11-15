@@ -34,9 +34,16 @@ export function useRoleAuthSession(): RoleAuthContextValue {
   return ctx;
 }
 
+type DashboardSessionRole =
+  | 'HOSTEL_WARDEN'
+  | 'HOSTEL_STAFF'
+  | 'STUDENT'
+  | 'SECURITY_GUARD'
+  | 'ACCOUNTANT';
+
 type RoleAuthSessionProviderProps = {
   children: ReactNode;
-  allowedRoles: Array<'HOSTEL_WARDEN' | 'HOSTEL_STAFF' | 'STUDENT'>;
+  allowedRoles: DashboardSessionRole[];
   homePath: string;
 };
 
@@ -50,7 +57,7 @@ export function RoleAuthSessionProvider({ children, allowedRoles, homePath }: Ro
   const applyProbe = useCallback(
     (next: { user: AuthUserPayload | null; unauthorized: boolean }) => {
       if (next.user) {
-        if (!allowedRoles.includes(next.user.role as 'HOSTEL_WARDEN' | 'HOSTEL_STAFF' | 'STUDENT')) {
+        if (!allowedRoles.includes(next.user.role as DashboardSessionRole)) {
           router.replace(dashboardPathForRole(next.user.role));
           return false;
         }

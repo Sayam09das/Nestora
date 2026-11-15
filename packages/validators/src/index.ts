@@ -128,6 +128,12 @@ export {
   type CreateStudentHelpRequestBody,
 } from './help.validator.js';
 export {
+  guardGateLookupBodySchema,
+  guardGatePassActionBodySchema,
+  type GuardGateLookupBody,
+  type GuardGatePassActionBody,
+} from './guard-gate.validator.js';
+export {
   reportIdParamsSchema,
   reportPreviewQuerySchema,
   reportTemplateIdParamsSchema,
