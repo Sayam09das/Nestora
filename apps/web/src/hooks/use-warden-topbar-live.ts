@@ -5,9 +5,22 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchAnnouncementsDeskNotices } from '@/lib/api/announcements';
 import { fetchComplaintsDeskTickets } from '@/lib/api/complaints';
 import { fetchWardenDashboardOverview } from '@/lib/api/dashboard';
+import { fetchNotificationInbox, type NotificationRow } from '@/lib/api/notifications';
 import { fetchRoomDirectoryList } from '@/lib/api/rooms';
 import { fetchStudentDirectoryList } from '@/lib/api/students';
 import { formatRelativeTimeFromIso } from '@/lib/format-relative-time';
+import {
+  formatTopbarNotificationTime,
+  loadTopbarReadSet,
+  mapNotificationCategory,
+  markAllTopbarNotificationsRead,
+  markTopbarNotificationRead,
+  mergeInboxById,
+  saveTopbarReadSet,
+  storeActionLabel,
+  storeInboxCoversCategory,
+  syncReadIdsFromStoreItems,
+} from '@/lib/topbar/notification-store-inbox';
 
 const LIVE_POLL_MS = 20_000;
 const NOTIFICATIONS_READ_KEY = 'nestora-warden-notifications-read';
@@ -18,7 +31,7 @@ export type WardenTopbarNotification = {
   title: string;
   body: string;
   time: string;
-  kind: 'complaint' | 'alert';
+  kind: 'complaint' | 'alert' | 'leave' | 'incident' | 'notice';
   href?: string;
   actionLabel?: string;
 };
@@ -41,24 +54,17 @@ export type WardenTopbarSearchHit = {
   href: string;
 };
 
-function loadReadSet(key: string): Set<string> {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw) as string[];
-    return new Set(Array.isArray(parsed) ? parsed : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function saveReadSet(key: string, ids: Set<string>) {
-  try {
-    localStorage.setItem(key, JSON.stringify([...ids]));
-  } catch {
-    // ignore
-  }
+function mapStoreNotification(row: NotificationRow): WardenTopbarNotification {
+  const kinds = mapNotificationCategory(row.category);
+  return {
+    id: row.id,
+    title: row.title,
+    body: row.message,
+    time: formatTopbarNotificationTime(row.createdAt),
+    kind: kinds.warden,
+    href: row.actionLink ?? undefined,
+    actionLabel: storeActionLabel(row.actionLink),
+  };
 }
 
 type Options = {
@@ -70,9 +76,9 @@ export function useWardenTopbarLive({ selectedHostelId, hostelName }: Options) {
   const [notifications, setNotifications] = useState<WardenTopbarNotification[]>([]);
   const [messages, setMessages] = useState<WardenTopbarMessage[]>([]);
   const [readNotificationIds, setReadNotificationIds] = useState<Set<string>>(() =>
-    loadReadSet(NOTIFICATIONS_READ_KEY),
+    loadTopbarReadSet(NOTIFICATIONS_READ_KEY),
   );
-  const [readMessageIds, setReadMessageIds] = useState<Set<string>>(() => loadReadSet(MESSAGES_READ_KEY));
+  const [readMessageIds, setReadMessageIds] = useState<Set<string>>(() => loadTopbarReadSet(MESSAGES_READ_KEY));
   const [loading, setLoading] = useState(true);
 
   const scopedHostelId = selectedHostelId.trim() || undefined;
@@ -80,17 +86,23 @@ export function useWardenTopbarLive({ selectedHostelId, hostelName }: Options) {
   const loadInbox = useCallback(async () => {
     const hostelFilter = hostelName && hostelName !== 'Assigned hostel' ? hostelName : undefined;
     try {
-      const [overview, complaints, notices] = await Promise.all([
+      const [overview, complaints, notices, storeRes] = await Promise.all([
         fetchWardenDashboardOverview(scopedHostelId ? { hostelId: scopedHostelId } : undefined),
         fetchComplaintsDeskTickets({
           limit: 8,
           hostel: hostelFilter,
         }),
         fetchAnnouncementsDeskNotices({ limit: 8, status: 'Live' }),
+        fetchNotificationInbox({ limit: 25 }),
       ]);
 
+      const storeRows = storeRes.inbox?.items ?? [];
+      const skipComplaintDerived = storeInboxCoversCategory(storeRows, 'complaint', { unreadOnly: true });
+      const skipLeaveSummary = storeInboxCoversCategory(storeRows, 'leave', { unreadOnly: true });
+
       const nextNotifications: WardenTopbarNotification[] = [];
-      for (const ticket of complaints.tickets ?? []) {
+      if (!skipComplaintDerived) {
+        for (const ticket of complaints.tickets ?? []) {
         if (['Resolved', 'Rejected'].includes(ticket.status)) continue;
         nextNotifications.push({
           id: `cmp-${ticket.id}`,
@@ -101,10 +113,11 @@ export function useWardenTopbarLive({ selectedHostelId, hostelName }: Options) {
           href: `/warden/complaints/${ticket.id}`,
           actionLabel: 'Open ticket',
         });
+        }
       }
 
       const approvals = overview.overview?.approvals;
-      if (approvals && approvals.leaveRequests > 0) {
+      if (!skipLeaveSummary && approvals && approvals.leaveRequests > 0) {
         nextNotifications.push({
           id: 'pending-leave',
           title: 'Leave requests',
@@ -138,7 +151,9 @@ export function useWardenTopbarLive({ selectedHostelId, hostelName }: Options) {
         });
       }
 
-      setNotifications(nextNotifications);
+      const storeItems = storeRows.map(mapStoreNotification);
+      setNotifications(mergeInboxById(storeItems, nextNotifications));
+      syncReadIdsFromStoreItems(storeRows, NOTIFICATIONS_READ_KEY, setReadNotificationIds);
 
       const scopedNotices = (notices.notices ?? []).filter((notice) => {
         if (notice.scope === 'University-wide') return true;
@@ -191,25 +206,21 @@ export function useWardenTopbarLive({ selectedHostelId, hostelName }: Options) {
   );
 
   const markNotificationRead = useCallback((id: string) => {
-    setReadNotificationIds((current) => {
-      const next = new Set(current).add(id);
-      saveReadSet(NOTIFICATIONS_READ_KEY, next);
-      return next;
-    });
+    markTopbarNotificationRead(id, NOTIFICATIONS_READ_KEY, setReadNotificationIds);
   }, []);
 
   const markAllNotificationsRead = useCallback(() => {
-    setReadNotificationIds(() => {
-      const next = new Set(notifications.map((item) => item.id));
-      saveReadSet(NOTIFICATIONS_READ_KEY, next);
-      return next;
-    });
+    markAllTopbarNotificationsRead(
+      notifications.map((item) => item.id),
+      NOTIFICATIONS_READ_KEY,
+      setReadNotificationIds,
+    );
   }, [notifications]);
 
   const markMessageRead = useCallback((id: string) => {
     setReadMessageIds((current) => {
       const next = new Set(current).add(id);
-      saveReadSet(MESSAGES_READ_KEY, next);
+      saveTopbarReadSet(MESSAGES_READ_KEY, next);
       return next;
     });
   }, []);
