@@ -172,7 +172,7 @@ export async function getStudentSelfProfileDesk(
           allocationDate: null,
         };
 
-  const documents =
+  const documents: StudentSelfProfileDesk['documents'] =
     student?.documents.map((doc) => ({
       id: doc.id,
       name: doc.fileName,
@@ -180,7 +180,7 @@ export async function getStudentSelfProfileDesk(
       uploadedAt: doc.uploadedAt.toISOString(),
     })) ?? [];
 
-  if (profileLinked && documents.length === 0) {
+  if (profileLinked && documents.length === 0 && student) {
     documents.push({
       id: 'admission-pending',
       name: 'Admission documents',
