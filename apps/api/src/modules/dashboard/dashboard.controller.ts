@@ -11,6 +11,7 @@ import {
 } from './student-attendance.service.js';
 import { getStudentRoommatesDesk } from './student-roommates.service.js';
 import { createStudentLeaveApplication, getStudentLeaveDesk } from './student-leave.service.js';
+import { createStudentOutingRequest, getStudentOutingDesk } from './student-outing.service.js';
 import { getStudentGatePassesDesk } from './student-gate-passes.service.js';
 import {
   createStudentComplaintTicket,
@@ -41,6 +42,7 @@ import {
   createStudentMaintenanceBodySchema,
   createStudentVisitorBodySchema,
   createStudentLeaveBodySchema,
+  createStudentOutingBodySchema,
   studentAcknowledgeNoticeBodySchema,
   studentReportIncidentBodySchema,
   updateStudentSelfProfileBodySchema,
@@ -288,6 +290,29 @@ export async function postStudentLeaveHandler(
   const body = createStudentLeaveBodySchema.parse(request.body);
   const desk = await createStudentLeaveApplication(request.server.prisma, user.id, body);
   reply.send(successResponse({ desk }, 'Leave request submitted.'));
+}
+
+export async function getStudentOutingsHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'STUDENT');
+
+  const desk = await getStudentOutingDesk(request.server.prisma, user.id);
+  reply.send(successResponse({ desk }, 'Student outing desk.'));
+}
+
+export async function postStudentOutingHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'STUDENT');
+
+  const body = createStudentOutingBodySchema.parse(request.body);
+  const desk = await createStudentOutingRequest(request.server.prisma, user.id, body);
+  reply.send(successResponse({ desk }, 'Outing request submitted.'));
 }
 
 export async function getStudentRoommatesHandler(

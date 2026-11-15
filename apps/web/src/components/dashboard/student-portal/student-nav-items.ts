@@ -103,6 +103,14 @@ const requests: StudentNavGroup = {
       isActive: pathActive('/student/leave'),
     },
     {
+      id: 'outings',
+      href: '/student/outings',
+      label: 'Outings',
+      icon: CalendarCheck,
+      permission: 'services.outings',
+      isActive: pathActive('/student/outings'),
+    },
+    {
       id: 'gate-passes',
       href: '/student/gate-passes',
       label: 'Gate Passes',
