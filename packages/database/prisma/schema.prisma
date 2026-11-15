@@ -407,6 +407,7 @@ model Student {
   admissionApplications   AdmissionApplication[]
   bedPreferences          BedPreference[]
   allocationRecords       AllocationRecord[]
+  checkOutRequests        CheckOutRequest[]
   roomChangeRequests      RoomChangeRequest[]
   attendanceRecords       AttendanceRecord[]
   attendanceDiscrepancies AttendanceDiscrepancy[]
@@ -502,11 +503,34 @@ model AllocationRecord {
 
   student   Student         @relation(fields: [studentId], references: [id], onDelete: Restrict)
   bed       Bed             @relation(fields: [bedId], references: [id], onDelete: Restrict)
-  checkIn   CheckInRecord?
-  checkOut  CheckOutRecord?
+  checkIn            CheckInRecord?
+  checkOut           CheckOutRecord?
+  checkOutRequests   CheckOutRequest[]
 
   @@index([studentId, bedId, status], map: "idx_allocations_active")
   @@map("allocation_records")
+}
+
+model CheckOutRequest {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId     String    @map("student_id") @db.Uuid
+  allocationId  String    @map("allocation_id") @db.Uuid
+  plannedDate   DateTime  @map("planned_date") @db.Date
+  reason        String?
+  status        String    @default("PENDING") @db.VarChar(20)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  reviewedBy    String?   @map("reviewed_by") @db.Uuid
+  reviewedAt    DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewRemarks       String?   @map("review_remarks")
+  accountantCleared   Boolean   @default(false) @map("accountant_cleared")
+  accountantClearedAt DateTime? @map("accountant_cleared_at") @db.Timestamptz(6)
+  accountantClearedBy String?   @map("accountant_cleared_by") @db.Uuid
+
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  allocation AllocationRecord @relation(fields: [allocationId], references: [id], onDelete: Restrict)
+
+  @@index([status, plannedDate], map: "idx_checkout_requests_status")
+  @@map("check_out_requests")
 }
 
 model RoomChangeRequest {
@@ -1153,4 +1177,14 @@ model AuditLog {
 
   @@index([timestamp], map: "idx_audit_timestamp")
   @@map("audit_logs")
+}
+
+model SystemConfiguration {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  configKey String   @unique @map("config_key") @db.VarChar(100)
+  valueJson String   @map("value_json") @db.Text
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  @@map("system_configurations")
 }

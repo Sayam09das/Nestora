@@ -11,19 +11,25 @@ import { AdminFeesPageHeader } from '@/components/dashboard/fees/admin-fees-page
 import { AdminFeesRecordDrawer } from '@/components/dashboard/fees/admin-fees-record-drawer';
 import { AdminFeesRegistry } from '@/components/dashboard/fees/admin-fees-registry';
 import { AdminFeesStatsStrip } from '@/components/dashboard/fees/admin-fees-stats-strip';
+import { AdminFeesProposeWaiverDrawer } from '@/components/dashboard/fees/admin-fees-propose-waiver-drawer';
 import { AdminFeesWaiverDrawer } from '@/components/dashboard/fees/admin-fees-waiver-drawer';
+import {
+  ADMIN_FINANCE_DESK,
+  type FinanceDeskConfig,
+} from '@/components/dashboard/fees/finance-desk-config';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Button } from '@/components/ui/button';
 import { useFinanceDesk } from '@/hooks/use-finance-desk';
 
-export function AdminFeesPage() {
+export function AdminFeesPage({ desk = ADMIN_FINANCE_DESK }: { desk?: FinanceDeskConfig }) {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const flipRootRef = useRef<HTMLDivElement>(null);
 
   const [view, setView] = useState<'desk' | 'registry'>('desk');
   const [recordOpen, setRecordOpen] = useState(false);
-  const [waiverOpen, setWaiverOpen] = useState(false);
+  const [waiverDecideOpen, setWaiverDecideOpen] = useState(false);
+  const [waiverProposeOpen, setWaiverProposeOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [hostelFilter, setHostelFilter] = useState('All hostels');
   const [statusFilter, setStatusFilter] = useState('All status');
@@ -144,18 +150,21 @@ export function AdminFeesPage() {
               listKey={listKey}
               hidden={view !== 'desk'}
               activeSchedules={summary?.activeSchedules ?? null}
+              ledgerBasePath={desk.ledgerBasePath}
             />
-            <AdminFeesRegistry rows={ledgers} hidden={view !== 'registry'} />
+            <AdminFeesRegistry rows={ledgers} hidden={view !== 'registry'} ledgerBasePath={desk.ledgerBasePath} />
           </>
         )}
         {view === 'desk' ? (
           <AdminFeesLedgerPanel
             account={selected}
-            onRequestWaiver={() => setWaiverOpen(true)}
+            onDecideWaiver={desk.canDecideWaivers ? () => setWaiverDecideOpen(true) : undefined}
+            onProposeWaiver={desk.canProposeWaivers ? () => setWaiverProposeOpen(true) : undefined}
             lines={detailLines}
             collectionTrend={collectionTrend}
             pendingWaivers={detailWaivers}
             loadingDetail={loadingDetail}
+            ledgerBasePath={desk.ledgerBasePath}
           />
         ) : null}
       </div>
@@ -163,8 +172,24 @@ export function AdminFeesPage() {
         open={recordOpen}
         onOpenChange={setRecordOpen}
         preselectAccountId={effectiveSelectedId}
+        ledgers={ledgers}
+        onRecorded={() => void refresh()}
       />
-      <AdminFeesWaiverDrawer open={waiverOpen} onOpenChange={setWaiverOpen} />
+      <AdminFeesWaiverDrawer
+        open={waiverDecideOpen}
+        onOpenChange={setWaiverDecideOpen}
+        pendingWaivers={detailWaivers}
+        onDecided={() => void refresh()}
+      />
+      <AdminFeesProposeWaiverDrawer
+        open={waiverProposeOpen}
+        onOpenChange={setWaiverProposeOpen}
+        account={selected}
+        onSubmitted={() => {
+          void refresh();
+          if (effectiveSelectedId) void loadDetail(effectiveSelectedId);
+        }}
+      />
     </div>
   );
 }

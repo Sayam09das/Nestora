@@ -26,20 +26,24 @@ const chartConfig = {
 
 type Props = {
   account: LedgerAccount | null;
-  onRequestWaiver: () => void;
+  onDecideWaiver?: () => void;
+  onProposeWaiver?: () => void;
   lines: LedgerLine[];
   collectionTrend: FinanceCollectionTrendPoint[];
   pendingWaivers: FinancePendingWaiver[];
   loadingDetail?: boolean;
+  ledgerBasePath?: string;
 };
 
 export function AdminFeesLedgerPanel({
   account,
-  onRequestWaiver,
+  onDecideWaiver,
+  onProposeWaiver,
   lines,
   collectionTrend,
   pendingWaivers,
   loadingDetail = false,
+  ledgerBasePath = '/admin/fees',
 }: Props) {
   const reduceMotion = useReducedMotion();
   const chartRef = useRef<HTMLDivElement>(null);
@@ -83,7 +87,13 @@ export function AdminFeesLedgerPanel({
               {account.regNo} · {account.semester}
             </p>
           </div>
-          <Button nativeButton={false} variant="outline" size="sm" className="rounded-xl" render={<Link href={`/admin/fees/${account.id}`} className={focusRing} />}>
+          <Button
+            nativeButton={false}
+            variant="outline"
+            size="sm"
+            className="rounded-xl"
+            render={<Link href={`${ledgerBasePath}/${account.id}`} className={focusRing} />}
+          >
             Full statement
           </Button>
         </div>
@@ -173,9 +183,18 @@ export function AdminFeesLedgerPanel({
               <FileCheck className="size-4" aria-hidden />
               Waiver queue
             </h3>
-            <Button type="button" variant="ghost" size="sm" className={cn('h-7 text-xs', focusRing)} onClick={onRequestWaiver}>
-              Review
-            </Button>
+            <div className="flex gap-1">
+              {onProposeWaiver ? (
+                <Button type="button" variant="ghost" size="sm" className={cn('h-7 text-xs', focusRing)} onClick={onProposeWaiver}>
+                  Propose
+                </Button>
+              ) : null}
+              {onDecideWaiver ? (
+                <Button type="button" variant="ghost" size="sm" className={cn('h-7 text-xs', focusRing)} onClick={onDecideWaiver}>
+                  Review
+                </Button>
+              ) : null}
+            </div>
           </div>
           <ul className="mt-3 space-y-2">
             {pendingWaivers.length === 0 ? (

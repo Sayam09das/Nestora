@@ -22,12 +22,22 @@ import { cn } from '@/lib/utils';
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
+const SYSTEM_CONFIG_FIELD_KEYS = new Set([
+  'absence_threshold',
+  'extended_leave_admin_days',
+  'grace_days',
+  'late_fee_flat_amount',
+  'auto_late',
+  'auto_close_hours',
+  'roll_cutoff',
+]);
+
 type Props = {
   panel: SettingsPanel | null;
   fields?: SettingField[];
   loading?: boolean;
   detailBasePath?: string;
-  onPersistField?: (key: string, value: boolean) => Promise<void>;
+  onPersistField?: (key: string, value: string | number | boolean) => Promise<void>;
 };
 
 export function AdminSettingsTunePanel({
@@ -76,6 +86,17 @@ export function AdminSettingsTunePanel({
   const valueFor = (key: string, fallback: string | number | boolean) =>
     key in local ? local[key] : fallback;
 
+  const fieldPersistable = (field: SettingField) =>
+    SYSTEM_CONFIG_FIELD_KEYS.has(field.key) || Boolean(field.wardenEditable);
+
+  const persistConfigField = (key: string, value: string | number | boolean) => {
+    if (!liveFields || !onPersistField) return;
+    void onPersistField(key, value).then(() => {
+      setLocal((s) => ({ ...s, [key]: value }));
+      toast.success('Policy value saved.');
+    });
+  };
+
   return (
     <motion.section
       ref={rootRef}
@@ -123,11 +144,8 @@ export function AdminSettingsTunePanel({
                     checked={Boolean(valueFor(field.key, field.value))}
                     disabled={field.type === 'locked'}
                     onCheckedChange={(v) => {
-                      if (liveFields && field.wardenEditable && onPersistField) {
-                        void onPersistField(field.key, v).then(() => {
-                          setLocal((s) => ({ ...s, [field.key]: v }));
-                          toast.success('Preference saved.');
-                        });
+                      if (liveFields && fieldPersistable(field) && onPersistField) {
+                        persistConfigField(field.key, v);
                         return;
                       }
                       if (liveFields && field.type !== 'locked') {
@@ -143,10 +161,17 @@ export function AdminSettingsTunePanel({
               ) : field.type === 'number' ? (
                 <Input
                   type="number"
-                  readOnly={liveFields}
+                  readOnly={liveFields && !fieldPersistable(field)}
                   className={cn('h-9 w-24 rounded-lg tabular-nums', focusRing)}
                   value={Number(valueFor(field.key, field.value))}
                   onChange={(e) => setLocal((s) => ({ ...s, [field.key]: Number(e.target.value) }))}
+                  onBlur={(e) => {
+                    if (!liveFields || !fieldPersistable(field) || !onPersistField) return;
+                    const next = Number(e.target.value);
+                    if (Number.isFinite(next) && next !== Number(field.value)) {
+                      persistConfigField(field.key, next);
+                    }
+                  }}
                   aria-label={field.label}
                 />
               ) : field.type === 'select' ? (

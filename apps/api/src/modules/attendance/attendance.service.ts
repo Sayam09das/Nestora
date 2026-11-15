@@ -220,7 +220,7 @@ async function loadAttendanceForStudents(
   return new Map(records.map((r) => [r.studentId, { status: r.status, id: r.id }]));
 }
 
-async function loadConsecutiveUnexplainedMap(
+export async function loadConsecutiveUnexplainedMap(
   prisma: PrismaClient,
   studentIds: string[],
   sessionDate: Date,
@@ -615,4 +615,87 @@ export async function clearNightAttendanceMark(
       attendanceDate: sessionDate,
     },
   });
+}
+
+function startOfTodayUtc(): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
+export type ConsecutiveAbsenceAlert = {
+  studentId: string;
+  hostelId: string;
+  studentName: string;
+  streak: number;
+};
+
+export async function scanConsecutiveAbsenceAlerts(
+  prisma: PrismaClient,
+  threshold: number,
+): Promise<ConsecutiveAbsenceAlert[]> {
+  const sessionDate = startOfTodayUtc();
+  const residents = await prisma.allocationRecord.findMany({
+    where: { status: 'ACTIVE' },
+    select: {
+      studentId: true,
+      student: {
+        select: {
+          registrationNumber: true,
+          user: { select: { firstName: true, lastName: true } },
+        },
+      },
+      bed: {
+        select: {
+          room: {
+            select: {
+              floor: {
+                select: {
+                  block: {
+                    select: {
+                      building: { select: { hostelId: true } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (residents.length === 0) return [];
+
+  const absentToday = await prisma.attendanceRecord.findMany({
+    where: {
+      attendanceDate: sessionDate,
+      status: 'ABSENT',
+      studentId: { in: residents.map((r) => r.studentId) },
+    },
+    select: { studentId: true },
+  });
+  const absentIds = new Set(absentToday.map((r) => r.studentId));
+  const candidates = residents.filter((r) => absentIds.has(r.studentId));
+  if (candidates.length === 0) return [];
+
+  const streakMap = await loadConsecutiveUnexplainedMap(
+    prisma,
+    candidates.map((c) => c.studentId),
+    sessionDate,
+  );
+
+  const alerts: ConsecutiveAbsenceAlert[] = [];
+  for (const row of candidates) {
+    const streak = streakMap.get(row.studentId) ?? 0;
+    if (streak < threshold) continue;
+    const studentName =
+      `${row.student.user.firstName ?? ''} ${row.student.user.lastName ?? ''}`.trim() ||
+      row.student.registrationNumber;
+    alerts.push({
+      studentId: row.studentId,
+      hostelId: row.bed.room.floor.block.building.hostelId,
+      studentName,
+      streak,
+    });
+  }
+  return alerts;
 }

@@ -20,6 +20,7 @@ type Props = {
   listKey: string;
   hidden?: boolean;
   activeSchedules?: number | null;
+  ledgerBasePath?: string;
 };
 
 function Sparkline({ values }: { values: number[] }) {
@@ -44,7 +45,15 @@ const statusTone: Record<LedgerAccount['status'], string> = {
   Cleared: 'bg-[color-mix(in_oklch,var(--nestora-forest)_12%,var(--muted))] text-[var(--nestora-forest)]',
 };
 
-export function AdminFeesDesk({ accounts, selectedId, onSelect, listKey, hidden, activeSchedules }: Props) {
+export function AdminFeesDesk({
+  accounts,
+  selectedId,
+  onSelect,
+  listKey,
+  hidden,
+  activeSchedules,
+  ledgerBasePath = '/admin/fees',
+}: Props) {
   const reduceMotion = useReducedMotion();
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -121,7 +130,7 @@ export function AdminFeesDesk({ accounts, selectedId, onSelect, listKey, hidden,
               </button>
               <div className="border-t px-4 py-2 sm:px-5">
                 <Link
-                  href={`/admin/fees/${acct.id}`}
+                  href={`${ledgerBasePath}/${acct.id}`}
                   className={cn('inline-flex items-center gap-1 text-xs font-medium text-[var(--nestora-forest)]', focusRing)}
                 >
                   Open statement

@@ -20,7 +20,7 @@
     "admin:init": "node --env-file=.env --import tsx/esm scripts/admin-init.ts",
     "admin:register-dev": "node --env-file=.env --import tsx/esm scripts/register-dev-admin.ts",
     "build": "prisma generate && tsc -p tsconfig.build.json",
-    "typecheck": "prisma generate && tsc -p tsconfig.build.json --noEmit",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "lint": "biome check src prisma/seed/seed.ts",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput"
   },

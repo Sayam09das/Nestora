@@ -94,6 +94,7 @@ const allocationInclude = {
   take: 1,
   orderBy: { allocatedAt: 'desc' as const },
   include: {
+    checkIn: { select: { id: true, checkInTime: true } },
     bed: {
       include: {
         room: {
@@ -437,10 +438,13 @@ export type AdminStudentProfile = {
     guardianRelation: string;
   };
   housing: null | {
+    allocationId: string;
     hostelName: string;
     roomNumber: string;
     bedNumber: string;
     allocatedSince: string;
+    checkedIn: boolean;
+    checkInTime: string | null;
   };
   admission: StudentAdmissionProfile | null;
 };
@@ -507,10 +511,13 @@ export async function getAdminStudentProfile(
     housing:
       allocation && hostelName
         ? {
+            allocationId: allocation.id,
             hostelName,
             roomNumber: allocation.bed.room.roomNumber,
             bedNumber: allocation.bed.bedNumber,
             allocatedSince: allocation.startDate.toISOString().slice(0, 10),
+            checkedIn: Boolean(allocation.checkIn),
+            checkInTime: allocation.checkIn?.checkInTime.toISOString() ?? null,
           }
         : null,
     admission,

@@ -8,6 +8,9 @@
     "typecheck": {
       "dependsOn": ["^build"]
     },
+    "@nestora/database#typecheck": {
+      "dependsOn": ["^build", "build"]
+    },
     "lint": {
       "dependsOn": ["^build"]
     },

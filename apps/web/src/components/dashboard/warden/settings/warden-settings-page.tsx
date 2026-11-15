@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useSettingsDesk } from '@/hooks/use-settings-desk';
 import { useOperationalDashboardOverview } from '@/hooks/use-operational-dashboard-overview';
-import { patchSettingsPanel } from '@/lib/api/settings';
+import { patchWardenSettingsPanel } from '@/lib/api/settings';
 import { formatRelativeTimeFromIso } from '@/lib/format-relative-time';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 
@@ -77,8 +77,8 @@ export function WardenSettingsPage() {
   const liveLabel = summary?.generatedAt ? formatRelativeTimeFromIso(summary.generatedAt) : null;
 
   const onPersistField = useCallback(
-    async (key: string, value: boolean) => {
-      await patchSettingsPanel(effectiveSelectedId, {
+    async (key: string, value: string | number | boolean) => {
+      await patchWardenSettingsPanel(effectiveSelectedId, {
         hostel: hostelScope,
         fields: { [key]: value },
       });

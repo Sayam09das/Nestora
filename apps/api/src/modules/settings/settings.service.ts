@@ -1,8 +1,16 @@
 import type { PrismaClient } from '@nestora/database';
 import type { SettingsDeskListQuery } from '@nestora/validators';
 import type { Env } from '../../config/env.js';
+import { BadRequestError } from '../../common/errors/index.js';
 import { CRITICAL_LOCKED_CONTROLS, SETTINGS_CATALOG, type SettingsCatalogEntry } from './settings.catalog.js';
 import { PANEL_FIELD_TEMPLATES, type SettingFieldTemplate } from './settings.fields.js';
+import { patchSettingsPanelBodySchema } from '@nestora/validators';
+import type { z } from 'zod';
+import {
+  loadConfigOverrides,
+  patchPanelConfigFields,
+  WARDEN_PATCHABLE_PANEL_FIELDS,
+} from './system-config.service.js';
 
 export type SettingsPanelStatus = 'Synced' | 'Draft' | 'Pending approval';
 
@@ -41,6 +49,7 @@ export type SettingFieldDto = {
   value: string | number | boolean;
   help?: string;
   options?: string[];
+  wardenEditable?: boolean;
 };
 
 export type SettingsChangeLogEntry = {
@@ -265,8 +274,11 @@ async function liveFieldValues(prisma: PrismaClient, panelId: string, env: Env):
         prisma.attendanceDiscrepancy.count({ where: { status: 'PENDING' } }),
         prisma.attendanceRecord.count({ where: { attendanceDate: { gte: today } } }),
       ]);
+      const cfg = await loadConfigOverrides(prisma);
       return {
-        roll_cutoff: 45,
+        roll_cutoff: cfg.roll_cutoff ?? 45,
+        absence_threshold: cfg.absence_threshold ?? 3,
+        extended_leave_admin_days: cfg.extended_leave_admin_days ?? 7,
         open_discrepancies: openDiscrepancies,
         records_today: recordsToday,
         auto_escalate: openDiscrepancies > 0,
@@ -313,7 +325,14 @@ async function liveFieldValues(prisma: PrismaClient, panelId: string, env: Env):
         prisma.feeAdjustment.count({ where: { status: { in: [...PENDING_FEE_STATUSES] } } }),
         prisma.feeSchedule.count({ where: { status: { in: ['ACTIVE', 'APPROVED'] } } }),
       ]);
-      return { pending_adjustments: pending, active_schedules: schedules, auto_late: pending === 0 };
+      const cfg = await loadConfigOverrides(prisma);
+      return {
+        pending_adjustments: pending,
+        active_schedules: schedules,
+        auto_late: cfg.auto_late_enabled ?? pending === 0,
+        grace_days: cfg.late_fee_grace_days ?? 7,
+        late_fee_flat_amount: cfg.late_fee_flat_amount ?? 500,
+      };
     }
     case 'cfg-security': {
       const [mfa, admins] = await Promise.all([
@@ -331,7 +350,12 @@ async function liveFieldValues(prisma: PrismaClient, panelId: string, env: Env):
         prisma.complaintTicket.count({ where: { status: { in: [...OPEN_COMPLAINT] } } }),
         prisma.complaintTicket.count({ where: { status: 'IN_PROGRESS' } }),
       ]);
-      return { open_tickets: open, assigned_tickets: assigned };
+      const cfg = await loadConfigOverrides(prisma);
+      return {
+        open_tickets: open,
+        assigned_tickets: assigned,
+        auto_close_hours: cfg.auto_close_hours ?? 72,
+      };
     }
     case 'cfg-roles': {
       const [staff, warden] = await Promise.all([
@@ -354,6 +378,7 @@ function buildFields(panelId: string, live: Record<string, string | number | boo
     value: live[t.key] ?? t.defaultValue,
     help: t.help,
     options: t.options,
+    wardenEditable: WARDEN_PATCHABLE_PANEL_FIELDS.has(t.key),
   }));
 }
 
@@ -409,4 +434,68 @@ export async function getSettingsPanelDetail(
   ]);
 
   return { panel, fields, changeLog };
+}
+
+type PatchSettingsPanelBody = z.infer<typeof patchSettingsPanelBodySchema>;
+
+export async function patchSettingsPanel(
+  prisma: PrismaClient,
+  panelId: string,
+  env: Env,
+  actorUserId: string,
+  body: PatchSettingsPanelBody,
+): Promise<SettingsPanelDetail | null> {
+  const entry = SETTINGS_CATALOG.find((p) => p.id === panelId);
+  if (!entry) return null;
+
+  await patchPanelConfigFields(prisma, actorUserId, body.fields);
+
+  await prisma.auditLog.create({
+    data: {
+      actorUserId,
+      actorRole: 'UNIVERSITY_ADMINISTRATOR',
+      actionName: 'SETTINGS_PANEL_PATCHED',
+      entityType: 'SETTINGS_PANEL',
+      entityId: panelId,
+      newState: body.fields as object,
+    },
+  });
+
+  return getSettingsPanelDetail(prisma, panelId, env);
+}
+
+export async function patchWardenSettingsPanel(
+  prisma: PrismaClient,
+  panelId: string,
+  env: Env,
+  actorUserId: string,
+  body: PatchSettingsPanelBody,
+): Promise<SettingsPanelDetail | null> {
+  const entry = SETTINGS_CATALOG.find((p) => p.id === panelId);
+  if (!entry) return null;
+
+  const filtered: Record<string, string | number | boolean> = {};
+  for (const [key, value] of Object.entries(body.fields)) {
+    if (WARDEN_PATCHABLE_PANEL_FIELDS.has(key)) {
+      filtered[key] = value;
+    }
+  }
+  if (Object.keys(filtered).length === 0) {
+    throw new BadRequestError('No hostel-operational fields were provided.');
+  }
+
+  await patchPanelConfigFields(prisma, actorUserId, filtered);
+
+  await prisma.auditLog.create({
+    data: {
+      actorUserId,
+      actorRole: 'HOSTEL_WARDEN',
+      actionName: 'SETTINGS_WARDEN_PANEL_PATCHED',
+      entityType: 'SETTINGS_PANEL',
+      entityId: panelId,
+      newState: filtered as object,
+    },
+  });
+
+  return getSettingsPanelDetail(prisma, panelId, env);
 }

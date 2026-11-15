@@ -227,3 +227,104 @@ export async function notifyOutingDecision(
   const created = await createNotifications(prisma, inputs);
   scheduleNotificationEmails(prisma, created, 'leave');
 }
+
+async function resolveAdministratorUserIds(prisma: PrismaClient): Promise<string[]> {
+  const rows = await prisma.user.findMany({
+    where: { role: 'UNIVERSITY_ADMINISTRATOR', status: 'ACTIVE' },
+    select: { id: true },
+  });
+  return rows.map((r) => r.id);
+}
+
+export async function notifyConsecutiveAbsence(
+  prisma: PrismaClient,
+  params: {
+    hostelId: string;
+    studentName: string;
+    streak: number;
+    threshold: number;
+    dedupeSince: Date;
+  },
+): Promise<number> {
+  const operatorIds = await resolveHostelOperatorUserIds(prisma, params.hostelId);
+  const adminIds = await resolveAdministratorUserIds(prisma);
+  const recipients = [...new Set([...operatorIds, ...adminIds])];
+  if (recipients.length === 0) return 0;
+
+  const inputs: Array<{
+    userId: string;
+    title: string;
+    message: string;
+    category: string;
+    actionLink: string;
+  }> = [];
+
+  for (const userId of recipients) {
+    const dup = await prisma.notification.findFirst({
+      where: {
+        userId,
+        category: 'attendance',
+        message: { contains: params.studentName },
+        createdAt: { gte: params.dedupeSince },
+      },
+      select: { id: true },
+    });
+    if (dup) continue;
+
+    inputs.push({
+      userId,
+      title: 'Consecutive unexplained absence',
+      message: `${params.studentName} has ${params.streak} consecutive unexplained absences (threshold ${params.threshold}, FR-051).`,
+      category: 'attendance',
+      actionLink: '/warden/attendance',
+    });
+  }
+
+  if (inputs.length === 0) return 0;
+  const created = await createNotifications(prisma, inputs);
+  scheduleNotificationEmails(prisma, created, 'notice');
+  return created.length;
+}
+
+export async function notifyExtendedLeaveReview(
+  prisma: PrismaClient,
+  params: {
+    leaveId: string;
+    studentName: string;
+    durationDays: number;
+    thresholdDays: number;
+  },
+): Promise<void> {
+  const adminIds = await resolveAdministratorUserIds(prisma);
+  if (adminIds.length === 0) return;
+
+  const inputs = adminIds.map((userId) => ({
+    userId,
+    title: 'Extended leave review',
+    message: `${params.studentName} applied for ${params.durationDays}-day leave (>${params.thresholdDays} days, ODR-002). Administrator visibility required.`,
+    category: 'leave',
+    actionLink: '/admin/leave',
+  }));
+
+  const created = await createNotifications(prisma, inputs);
+  scheduleNotificationEmails(prisma, created, 'leave');
+}
+
+export async function notifyCheckOutRequestSubmitted(
+  prisma: PrismaClient,
+  params: { hostelId: string; studentName: string; plannedDate: string },
+): Promise<void> {
+  const operatorIds = await resolveHostelOperatorUserIds(prisma, params.hostelId);
+  if (operatorIds.length === 0) return;
+
+  const inputs = operatorIds.map((userId) => ({
+    userId,
+    title: 'Planned checkout request',
+    message: `${params.studentName} requested checkout on ${params.plannedDate}.`,
+    category: 'notice',
+    actionLink: '/warden/checkout',
+  }));
+
+  const created = await createNotifications(prisma, inputs);
+  scheduleNotificationEmails(prisma, created, 'notice');
+}

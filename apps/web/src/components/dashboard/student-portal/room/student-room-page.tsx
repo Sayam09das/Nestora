@@ -13,13 +13,15 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
   ROOM_REQUEST_OPTIONS,
   type RoomRequestType,
 } from '@/components/dashboard/student-portal/room/student-room-data';
+import { StudentCheckoutPanel } from '@/components/dashboard/student-portal/room/student-checkout-panel';
+import { fetchStudentRoomConfigOptions, submitRoomChangeRequest, type RoomConfigOption } from '@/lib/api/room-changes';
 import { useStudentRoomLive } from '@/components/dashboard/student-portal/room/use-student-room-live';
 import { useStudentShell } from '@/components/dashboard/student-portal/student-shell-provider';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
@@ -83,7 +85,28 @@ export function StudentRoomPage() {
 
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestType, setRequestType] = useState<RoomRequestType>('room_change');
+  const [preferredConfigId, setPreferredConfigId] = useState('');
+  const [configOptions, setConfigOptions] = useState<RoomConfigOption[]>([]);
+  const [loadingConfigs, setLoadingConfigs] = useState(false);
   const [requestDescription, setRequestDescription] = useState('');
+
+  useEffect(() => {
+    if (!requestOpen || requestType !== 'room_change') return;
+    let cancelled = false;
+    setLoadingConfigs(true);
+    void fetchStudentRoomConfigOptions().then((result) => {
+      if (cancelled) return;
+      setLoadingConfigs(false);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      setConfigOptions(result.options ?? []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [requestOpen, requestType]);
 
   const syncLabel = useMemo(() => formatSyncTime(lastSyncedAt), [lastSyncedAt]);
 
@@ -102,15 +125,32 @@ export function StudentRoomPage() {
     { scope: rootRef, dependencies: [reduceMotion, snapshot.allocationId] },
   );
 
-  const submitRequest = () => {
+  const submitRequest = async () => {
     const trimmed = requestDescription.trim();
     if (trimmed.length < 8) {
       toast.error('Please describe your request in at least 8 characters.');
       return;
     }
-    toast.success('Request submitted. Warden or admin will review — allocation cannot be changed directly.');
+    if (requestType === 'room_change') {
+      if (!preferredConfigId) {
+        toast.error('Choose a preferred room configuration.');
+        return;
+      }
+      const result = await submitRoomChangeRequest({
+        preferredConfigId: preferredConfigId.trim(),
+        reason: trimmed,
+      });
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success('Room change request submitted for warden review.');
+    } else {
+      toast.success('Request noted. Use Maintenance or Complaints portals for repairs.');
+    }
     setRequestOpen(false);
     setRequestDescription('');
+    setPreferredConfigId('');
   };
 
   return (
@@ -291,6 +331,9 @@ export function StudentRoomPage() {
               <dd className="font-medium">{snapshot.bed.allocationDate}</dd>
             </div>
           </dl>
+          <div className="mt-5">
+            <StudentCheckoutPanel />
+          </div>
           <p className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
             <Shield className="mt-0.5 size-3.5 shrink-0" aria-hidden />
             You cannot change bed allocation directly. Submit a bed change request for warden review.
@@ -571,6 +614,28 @@ export function StudentRoomPage() {
                 ))}
               </select>
             </div>
+            {requestType === 'room_change' ? (
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground" htmlFor="request-config">
+                  Preferred room type
+                </label>
+                <select
+                  id="request-config"
+                  value={preferredConfigId}
+                  disabled={loadingConfigs}
+                  onChange={(e) => setPreferredConfigId(e.target.value)}
+                  className={cn('mt-1 w-full border border-border bg-background px-3 py-2 text-sm', focusRing)}
+                >
+                  <option value="">{loadingConfigs ? 'Loading…' : 'Select configuration'}</option>
+                  {configOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label}
+                      {opt.hasAc ? ' · AC' : ''} · cap {opt.capacity}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
             <div>
               <label className="text-xs font-semibold text-muted-foreground" htmlFor="request-desc">
                 Description

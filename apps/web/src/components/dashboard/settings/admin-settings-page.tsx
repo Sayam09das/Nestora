@@ -2,7 +2,7 @@
 
 import { useReducedMotion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { AdminSettingsFiltersBar } from '@/components/dashboard/settings/admin-settings-filters-bar';
 import { AdminSettingsHub } from '@/components/dashboard/settings/admin-settings-hub';
@@ -15,6 +15,7 @@ import { DEFAULT_PANEL_ID } from '@/components/dashboard/settings/admin-settings
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Button } from '@/components/ui/button';
 import { useSettingsDesk } from '@/hooks/use-settings-desk';
+import { patchSettingsPanel } from '@/lib/api/settings';
 
 export function AdminSettingsPage() {
   const reduceMotion = useReducedMotion();
@@ -79,6 +80,14 @@ export function AdminSettingsPage() {
 
   const loading = loadingSummary && loadingList && !summary && panels.length === 0;
 
+  const onPersistField = useCallback(
+    async (key: string, value: string | number | boolean) => {
+      await patchSettingsPanel(effectiveSelectedId, { fields: { [key]: value } });
+      refresh();
+    },
+    [effectiveSelectedId, refresh],
+  );
+
   return (
     <div ref={rootRef} className="space-y-6 pb-6">
       <AdminSettingsPageHeader
@@ -118,7 +127,12 @@ export function AdminSettingsPage() {
           />
           <AdminSettingsRegistry rows={panels} hidden={view !== 'registry'} />
           {view === 'hub' ? (
-            <AdminSettingsTunePanel panel={selected} fields={tuneFields} loading={loadingTune} />
+            <AdminSettingsTunePanel
+              panel={selected}
+              fields={tuneFields}
+              loading={loadingTune}
+              onPersistField={onPersistField}
+            />
           ) : null}
         </div>
       )}
