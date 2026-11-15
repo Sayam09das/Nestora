@@ -417,6 +417,11 @@ export function WardenRoomsPage() {
         hostelName={hostelDisplay}
         presetRoom={allocateRoom}
         queueRecord={allocateQueueRecord}
+        onAssigned={() => {
+          void refreshRooms();
+          void refreshBeds();
+          void refreshAlloc();
+        }}
       />
 
       <WardenRoomsRoomSheet room={detailRoom} open={detailOpen} onOpenChange={setDetailOpen} />

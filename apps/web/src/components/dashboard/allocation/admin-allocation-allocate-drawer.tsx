@@ -1,48 +1,70 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-import {
-  AVAILABLE_BED_OPTIONS,
-  ELIGIBLE_STUDENT_OPTIONS,
-  SAMPLE_ALLOCATIONS,
-  generateAllocationRef,
-} from '@/components/dashboard/allocation/admin-allocation-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useAllocationAssignOptions } from '@/hooks/use-allocation-assign-options';
+import { assignStudentToBed } from '@/lib/api/allocations';
 import { cn } from '@/lib/utils';
 
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-type Props = { open: boolean; onOpenChange: (o: boolean) => void };
+type Props = {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onAssigned?: () => void;
+};
 
-export function AdminAllocationAllocateDrawer({ open, onOpenChange }: Props) {
-  const [studentId, setStudentId] = useState('');
+export function AdminAllocationAllocateDrawer({ open, onOpenChange, onAssigned }: Props) {
+  const [studentUserId, setStudentUserId] = useState('');
   const [bedId, setBedId] = useState('');
   const [effectiveDate, setEffectiveDate] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const { students, beds, loading, error } = useAllocationAssignOptions(undefined, open);
 
   useEffect(() => {
     if (!open) {
-      setStudentId('');
+      setStudentUserId('');
       setBedId('');
       setEffectiveDate('');
+      return;
     }
+    setEffectiveDate(new Date().toISOString().slice(0, 10));
   }, [open]);
 
-  const student = ELIGIBLE_STUDENT_OPTIONS.find((s) => s.studentId === studentId);
-  const bed = AVAILABLE_BED_OPTIONS.find((b) => b.bedId === bedId);
-  const valid = student && bed && effectiveDate;
+  const student = useMemo(
+    () => students.find((s) => s.studentUserId === studentUserId),
+    [students, studentUserId],
+  );
+  const bed = useMemo(() => beds.find((b) => b.bedId === bedId), [beds, bedId]);
+  const valid = Boolean(student && bed && effectiveDate);
 
-  const save = () => {
-    if (!valid) {
+  const save = async () => {
+    if (!valid || !studentUserId || !bedId) {
       toast.error('Select a fully approved student, an available bed, and effective date.');
       return;
     }
-    const ref = generateAllocationRef(SAMPLE_ALLOCATIONS.length + 1);
-    toast.success(`${ref}: ${student.name} → ${bed.bedId} (sample UI). Bed status would become Occupied.`);
+    setSubmitting(true);
+    const result = await assignStudentToBed({
+      studentUserId,
+      bedId,
+      startDate: effectiveDate,
+    });
+    setSubmitting(false);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success(`${student?.studentName ?? 'Student'} → ${bed?.label ?? 'bed'}`, {
+      description: 'Allocation saved; bed status is now Occupied.',
+    });
+    onAssigned?.();
     onOpenChange(false);
   };
 
@@ -51,20 +73,32 @@ export function AdminAllocationAllocateDrawer({ open, onOpenChange }: Props) {
       <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-md">
         <SheetHeader className="border-b p-5 text-left">
           <SheetTitle className="text-lg text-[var(--nestora-forest)]">Assign bed</SheetTitle>
-          <SheetDescription>Only Fully Approved students and Available beds (or approved reservations) are eligible.</SheetDescription>
+          <SheetDescription>Only Fully Approved students and Available beds are eligible (live MOD-05 API).</SheetDescription>
         </SheetHeader>
         <div className="space-y-4 p-5">
+          {error ? (
+            <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+              {error}
+            </p>
+          ) : null}
+          {loading ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Loading queue and beds…
+            </p>
+          ) : null}
           <label className="block space-y-1">
             <span className="text-xs font-medium">Student (Fully Approved)</span>
             <select
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
+              value={studentUserId}
+              onChange={(e) => setStudentUserId(e.target.value)}
+              disabled={loading}
               className={cn('h-10 w-full rounded-xl border px-3 text-sm', focusRing)}
             >
               <option value="">Select student</option>
-              {ELIGIBLE_STUDENT_OPTIONS.map((s) => (
-                <option key={s.studentId} value={s.studentId}>
-                  {s.studentId} · {s.name}
+              {students.map((s) => (
+                <option key={s.studentUserId} value={s.studentUserId}>
+                  {s.studentId} · {s.studentName} · {s.preferenceHostel}
                 </option>
               ))}
             </select>
@@ -74,10 +108,11 @@ export function AdminAllocationAllocateDrawer({ open, onOpenChange }: Props) {
             <select
               value={bedId}
               onChange={(e) => setBedId(e.target.value)}
+              disabled={loading}
               className={cn('h-10 w-full rounded-xl border px-3 text-sm', focusRing)}
             >
               <option value="">Select bed</option>
-              {AVAILABLE_BED_OPTIONS.map((b) => (
+              {beds.map((b) => (
                 <option key={b.bedId} value={b.bedId}>
                   {b.label} · {b.hostel}
                 </option>
@@ -97,7 +132,13 @@ export function AdminAllocationAllocateDrawer({ open, onOpenChange }: Props) {
           <Button type="button" variant="outline" className="rounded-xl" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" disabled={!valid} className="rounded-xl bg-[var(--nestora-forest)] text-white" onClick={save}>
+          <Button
+            type="button"
+            disabled={!valid || submitting || loading}
+            className="rounded-xl bg-[var(--nestora-forest)] text-white"
+            onClick={() => void save()}
+          >
+            {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
             Confirm allocation
           </Button>
         </SheetFooter>

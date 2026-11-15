@@ -1,17 +1,16 @@
 'use client';
 
+import { Loader2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-import {
-  AVAILABLE_BED_OPTIONS,
-  ELIGIBLE_STUDENT_OPTIONS,
-  type AllocationRecord,
-} from '@/components/dashboard/allocation/admin-allocation-data';
+import type { AllocationRecord } from '@/components/dashboard/allocation/admin-allocation-data';
 import type { RoomRecord } from '@/components/dashboard/rooms/admin-rooms-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useAllocationAssignOptions } from '@/hooks/use-allocation-assign-options';
+import { assignStudentToBed } from '@/lib/api/allocations';
 import { cn } from '@/lib/utils';
 
 const focusRing =
@@ -24,6 +23,7 @@ type Props = {
   presetStudentId?: string;
   presetRoom?: RoomRecord | null;
   queueRecord?: AllocationRecord | null;
+  onAssigned?: () => void;
 };
 
 export function WardenRoomsAllocateSheet({
@@ -33,48 +33,63 @@ export function WardenRoomsAllocateSheet({
   presetStudentId,
   presetRoom,
   queueRecord,
+  onAssigned,
 }: Props) {
-  const [studentId, setStudentId] = useState('');
+  const [studentUserId, setStudentUserId] = useState('');
   const [bedId, setBedId] = useState('');
   const [effectiveDate, setEffectiveDate] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const { students, beds, loading, error } = useAllocationAssignOptions(hostelName, open);
 
   useEffect(() => {
     if (!open) {
-      setStudentId('');
+      setStudentUserId('');
       setBedId('');
       setEffectiveDate('');
       return;
     }
-    if (queueRecord) {
-      setStudentId(queueRecord.studentId);
-    } else if (presetStudentId) {
-      setStudentId(presetStudentId);
+    const today = new Date().toISOString().slice(0, 10);
+    setEffectiveDate(today);
+    if (queueRecord?.studentUserId) {
+      setStudentUserId(queueRecord.studentUserId);
+    } else if (presetStudentId && students.length > 0) {
+      const match = students.find((s) => s.studentId === presetStudentId);
+      if (match?.studentUserId) setStudentUserId(match.studentUserId);
     }
     if (presetRoom) {
-      const match = AVAILABLE_BED_OPTIONS.find(
-        (b) => b.hostel === hostelName && b.room === presetRoom.roomNumber,
-      );
+      const match = beds.find((b) => b.roomNumber === presetRoom.roomNumber);
       if (match) setBedId(match.bedId);
     }
-  }, [open, queueRecord, presetStudentId, presetRoom, hostelName]);
+  }, [open, queueRecord, presetStudentId, presetRoom, students, beds]);
 
-  const bedsInHostel = useMemo(
-    () => AVAILABLE_BED_OPTIONS.filter((b) => b.hostel === hostelName || hostelName === ''),
-    [hostelName],
+  const student = useMemo(
+    () => students.find((s) => s.studentUserId === studentUserId),
+    [students, studentUserId],
   );
+  const bed = useMemo(() => beds.find((b) => b.bedId === bedId), [beds, bedId]);
+  const valid = Boolean(student && bed && effectiveDate);
 
-  const student = ELIGIBLE_STUDENT_OPTIONS.find((s) => s.studentId === studentId);
-  const bed = bedsInHostel.find((b) => b.bedId === bedId);
-  const valid = student?.admissionStatus === 'Fully Approved' && bed && effectiveDate;
-
-  const save = () => {
-    if (!valid) {
+  const save = async () => {
+    if (!valid || !studentUserId || !bedId) {
       toast.error('Select a fully approved student, an available bed in your hostel, and effective date.');
       return;
     }
-    toast.success(`${student.name} → ${bed.label}`, {
-      description: 'Allocation persists when MOD-05 API is connected. Bed becomes Occupied (FR-026).',
+    setSubmitting(true);
+    const result = await assignStudentToBed({
+      studentUserId,
+      bedId,
+      startDate: effectiveDate,
     });
+    setSubmitting(false);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success(`${student?.studentName ?? 'Student'} → ${bed?.label ?? 'Bed'}`, {
+      description: 'Bed marked occupied and allocation saved (MOD-05).',
+    });
+    onAssigned?.();
     onOpenChange(false);
   };
 
@@ -89,17 +104,29 @@ export function WardenRoomsAllocateSheet({
           </SheetDescription>
         </SheetHeader>
         <div className="space-y-4 p-5">
+          {error ? (
+            <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+              {error}
+            </p>
+          ) : null}
+          {loading ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Loading eligible students and beds…
+            </p>
+          ) : null}
           <label className="block space-y-1">
             <span className="text-xs font-medium">Student (Fully Approved)</span>
             <select
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
+              value={studentUserId}
+              onChange={(e) => setStudentUserId(e.target.value)}
+              disabled={loading || students.length === 0}
               className={cn('h-10 w-full rounded-xl border px-3 text-sm', focusRing)}
             >
               <option value="">Select student</option>
-              {ELIGIBLE_STUDENT_OPTIONS.map((s) => (
-                <option key={s.studentId} value={s.studentId}>
-                  {s.studentId} · {s.name}
+              {students.map((s) => (
+                <option key={s.studentUserId} value={s.studentUserId}>
+                  {s.studentId} · {s.studentName}
                 </option>
               ))}
             </select>
@@ -109,10 +136,11 @@ export function WardenRoomsAllocateSheet({
             <select
               value={bedId}
               onChange={(e) => setBedId(e.target.value)}
+              disabled={loading || beds.length === 0}
               className={cn('h-10 w-full rounded-xl border px-3 text-sm', focusRing)}
             >
               <option value="">Select bed</option>
-              {bedsInHostel.map((b) => (
+              {beds.map((b) => (
                 <option key={b.bedId} value={b.bedId}>
                   {b.label}
                 </option>
@@ -138,7 +166,13 @@ export function WardenRoomsAllocateSheet({
           <Button type="button" variant="outline" className="rounded-xl" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" disabled={!valid} className="rounded-xl bg-[var(--nestora-forest)]" onClick={save}>
+          <Button
+            type="button"
+            disabled={!valid || submitting || loading}
+            className="rounded-xl bg-[var(--nestora-forest)]"
+            onClick={() => void save()}
+          >
+            {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
             Confirm allocation
           </Button>
         </SheetFooter>

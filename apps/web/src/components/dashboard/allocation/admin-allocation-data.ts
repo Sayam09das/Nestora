@@ -17,6 +17,7 @@ export type AllocationRecord = {
   status: AllocationStatus;
   admissionStatus: AdmissionGate;
   studentId: string;
+  studentUserId?: string;
   studentName: string;
   course: string;
   genderHostelCategory: "Boys' Hostel" | "Girls' Hostel";

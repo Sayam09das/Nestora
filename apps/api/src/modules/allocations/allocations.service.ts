@@ -35,6 +35,7 @@ export type AllocationDirectoryRow = {
   status: AllocationUiStatus;
   admissionStatus: 'Fully Approved' | 'Pending Verification';
   studentId: string;
+  studentUserId: string;
   studentName: string;
   course: string;
   genderHostelCategory: "Boys' Hostel" | "Girls' Hostel";
@@ -202,6 +203,7 @@ async function loadAllRows(prisma: PrismaClient): Promise<AllocationDirectoryRow
         status: 'Pending',
         admissionStatus: 'Fully Approved',
         studentId: student.registrationNumber,
+        studentUserId: student.userId,
         studentName: `${student.user.firstName} ${student.user.lastName}`.trim(),
         course: student.course,
         genderHostelCategory: mapGenderCategory(gender),
@@ -228,6 +230,7 @@ async function loadAllRows(prisma: PrismaClient): Promise<AllocationDirectoryRow
         status: 'Rejected',
         admissionStatus: 'Pending Verification',
         studentId: student.registrationNumber,
+        studentUserId: student.userId,
         studentName: `${student.user.firstName} ${student.user.lastName}`.trim(),
         course: student.course,
         genderHostelCategory: mapGenderCategory(gender),
@@ -265,6 +268,7 @@ async function loadAllRows(prisma: PrismaClient): Promise<AllocationDirectoryRow
       status: isPending ? 'Change Requested' : 'Rejected',
       admissionStatus: 'Fully Approved',
       studentId: student.registrationNumber,
+      studentUserId: student.userId,
       studentName: `${student.user.firstName} ${student.user.lastName}`.trim(),
       course: student.course,
       genderHostelCategory: mapGenderCategory(hostelGender),
@@ -305,6 +309,7 @@ async function loadAllRows(prisma: PrismaClient): Promise<AllocationDirectoryRow
       admissionStatus:
         admission?.status === ADMISSION_FULLY_APPROVED ? 'Fully Approved' : 'Pending Verification',
       studentId: student.registrationNumber,
+      studentUserId: student.userId,
       studentName: `${student.user.firstName} ${student.user.lastName}`.trim(),
       course: student.course,
       genderHostelCategory: mapGenderCategory(gender),

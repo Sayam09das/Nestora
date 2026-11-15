@@ -173,7 +173,11 @@ export function AdminAllocationPage() {
         />
       )}
 
-      <AdminAllocationAllocateDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
+      <AdminAllocationAllocateDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        onAssigned={() => void refresh()}
+      />
     </div>
   );
 }
