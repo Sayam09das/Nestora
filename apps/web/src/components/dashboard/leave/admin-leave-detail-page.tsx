@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, BedDouble, History, Plane } from 'lucide-react';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 import { AdminLeaveReviewDrawer } from '@/components/dashboard/leave/admin-leave-review-drawer';
 import {
@@ -16,6 +17,7 @@ import {
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { fetchLeaveDeskApplication, patchLeaveDecision } from '@/lib/api/leaves';
 import { cn } from '@/lib/utils';
 
 const focusRing =
@@ -31,8 +33,8 @@ export function AdminLeaveDetailPage({
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const [record, setRecord] = useState(initial);
+  const [timeline, setTimeline] = useState(initialTimeline);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const timeline = initialTimeline;
   const days = leaveDurationDays(record.departureDate, record.expectedReturnDate);
 
   useGSAP(
@@ -167,14 +169,25 @@ export function AdminLeaveDetailPage({
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         record={record}
-        onDecided={(id, decision, _feedback) => {
+        onDecided={async (id, decision, feedback) => {
           if (id !== record.id) return;
-          setRecord((r) => ({
-            ...r,
-            status: decision === 'Approved' ? 'Approved' : 'Rejected',
-            reviewedBy: 'Warden (sample)',
-            gatePassToken: decision === 'Approved' ? `GP-${Math.random().toString(16).slice(2, 8).toUpperCase()}` : r.gatePassToken,
-          }));
+          const result = await patchLeaveDecision({
+            leaveId: id,
+            decision,
+            feedback: feedback || undefined,
+          });
+          if (result.error) {
+            toast.error(result.error);
+            return;
+          }
+          const refreshed = await fetchLeaveDeskApplication(id);
+          if (refreshed.application) {
+            setRecord(refreshed.application);
+            setTimeline(refreshed.timeline ?? []);
+          } else if (result.application) {
+            setRecord(result.application);
+          }
+          toast.success(decision === 'Approved' ? 'Leave approved — gate pass issued.' : 'Leave rejected.');
         }}
       />
     </div>
