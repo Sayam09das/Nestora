@@ -39,6 +39,7 @@ Authoritative design and requirements documentation for **Nestora — University
 | 09  | [Monorepo architecture](./09-monorepo-architecture.md)             | pnpm + Turborepo layout, Fastify lifecycle, sessions, env vars, local/prod setup                                |
 | 10  | [Open decisions registry](./10-open-decisions-registry.md)         | Consolidated pending institutional decisions (`ODR-001`–`ODR-005`)                                              |
 | 11  | [Glossary & traceability](./11-glossary-and-traceability.md)       | Domain terms, ID conventions, 18 vs 19 module mapping                                                           |
+| —   | [Local smoke: student + guard](./local-smoke-student-guard.md)     | Gate pass and guard console check on `localhost:3000`                                                           |
 
 ---
 
