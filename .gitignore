@@ -57,8 +57,9 @@ coverage/
 *.sublime-project
 *.sublime-workspace
 
-# Runtime file uploads and temporary caches
-uploads/
+# Runtime file uploads and temporary caches (not apps/api/src/modules/uploads)
+/uploads/
+apps/api/uploads/
 
 # Docker local volumes (when bind-mounting)
 docker/data/
