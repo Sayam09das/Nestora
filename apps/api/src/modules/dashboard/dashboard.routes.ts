@@ -35,6 +35,12 @@ import {
   postStaffRevokeOtherSessionsHandler,
 } from './staff-settings.controller.js';
 import {
+  getGuardGateConsoleHandler,
+  postGuardGateExitHandler,
+  postGuardGateLookupHandler,
+  postGuardGateReturnHandler,
+} from './guard-gate.controller.js';
+import {
   getStudentSettingsDeskHandler,
   patchStudentSettingsNotificationsHandler,
   postStudentRevokeOtherSessionsHandler,
@@ -293,5 +299,33 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
       preHandler: [requireRoles('HOSTEL_STAFF')],
     },
     postStaffRevokeOtherSessionsHandler,
+  );
+  app.get(
+    '/guard/gate-console',
+    {
+      preHandler: [requireRoles('SECURITY_GUARD')],
+    },
+    getGuardGateConsoleHandler,
+  );
+  app.post(
+    '/guard/gate-console/lookup',
+    {
+      preHandler: [requireRoles('SECURITY_GUARD')],
+    },
+    postGuardGateLookupHandler,
+  );
+  app.post(
+    '/guard/gate-console/exit',
+    {
+      preHandler: [requireRoles('SECURITY_GUARD')],
+    },
+    postGuardGateExitHandler,
+  );
+  app.post(
+    '/guard/gate-console/return',
+    {
+      preHandler: [requireRoles('SECURITY_GUARD')],
+    },
+    postGuardGateReturnHandler,
   );
 };
