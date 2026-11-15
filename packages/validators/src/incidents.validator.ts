@@ -39,4 +39,7 @@ export type IncidentsDeskListQuery = z.infer<typeof incidentsDeskListQuerySchema
 export type PatchIncidentSeverityBody = z.infer<typeof patchIncidentSeverityBodySchema>;
 export type IncidentActionBody = z.infer<typeof incidentActionBodySchema>;
 export type ResolveIncidentBody = z.infer<typeof resolveIncidentBodySchema>;
+export const studentReportIncidentBodySchema = staffReportIncidentBodySchema;
+
 export type StaffReportIncidentBody = z.infer<typeof staffReportIncidentBodySchema>;
+export type StudentReportIncidentBody = z.infer<typeof studentReportIncidentBodySchema>;

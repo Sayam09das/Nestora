@@ -549,7 +549,16 @@ export async function registerStudentByAdmin(
   const loginEmail = repo.normalizeEmail(input.loginEmail);
   const existing = await repo.findUserByEmail(prisma, loginEmail);
   if (existing) {
-    throw new BadRequestError('A user with this login email already exists.');
+    const existingStudent = await prisma.student.findUnique({
+      where: { userId: existing.id },
+      select: { id: true },
+    });
+    if (existingStudent) {
+      throw new BadRequestError('A user with this login email already exists.');
+    }
+    if (existing.role !== 'STUDENT') {
+      throw new BadRequestError('This email belongs to a non-student account.');
+    }
   }
 
   const regNumber = input.registrationNumber.trim();
@@ -587,23 +596,33 @@ export async function registerStudentByAdmin(
   }
 
   const user = await prisma.$transaction(async (tx) => {
-    const created = await tx.user.create({
-      data: {
-        email: loginEmail,
-        passwordHash: placeholderHash,
-        role: 'STUDENT',
-        firstName: input.firstName.trim(),
-        lastName: input.lastName.trim(),
-        phoneNumber: input.phone.trim(),
-        status: 'INACTIVE',
-        isVerified: false,
-        profilePhotoKey,
-      },
-    });
+    const account = existing
+      ? await tx.user.update({
+          where: { id: existing.id },
+          data: {
+            firstName: input.firstName.trim(),
+            lastName: input.lastName.trim(),
+            phoneNumber: input.phone.trim(),
+            profilePhotoKey: profilePhotoKey ?? existing.profilePhotoKey,
+          },
+        })
+      : await tx.user.create({
+          data: {
+            email: loginEmail,
+            passwordHash: placeholderHash,
+            role: 'STUDENT',
+            firstName: input.firstName.trim(),
+            lastName: input.lastName.trim(),
+            phoneNumber: input.phone.trim(),
+            status: 'INACTIVE',
+            isVerified: false,
+            profilePhotoKey,
+          },
+        });
 
     const student = await tx.student.create({
       data: {
-        userId: created.id,
+        userId: account.id,
         registrationNumber: regNumber,
         course: input.course.trim(),
         department,
@@ -630,19 +649,21 @@ export async function registerStudentByAdmin(
       });
     }
 
-    return { user: created, student };
+    return { user: account, student };
   });
 
-  const { rawToken } = await repo.issueEmailActionToken(prisma, user.user.id, 'activation');
+  if (!existing) {
+    const { rawToken } = await repo.issueEmailActionToken(prisma, user.user.id, 'activation');
 
-  try {
-    await mailService.sendAccountActivationLink(env, loginEmail, rawToken);
-  } catch {
-    await prisma.$transaction(async (tx) => {
-      await tx.student.delete({ where: { id: user.student.id } });
-      await tx.user.delete({ where: { id: user.user.id } });
-    });
-    throw new InternalError('Email delivery is not available. Try again later.');
+    try {
+      await mailService.sendAccountActivationLink(env, loginEmail, rawToken);
+    } catch {
+      await prisma.$transaction(async (tx) => {
+        await tx.student.delete({ where: { id: user.student.id } });
+        await tx.user.delete({ where: { id: user.user.id } });
+      });
+      throw new InternalError('Email delivery is not available. Try again later.');
+    }
   }
 
   await auditService.logAuditEvent(prisma, {

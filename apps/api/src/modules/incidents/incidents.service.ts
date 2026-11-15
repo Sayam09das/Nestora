@@ -523,3 +523,26 @@ export async function createStaffIncidentReport(
   const names = await loadUserNames(prisma, [staffUserId]);
   return mapRow(row, names);
 }
+
+export async function createStudentIncidentReport(
+  prisma: PrismaClient,
+  studentUserId: string,
+  hostelId: string,
+  body: StaffReportIncidentBody,
+): Promise<IncidentDeskRecord> {
+  const row = await prisma.emergencyIncident.create({
+    data: {
+      hostelId,
+      reportedBy: studentUserId,
+      incidentType: TYPE_TO_DB[body.incidentType],
+      title: body.title.trim(),
+      description: body.description.trim(),
+      location: body.location.trim(),
+      initialSeverity: SEVERITY_TO_DB[body.initialSeverity],
+      status: 'REPORTED',
+    },
+    include: incidentInclude,
+  });
+  const names = await loadUserNames(prisma, [studentUserId]);
+  return mapRow(row, names);
+}

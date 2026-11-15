@@ -3,7 +3,7 @@ import { PrismaClient } from '@nestora/database';
 import { dashboardPathForRole } from '@nestora/types';
 import * as argon2 from 'argon2';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { ForbiddenError, NotFoundError } from '../../common/errors/index.js';
+import { BadRequestError, ForbiddenError, NotFoundError } from '../../common/errors/index.js';
 import type { Env } from '../../config/env.js';
 import { loadEnv } from '../../config/env.js';
 import * as authRepo from './auth.repository.js';
@@ -142,52 +142,27 @@ describe.skipIf(!integrationEnabled)('auth MOD-01 integration', () => {
     expect(login.sessionToken.length).toBeGreaterThan(32);
   });
 
-  it('provision → activation mail token → activate → login as STUDENT', async () => {
+  it('rejects provisioning STUDENT without full student registration', async () => {
     const adminEmail = `integration-mod01-prov-admin-${runId}@example.test`;
     const studentEmail = `integration-mod01-student-${runId}@example.test`;
     emailsToCleanup.push(adminEmail, studentEmail);
 
     const admin = await createActiveAdmin(prisma, adminEmail);
-    lastActivationToken = undefined;
 
-    await authService.provisionUser(
-      prisma,
-      env,
-      { id: admin.id, role: 'UNIVERSITY_ADMINISTRATOR' },
-      {
-        email: studentEmail,
-        firstName: 'Test',
-        lastName: 'Student',
-        role: 'STUDENT',
-      },
-      '127.0.0.1',
-    );
-
-    if (!lastActivationToken) {
-      throw new Error('Expected activation token from provision mail mock.');
-    }
-
-    await authService.activateAccount(
-      prisma,
-      env,
-      {
-        token: lastActivationToken,
-        password: TEST_PASSWORD,
-        passwordConfirm: TEST_PASSWORD,
-      },
-      '127.0.0.1',
-    );
-
-    const login = await authService.login(
-      prisma,
-      env,
-      { email: studentEmail, password: TEST_PASSWORD },
-      '127.0.0.1',
-      'vitest',
-    );
-
-    expect(login.user.role).toBe('STUDENT');
-    expect(dashboardPathForRole(login.user.role)).toBe('/student');
+    await expect(
+      authService.provisionUser(
+        prisma,
+        env,
+        { id: admin.id, role: 'UNIVERSITY_ADMINISTRATOR' },
+        {
+          email: studentEmail,
+          firstName: 'Test',
+          lastName: 'Student',
+          role: 'STUDENT',
+        },
+        '127.0.0.1',
+      ),
+    ).rejects.toBeInstanceOf(BadRequestError);
   });
 
   it('provision with unknown hostelId fails before user is created', async () => {

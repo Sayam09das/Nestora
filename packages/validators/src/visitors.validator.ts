@@ -24,5 +24,22 @@ export const visitorRejectBodySchema = z.object({
   reason: z.string().min(3).max(500).optional(),
 });
 
+export const studentVisitorIdProofSchema = z.enum([
+  'Aadhaar',
+  'Driving License',
+  'Voter ID',
+  'Passport',
+  'Other',
+]);
+
+export const createStudentVisitorBodySchema = z.object({
+  visitorName: z.string().trim().min(2).max(150),
+  visitorPhone: z.string().trim().min(8).max(20),
+  idProofType: studentVisitorIdProofSchema,
+  idProofNumber: z.string().trim().min(4).max(100),
+  purpose: z.string().trim().min(3).max(500),
+});
+
 export type VisitorDeskListQuery = z.infer<typeof visitorDeskListQuerySchema>;
 export type RegisterVisitorBody = z.infer<typeof registerVisitorBodySchema>;
+export type CreateStudentVisitorBody = z.infer<typeof createStudentVisitorBodySchema>;
