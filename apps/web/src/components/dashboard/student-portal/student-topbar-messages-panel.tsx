@@ -58,13 +58,22 @@ export function StudentTopbarMessagesPanel() {
             <p className="text-sm font-semibold text-[var(--nestora-forest)]">Messages</p>
             <p className="text-xs text-muted-foreground">Hostel announcements &amp; office updates</p>
           </motion.div>
-          <Link
-            href="/student/announcements"
-            onClick={() => setOpen(false)}
-            className={cn('mt-1 inline-block text-xs font-medium text-[var(--nestora-forest)] hover:underline', focusRing)}
-          >
-            View all notices
-          </Link>
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs font-medium">
+            <Link
+              href="/student/messages"
+              onClick={() => setOpen(false)}
+              className={cn('text-[var(--nestora-forest)] hover:underline', focusRing)}
+            >
+              Open inbox
+            </Link>
+            <Link
+              href="/student/announcements"
+              onClick={() => setOpen(false)}
+              className={cn('text-muted-foreground hover:text-[var(--nestora-forest)] hover:underline', focusRing)}
+            >
+              All notices
+            </Link>
+          </div>
         </div>
         <ul className="max-h-[min(50vh,16rem)] divide-y overflow-y-auto p-1">
           {loading && messages.length === 0 ? (

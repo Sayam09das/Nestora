@@ -11,6 +11,7 @@ import {
 } from './student-attendance.service.js';
 import { getStudentRoommatesDesk } from './student-roommates.service.js';
 import { createStudentLeaveApplication, getStudentLeaveDesk } from './student-leave.service.js';
+import { getStudentGatePassesDesk } from './student-gate-passes.service.js';
 import {
   createStudentComplaintTicket,
   getStudentComplaintsDesk,
@@ -264,6 +265,17 @@ export async function getStudentLeaveHandler(
 
   const desk = await getStudentLeaveDesk(request.server.prisma, user.id);
   reply.send(successResponse({ desk }, 'Student leave desk.'));
+}
+
+export async function getStudentGatePassesHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'STUDENT');
+
+  const desk = await getStudentGatePassesDesk(request.server.prisma, user.id);
+  reply.send(successResponse({ desk }, 'Student gate passes desk.'));
 }
 
 export async function postStudentLeaveHandler(
