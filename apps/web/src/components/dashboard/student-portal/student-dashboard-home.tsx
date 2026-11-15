@@ -19,7 +19,7 @@ import { StudentDashboardQuickActions } from '@/components/dashboard/student-por
 import { StudentDashboardRoomPanel } from '@/components/dashboard/student-portal/home/student-dashboard-room-panel';
 import { StudentDashboardWelcome } from '@/components/dashboard/student-portal/home/student-dashboard-welcome';
 import { useStudentShell } from '@/components/dashboard/student-portal/student-shell-provider';
-import { useStudentDashboardOverview } from '@/hooks/use-student-dashboard-overview';
+import { useStudentTopbarLiveContext } from '@/components/dashboard/student-portal/student-topbar-live-provider';
 import { Button } from '@/components/ui/button';
 
 function formatSyncedAt(iso: string): string {
@@ -32,9 +32,8 @@ function formatSyncedAt(iso: string): string {
 }
 
 export function StudentDashboardHome() {
-  const { feesOnlineEnabled } = useStudentShell();
-  const session = useStudentDashboardOverview();
-  const { displayName, overview, loading, error, refresh } = session;
+  const { feesOnlineEnabled, displayName } = useStudentShell();
+  const { latestOverview: overview, loading, error, refresh } = useStudentTopbarLiveContext();
 
   const snapshot = useMemo(() => {
     if (overview) return mapOverviewToStudentSnapshot(overview);

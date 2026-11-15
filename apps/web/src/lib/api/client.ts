@@ -10,13 +10,15 @@ function normalizeApiBaseUrl(raw: string): string {
 
 function resolveApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
-    // Same-origin: Next.js rewrites /api/v1 → API server (session cookies work).
+    // Same-origin via `app/api/v1/[...path]` — session cookies stay on the web origin.
     return '';
   }
   return normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:4000');
 }
 
-const baseUrl = resolveApiBaseUrl();
+function getBaseUrl(): string {
+  return resolveApiBaseUrl();
+}
 
 let csrfTokenPromise: Promise<string | null> | null = null;
 
@@ -27,7 +29,7 @@ export function invalidateCsrfToken(): void {
 async function fetchCsrfToken(): Promise<string | null> {
   if (!csrfTokenPromise) {
     csrfTokenPromise = (async () => {
-      const response = await fetch(`${baseUrl}/api/v1/auth/csrf-token`, {
+      const response = await fetch(`${getBaseUrl()}/api/v1/auth/csrf-token`, {
         credentials: 'include',
         headers: { Accept: 'application/json' },
       });
@@ -42,10 +44,10 @@ async function fetchCsrfToken(): Promise<string | null> {
 export { fetchCsrfToken };
 
 export function getApiBaseUrl(): string {
-  return baseUrl;
+  return getBaseUrl();
 }
 
-/** Empty browser baseUrl is valid (Next.js rewrites /api/v1 to the API). */
+/** Empty browser baseUrl is valid (App Router proxies `/api/v1` to the API). */
 export function isApiConfigured(): boolean {
   if (typeof window !== 'undefined') {
     return true;
@@ -95,15 +97,20 @@ async function apiFetchOnce(path: string, options: ApiFetchOptions = {}): Promis
       headers.set('X-CSRF-Token', token);
     }
   }
-  return fetch(`${baseUrl}${path}`, {
+  return fetch(`${getBaseUrl()}${path}`, {
     ...rest,
     headers,
     credentials: withCredentials ? 'include' : 'same-origin',
   });
 }
 
+export const NESTORA_UNAUTHORIZED_EVENT = 'nestora:unauthorized';
+
 export async function apiFetch(path: string, options: ApiFetchOptions = {}): Promise<Response> {
   const response = await apiFetchOnce(path, options);
+  if (response.status === 401 && typeof window !== 'undefined' && !path.includes('/auth/login')) {
+    window.dispatchEvent(new Event(NESTORA_UNAUTHORIZED_EVENT));
+  }
   if (response.status !== 403 || !pathNeedsCsrf(path, options.method ?? 'GET')) {
     return response;
   }

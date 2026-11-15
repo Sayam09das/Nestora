@@ -6,12 +6,16 @@ import { RoleAuthSessionProvider } from '@/components/dashboard/role-auth-sessio
 import { StudentDashboardMobileNav } from '@/components/dashboard/student-portal/student-dashboard-mobile-nav';
 import { StudentDashboardSidebar } from '@/components/dashboard/student-portal/student-dashboard-sidebar';
 import { StudentDashboardTopbar } from '@/components/dashboard/student-portal/student-dashboard-topbar';
+import { StudentShellLiveBootstrap } from '@/components/dashboard/student-portal/student-shell-live-bootstrap';
 import { StudentShellProvider } from '@/components/dashboard/student-portal/student-shell-provider';
+import { StudentTopbarLiveProvider } from '@/components/dashboard/student-portal/student-topbar-live-provider';
 
 export function StudentDashboardShell({ children }: { children: ReactNode }) {
   return (
     <RoleAuthSessionProvider allowedRoles={['STUDENT']} homePath="/student">
       <StudentShellProvider>
+        <StudentTopbarLiveProvider>
+        <StudentShellLiveBootstrap />
         <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-[color-mix(in_oklch,var(--nestora-cream)_12%,var(--muted))]">
           <StudentDashboardTopbar />
           <StudentDashboardMobileNav />
@@ -22,6 +26,7 @@ export function StudentDashboardShell({ children }: { children: ReactNode }) {
             </main>
           </div>
         </div>
+        </StudentTopbarLiveProvider>
       </StudentShellProvider>
     </RoleAuthSessionProvider>
   );

@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { BookOpen, LifeBuoy, Phone } from 'lucide-react';
-import { toast } from 'sonner';
+import Link from 'next/link';
 
 import {
   DropdownMenu,
@@ -37,26 +37,17 @@ export function StudentTopbarHelpMenu() {
       <DropdownMenuContent align="end" className="w-56 rounded-xl">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="text-xs text-muted-foreground">Hostel support</DropdownMenuLabel>
-          <DropdownMenuItem
-            className="rounded-lg"
-            onClick={() => toast.message('Duty warden', { description: 'Block B warden line (sample).' })}
-          >
+          <DropdownMenuItem className="rounded-lg" render={<Link href="/student/emergency" />}>
             <Phone className="size-4 text-[var(--nestora-gold)]" />
-            Call duty warden
+            Emergency contacts
           </DropdownMenuItem>
-          <DropdownMenuItem
-            className="rounded-lg"
-            onClick={() => toast.message('Student handbook', { description: 'Rules, curfew, and visitor policy (sample).' })}
-          >
+          <DropdownMenuItem className="rounded-lg" render={<Link href="/student/rules" />}>
             <BookOpen className="size-4 text-[var(--nestora-sage)]" />
-            Hostel handbook
+            Hostel rules
           </DropdownMenuItem>
-          <DropdownMenuItem
-            className="rounded-lg"
-            onClick={() => toast.message('Report an issue', { description: 'Use Complaints for maintenance requests.' })}
-          >
+          <DropdownMenuItem className="rounded-lg" render={<Link href="/student/help" />}>
             <LifeBuoy className="size-4 text-[var(--nestora-forest)]" />
-            Get help
+            Help &amp; support
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

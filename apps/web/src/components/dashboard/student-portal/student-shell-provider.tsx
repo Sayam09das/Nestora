@@ -13,12 +13,13 @@ import {
 import {
   createStudentNavPermissions,
   readStudentFeesOnlineEnabled,
+  STUDENT_FEES_ONLINE_STORAGE_KEY,
   type StudentNavBadgeKey,
   type StudentNavPermission,
 } from '@/components/dashboard/student-portal/student-nav-permissions';
 import { STUDENT_DEMO_ID } from '@/components/dashboard/student-portal/student-topbar-data';
 import { fetchCurrentUser } from '@/lib/api/auth';
-import { fetchStudentDashboardOverview } from '@/lib/api/dashboard';
+import { fetchStudentDashboardOverview, type StudentDashboardOverview } from '@/lib/api/dashboard';
 
 export type StudentNavBadgeCounts = Record<StudentNavBadgeKey, number>;
 
@@ -52,8 +53,10 @@ type StudentShellContextValue = {
   hostelName: string;
   roomLabel: string;
   feesOnlineEnabled: boolean;
+  setFeesOnlineEnabled: (value: boolean) => void;
   navPermissions: ReadonlySet<StudentNavPermission>;
   navBadges: StudentNavBadgeCounts;
+  syncFromOverview: (overview: StudentDashboardOverview) => void;
 };
 
 const StudentShellContext = createContext<StudentShellContextValue | null>(null);
@@ -68,6 +71,30 @@ export function StudentShellProvider({ children }: { children: ReactNode }) {
   const [roomLabel, setRoomLabel] = useState('Room not assigned');
   const [navBadges, setNavBadges] = useState<StudentNavBadgeCounts>(EMPTY_NAV_BADGES);
   const [feesOnlineEnabled, setFeesOnlineEnabled] = useState(true);
+
+  const applyOverview = useCallback((overview: StudentDashboardOverview) => {
+    if (overview.profile.registrationNumber) {
+      setStudentId(overview.profile.registrationNumber);
+    }
+    if (overview.residence.hostelName) {
+      setHostelName(overview.residence.hostelName);
+    } else {
+      setHostelName('No hostel assigned');
+    }
+    if (overview.residence.roomNumber && overview.residence.bedNumber) {
+      setRoomLabel(`Room ${overview.residence.roomNumber} · Bed ${overview.residence.bedNumber}`);
+    } else {
+      setRoomLabel('Room not assigned');
+    }
+    setNavBadges(overview.navBadges);
+  }, []);
+
+  const syncFromOverview = useCallback(
+    (overview: StudentDashboardOverview) => {
+      applyOverview(overview);
+    },
+    [applyOverview],
+  );
 
   useEffect(() => {
     setHydrated(true);
@@ -94,40 +121,17 @@ export function StudentShellProvider({ children }: { children: ReactNode }) {
         setDisplayName(name);
       }
 
-      const overview = overviewRes.overview;
-      if (!overview) return;
-
-      if (overview.profile.registrationNumber) {
-        setStudentId(overview.profile.registrationNumber);
+      if (overviewRes.overview) {
+        applyOverview(overviewRes.overview);
       }
-      if (overview.residence.hostelName) {
-        setHostelName(overview.residence.hostelName);
-      } else {
-        setHostelName('No hostel assigned');
-      }
-      if (overview.residence.roomNumber && overview.residence.bedNumber) {
-        setRoomLabel(
-          `Room ${overview.residence.roomNumber} · Bed ${overview.residence.bedNumber}`,
-        );
-      } else {
-        setRoomLabel('Room not assigned');
-      }
-      setNavBadges(overview.navBadges);
     };
 
     void sync();
-    const interval = setInterval(() => {
-      void fetchStudentDashboardOverview().then((res) => {
-        if (cancelled || !res.overview) return;
-        setNavBadges(res.overview.navBadges);
-      });
-    }, 60_000);
 
     return () => {
       cancelled = true;
-      clearInterval(interval);
     };
-  }, []);
+  }, [applyOverview]);
 
   const setSidebarCollapsedPersisted = useCallback((value: boolean) => {
     setSidebarCollapsed(value);
@@ -154,6 +158,15 @@ export function StudentShellProvider({ children }: { children: ReactNode }) {
     setMobileNavOpen((open) => !open);
   }, []);
 
+  const setFeesOnlineEnabledPersisted = useCallback((value: boolean) => {
+    setFeesOnlineEnabled(value);
+    try {
+      localStorage.setItem(STUDENT_FEES_ONLINE_STORAGE_KEY, value ? '1' : '0');
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const initials = useMemo(() => getInitials(displayName), [displayName]);
 
   const navPermissions = useMemo(
@@ -175,8 +188,10 @@ export function StudentShellProvider({ children }: { children: ReactNode }) {
       hostelName,
       roomLabel,
       feesOnlineEnabled,
+      setFeesOnlineEnabled: setFeesOnlineEnabledPersisted,
       navPermissions,
       navBadges,
+      syncFromOverview,
     }),
     [
       hydrated,
@@ -191,8 +206,10 @@ export function StudentShellProvider({ children }: { children: ReactNode }) {
       hostelName,
       roomLabel,
       feesOnlineEnabled,
+      setFeesOnlineEnabledPersisted,
       navPermissions,
       navBadges,
+      syncFromOverview,
     ],
   );
 

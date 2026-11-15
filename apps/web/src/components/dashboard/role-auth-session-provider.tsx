@@ -15,6 +15,7 @@ import {
 } from 'react';
 
 import { fetchCurrentUser, type AuthUserPayload } from '@/lib/api/auth';
+import { NESTORA_UNAUTHORIZED_EVENT } from '@/lib/api/client';
 
 const KEEPALIVE_MS = 5 * 60 * 1000;
 
@@ -79,6 +80,16 @@ export function RoleAuthSessionProvider({ children, allowedRoles, homePath }: Ro
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    const onUnauthorized = () => {
+      hadUserRef.current = false;
+      setUser(null);
+      setReady(true);
+    };
+    window.addEventListener(NESTORA_UNAUTHORIZED_EVENT, onUnauthorized);
+    return () => window.removeEventListener(NESTORA_UNAUTHORIZED_EVENT, onUnauthorized);
+  }, []);
 
   useEffect(() => {
     const onFocus = () => void refresh();

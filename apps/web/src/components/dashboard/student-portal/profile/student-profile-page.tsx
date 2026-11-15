@@ -18,21 +18,23 @@ import {
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { toast } from 'sonner';
 
-import {
-  buildStudentSelfProfile,
-  type StudentSelfProfile,
-  type VerificationStatus,
-} from '@/components/dashboard/student-portal/profile/student-profile-data';
+import { mapStudentProfileDesk } from '@/components/dashboard/student-portal/profile/student-profile-mapper';
+import type { StudentSelfProfile, VerificationStatus } from '@/components/dashboard/student-portal/profile/student-profile-data';
 import {
   StudentProfileField,
   StudentProfileSection,
 } from '@/components/dashboard/student-portal/profile/student-profile-section';
 import { useStudentShell } from '@/components/dashboard/student-portal/student-shell-provider';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useStudentProfileDesk } from '@/hooks/use-student-profile-desk';
+import { getApiBaseUrl } from '@/lib/api/client';
+import { patchStudentProfileDesk } from '@/lib/api/student-profile';
+import { formatRelativeTimeFromIso } from '@/lib/format-relative-time';
 import {
   Table,
   TableBody,
@@ -47,6 +49,17 @@ import { cn } from '@/lib/utils';
 const motionEase = [0.22, 1, 0.36, 1] as const;
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
+
+function resolvePhotoUrl(url: string | null): string | null {
+  if (!url) return null;
+  const base = getApiBaseUrl();
+  if (!base) return url;
+  try {
+    return `${base.replace(/\/$/, '')}${new URL(url).pathname}`;
+  } catch {
+    return url;
+  }
+}
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -65,30 +78,40 @@ export function StudentProfilePage() {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const { displayName, studentId, hostelName, initials: shellInitials } = useStudentShell();
+  const { initials: shellInitials } = useStudentShell();
+  const { desk, loading, error, refresh, mergeDesk } = useStudentProfileDesk({ pollIntervalMs: 20_000 });
 
   const baseProfile = useMemo(
-    () => buildStudentSelfProfile(displayName, studentId, hostelName),
-    [displayName, studentId, hostelName],
+    () => (desk ? mapStudentProfileDesk(desk) : null),
+    [desk],
   );
 
   const [editing, setEditing] = useState(false);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(baseProfile.photoUrl);
+  const [saving, setSaving] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [personalDraft, setPersonalDraft] = useState(baseProfile.personal);
-  const [emergencyDraft, setEmergencyDraft] = useState(baseProfile.emergency);
+  const [personalDraft, setPersonalDraft] = useState<StudentSelfProfile['personal'] | null>(null);
+  const [emergencyDraft, setEmergencyDraft] = useState<StudentSelfProfile['emergency'] | null>(null);
 
-  const profile: StudentSelfProfile = useMemo(
-    () => ({
+  useEffect(() => {
+    if (!baseProfile || editing) return;
+    setPersonalDraft(baseProfile.personal);
+    setEmergencyDraft(baseProfile.emergency);
+    setPhotoUrl(resolvePhotoUrl(baseProfile.photoUrl));
+  }, [baseProfile, editing]);
+
+  const profile = useMemo((): StudentSelfProfile | null => {
+    if (!baseProfile || !personalDraft || !emergencyDraft) return null;
+    return {
       ...baseProfile,
       photoUrl,
       personal: personalDraft,
       emergency: emergencyDraft,
-    }),
-    [baseProfile, photoUrl, personalDraft, emergencyDraft],
-  );
+    };
+  }, [baseProfile, photoUrl, personalDraft, emergencyDraft]);
 
-  const avatarInitials = shellInitials || getInitials(profile.fullName);
+  const liveLabel = desk?.generatedAt ? formatRelativeTimeFromIso(desk.generatedAt) : null;
+  const avatarInitials = shellInitials || getInitials(profile?.fullName ?? 'Student');
 
   useGSAP(
     () => {
@@ -105,45 +128,106 @@ export function StudentProfilePage() {
     { scope: rootRef, dependencies: [reduceMotion] },
   );
 
-  const onPhotoPick = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please choose an image file.');
-      return;
-    }
-    setUploading(true);
-    const preview = URL.createObjectURL(file);
-    setPhotoUrl(preview);
-    const result = await uploadStudentProfilePhoto(file);
-    setUploading(false);
-    if (result.error) {
-      toast.error(result.error);
-      setPhotoUrl(baseProfile.photoUrl);
+  const onPhotoPick = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please choose an image file.');
+        return;
+      }
+      setUploading(true);
+      const preview = URL.createObjectURL(file);
+      setPhotoUrl(preview);
+      const result = await uploadStudentProfilePhoto(file);
+      if (result.error) {
+        toast.error(result.error);
+        setPhotoUrl(resolvePhotoUrl(baseProfile?.photoUrl ?? null));
+        URL.revokeObjectURL(preview);
+        setUploading(false);
+        return;
+      }
+      if (result.upload?.objectKey) {
+        const patched = await patchStudentProfileDesk({
+          profilePhotoObjectKey: result.upload.objectKey,
+        });
+        if (patched.desk) {
+          mergeDesk(patched.desk);
+          toast.success('Profile photo updated.');
+        } else if (patched.error) {
+          toast.error(patched.error);
+        }
+      }
       URL.revokeObjectURL(preview);
+      setUploading(false);
+    },
+    [baseProfile?.photoUrl, mergeDesk],
+  );
+
+  const saveEditable = async () => {
+    if (!personalDraft || !emergencyDraft) return;
+    setSaving(true);
+    const patched = await patchStudentProfileDesk({
+      phone: personalDraft.phone,
+      permanentAddress: personalDraft.permanentAddress,
+      guardianName: emergencyDraft.guardianName,
+      guardianPhone: emergencyDraft.primaryPhone,
+      guardianRelation: emergencyDraft.relationship,
+    });
+    setSaving(false);
+    if (patched.error) {
+      toast.error(patched.error);
       return;
     }
-    if (result.upload?.publicUrl) {
-      setPhotoUrl(result.upload.publicUrl);
-      toast.success('Profile photo updated. Warden approval may apply for official records.');
-    }
-    URL.revokeObjectURL(preview);
-  }, [baseProfile.photoUrl]);
-
-  const saveEditable = () => {
+    if (patched.desk) mergeDesk(patched.desk);
     setEditing(false);
     toast.success('Contact details saved. Academic and hostel records remain read-only.');
   };
 
   const cancelEdit = () => {
-    setPersonalDraft(baseProfile.personal);
-    setEmergencyDraft(baseProfile.emergency);
+    if (baseProfile) {
+      setPersonalDraft(baseProfile.personal);
+      setEmergencyDraft(baseProfile.emergency);
+    }
     setEditing(false);
   };
 
+  if (loading && !profile) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="size-5 animate-spin" aria-hidden />
+        Loading profile…
+      </div>
+    );
+  }
+
+  if (error && !profile) {
+    return (
+      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-center">
+        <p className="text-sm text-destructive">{error}</p>
+        <Button type="button" variant="outline" size="sm" onClick={() => void refresh()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (!profile || !personalDraft || !emergencyDraft) return null;
+
   return (
     <div ref={rootRef} className="space-y-6 pb-4">
+      {error ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          <span>{error}</span>
+          <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => void refresh()}>
+            Retry
+          </Button>
+        </div>
+      ) : null}
+      {liveLabel ? (
+        <p className="text-xs text-muted-foreground">Profile synced {liveLabel} · ~20s refresh</p>
+      ) : null}
       <motion.header
         data-student-profile-block
         initial={reduceMotion ? false : { opacity: 0, y: 8 }}
@@ -226,12 +310,14 @@ export function StudentProfilePage() {
                 <>
                   <button
                     type="button"
-                    onClick={saveEditable}
+                    disabled={saving}
+                    onClick={() => void saveEditable()}
                     className={cn(
                       'inline-flex h-8 items-center gap-1.5 bg-[var(--nestora-forest)] px-3 text-xs font-semibold text-white',
                       focusRing,
                     )}
                   >
+                    {saving ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
                     Save changes
                   </button>
                   <button
@@ -279,21 +365,14 @@ export function StudentProfilePage() {
                     id="student-phone"
                     type="tel"
                     value={personalDraft.phone}
-                    onChange={(e) => setPersonalDraft((p) => ({ ...p, phone: e.target.value }))}
+                    onChange={(e) =>
+                      setPersonalDraft((p) => (p ? { ...p, phone: e.target.value } : p))
+                    }
                     className={cn('mt-1 w-full border border-border bg-background px-3 py-2 text-sm', focusRing)}
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground" htmlFor="student-email">
-                    Email Address
-                  </label>
-                  <input
-                    id="student-email"
-                    type="email"
-                    value={personalDraft.email}
-                    onChange={(e) => setPersonalDraft((p) => ({ ...p, email: e.target.value }))}
-                    className={cn('mt-1 w-full border border-border bg-background px-3 py-2 text-sm', focusRing)}
-                  />
+                  <StudentProfileField label="Email Address" value={personalDraft.email} />
                 </div>
                 <motion.div className="sm:col-span-2">
                   <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground" htmlFor="student-address">
@@ -303,7 +382,9 @@ export function StudentProfilePage() {
                     id="student-address"
                     rows={2}
                     value={personalDraft.permanentAddress}
-                    onChange={(e) => setPersonalDraft((p) => ({ ...p, permanentAddress: e.target.value }))}
+                    onChange={(e) =>
+                      setPersonalDraft((p) => (p ? { ...p, permanentAddress: e.target.value } : p))
+                    }
                     className={cn('mt-1 w-full resize-y border border-border bg-background px-3 py-2 text-sm', focusRing)}
                   />
                 </motion.div>
@@ -393,7 +474,9 @@ export function StudentProfilePage() {
                       id={`emergency-${key}`}
                       rows={2}
                       value={emergencyDraft.address}
-                      onChange={(e) => setEmergencyDraft((d) => ({ ...d, address: e.target.value }))}
+                      onChange={(e) =>
+                        setEmergencyDraft((d) => (d ? { ...d, address: e.target.value } : d))
+                      }
                       className={cn('mt-1 w-full border border-border bg-background px-3 py-2 text-sm', focusRing)}
                     />
                   ) : (
@@ -401,7 +484,9 @@ export function StudentProfilePage() {
                       id={`emergency-${key}`}
                       type="text"
                       value={emergencyDraft[key]}
-                      onChange={(e) => setEmergencyDraft((d) => ({ ...d, [key]: e.target.value }))}
+                      onChange={(e) =>
+                        setEmergencyDraft((d) => (d ? { ...d, [key]: e.target.value } : d))
+                      }
                       className={cn('mt-1 w-full border border-border bg-background px-3 py-2 text-sm', focusRing)}
                     />
                   )}

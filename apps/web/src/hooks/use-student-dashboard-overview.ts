@@ -51,8 +51,19 @@ export function useStudentDashboardOverview(): StudentDashboardSession {
       void fetchStudentDashboardOverview().then((data) => {
         if (data.overview) setOverview(data.overview);
       });
-    }, 60_000);
-    return () => clearInterval(interval);
+    }, 20_000);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void fetchStudentDashboardOverview().then((data) => {
+          if (data.overview) setOverview(data.overview);
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [load]);
 
   return { displayName, overview, loading, error, refresh: load };

@@ -1,11 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { filterStudentNavGroups, flattenStudentNavLinks, studentNavGroups } from '@/components/dashboard/student-portal/student-nav-items';
 import { useStudentShell } from '@/components/dashboard/student-portal/student-shell-provider';
-import { SAMPLE_STUDENT_SEARCH_HITS } from '@/components/dashboard/student-portal/student-topbar-data';
+import { useStudentTopbarLiveContext } from '@/components/dashboard/student-portal/student-topbar-live-provider';
+import type { StudentTopbarSearchHit } from '@/hooks/use-student-topbar-live';
 import {
   CommandDialog,
   CommandEmpty,
@@ -22,24 +23,37 @@ export function StudentTopbarGlobalSearch({ open, onOpenChange }: Props) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const { navPermissions } = useStudentShell();
+  const { search, defaultSearchHits } = useStudentTopbarLiveContext();
+  const [hits, setHits] = useState<StudentTopbarSearchHit[]>(defaultSearchHits);
+  const [searching, setSearching] = useState(false);
 
   const navLinks = useMemo(
     () => flattenStudentNavLinks(filterStudentNavGroups(studentNavGroups, navPermissions)),
     [navPermissions],
   );
 
-  const filteredHits = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return SAMPLE_STUDENT_SEARCH_HITS;
-    return SAMPLE_STUDENT_SEARCH_HITS.filter(
-      (hit) =>
-        hit.label.toLowerCase().includes(q) ||
-        hit.hint.toLowerCase().includes(q) ||
-        hit.category.toLowerCase().includes(q),
-    );
-  }, [query]);
+  useEffect(() => {
+    setHits(defaultSearchHits);
+  }, [defaultSearchHits]);
 
-  const byCategory = (cat: string) => filteredHits.filter((h) => h.category === cat);
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setHits(defaultSearchHits);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const handle = window.setTimeout(() => {
+      void search(q).then((rows) => {
+        setHits(rows);
+        setSearching(false);
+      });
+    }, 280);
+    return () => window.clearTimeout(handle);
+  }, [query, search, defaultSearchHits]);
+
+  const byCategory = (cat: StudentTopbarSearchHit['category']) => hits.filter((h) => h.category === cat);
 
   const go = (href: string) => {
     onOpenChange(false);
@@ -47,7 +61,11 @@ export function StudentTopbarGlobalSearch({ open, onOpenChange }: Props) {
     router.push(href);
   };
 
-  const categories = [...new Set(filteredHits.map((h) => h.category))];
+  const categories = [...new Set(hits.map((h) => h.category))];
+  const filteredNav =
+    query.trim().length >= 1
+      ? navLinks.filter((link) => link.label.toLowerCase().includes(query.trim().toLowerCase()))
+      : navLinks;
 
   return (
     <CommandDialog
@@ -61,13 +79,13 @@ export function StudentTopbarGlobalSearch({ open, onOpenChange }: Props) {
     >
       <CommandInput placeholder="Search notices, services, help…" value={query} onValueChange={setQuery} />
       <CommandList>
-        <CommandEmpty>No matches in your scope.</CommandEmpty>
+        <CommandEmpty>{searching ? 'Searching…' : 'No matches in your scope.'}</CommandEmpty>
         {categories.map((category) => {
-          const hits = byCategory(category);
-          if (hits.length === 0) return null;
+          const rows = byCategory(category);
+          if (rows.length === 0) return null;
           return (
             <CommandGroup key={category} heading={category}>
-              {hits.map((hit) => (
+              {rows.map((hit) => (
                 <CommandItem key={hit.id} value={hit.label} onSelect={() => go(hit.href)}>
                   <span className="font-medium">{hit.label}</span>
                   <span className="ml-auto text-xs text-muted-foreground">{hit.hint}</span>
@@ -78,7 +96,7 @@ export function StudentTopbarGlobalSearch({ open, onOpenChange }: Props) {
         })}
         <CommandSeparator />
         <CommandGroup heading="Navigation">
-          {navLinks.map((link) => (
+          {filteredNav.map((link) => (
             <CommandItem key={link.id} value={link.label} onSelect={() => go(link.href)}>
               {link.label}
             </CommandItem>

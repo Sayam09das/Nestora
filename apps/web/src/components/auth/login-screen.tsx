@@ -14,8 +14,8 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useId, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { AuthFieldInput } from '@/components/auth/auth-form-fields';
 import { AuthSkiperLink } from '@/components/auth/auth-skiper-link';
@@ -45,11 +45,38 @@ const formField = {
 
 type LoginRole = 'staff' | 'student';
 
+function resolvePostLoginPath(
+  user: { role: string; dashboardPath: string; mustChangePassword?: boolean },
+  returnTo: string | null,
+): string {
+  if (user.mustChangePassword) return '/change-password';
+  if (
+    returnTo &&
+    returnTo.startsWith('/') &&
+    !returnTo.startsWith('//') &&
+    !returnTo.startsWith('/login') &&
+    !returnTo.startsWith('/admin/login')
+  ) {
+    if (user.role === 'STUDENT' && returnTo.startsWith('/student')) return returnTo;
+    if (
+      (user.role === 'HOSTEL_STAFF' || user.role === 'HOSTEL_WARDEN') &&
+      (returnTo.startsWith('/staff') || returnTo.startsWith('/warden'))
+    ) {
+      return returnTo;
+    }
+  }
+  return user.dashboardPath || '/login';
+}
+
 export function LoginScreen() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
   const reduceMotion = useReducedMotion();
   const roleGroupId = useId();
-  const [role, setRole] = useState<LoginRole>('staff');
+  const [role, setRole] = useState<LoginRole>(() =>
+    returnTo?.startsWith('/student') ? 'student' : 'staff',
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mfaCode, setMfaCode] = useState('');
@@ -61,6 +88,12 @@ export function LoginScreen() {
   const sectionRef = useRef<HTMLElement>(null);
   const storyRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (returnTo?.startsWith('/student')) {
+      setRole('student');
+    }
+  }, [returnTo]);
 
   useGSAP(
     () => {
@@ -121,7 +154,11 @@ export function LoginScreen() {
         return;
       }
 
-      router.push(postLoginRedirect(result.user));
+      const dest =
+        result.user.role === 'STUDENT' && role === 'staff'
+          ? resolvePostLoginPath(result.user, '/student')
+          : resolvePostLoginPath(result.user, returnTo);
+      router.push(dest);
     } catch {
       setError('Unable to reach the API. Is the backend running on the configured URL?');
     } finally {

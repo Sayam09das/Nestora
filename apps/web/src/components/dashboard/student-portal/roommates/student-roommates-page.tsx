@@ -7,6 +7,7 @@ import {
   Building2,
   DoorOpen,
   Fan,
+  Loader2,
   RefreshCw,
   ShieldAlert,
   Users,
@@ -120,7 +121,8 @@ export function StudentRoommatesPage() {
   const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const { displayName } = useStudentShell();
-  const { snapshot, lastSyncedAt, isRefreshing, refresh, syncError } = useStudentRoommatesLive(displayName);
+  const { snapshot, lastSyncedAt, isRefreshing, loading, refresh, syncError } =
+    useStudentRoommatesLive(displayName);
 
   const [selected, setSelected] = useState<StudentRoommateCard | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -282,10 +284,27 @@ export function StudentRoommatesPage() {
           ) : null}
         </div>
 
-        {snapshot.roommates.length === 0 ? (
+        {loading ? (
+          <div className="mt-5 grid gap-4 sm:grid-cols-2" aria-busy="true" aria-label="Loading roommate profiles">
+            {[0, 1].map((key) => (
+              <div
+                key={key}
+                className="flex animate-pulse flex-col gap-4 rounded-2xl border border-border bg-muted/30 p-5"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="size-14 rounded-2xl bg-muted" />
+                  <div className="h-6 w-16 rounded-full bg-muted" />
+                </div>
+                <div className="h-5 w-32 rounded bg-muted" />
+                <div className="h-3 w-24 rounded bg-muted" />
+              </div>
+            ))}
+          </div>
+        ) : snapshot.roommates.length === 0 ? (
           <p className="mt-4 rounded-xl border border-dashed border-border bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
-            No roommates to display yet. When you have an active bed allocation, your roommates will appear here
-            automatically.
+            {snapshot.hasAllocation
+              ? 'You are the only resident in this room right now. Other bed assignments will appear here when the warden allocates them.'
+              : 'No roommates to display yet. When you have an active bed allocation, your roommates will appear here automatically.'}
           </p>
         ) : (
           <ul className="mt-5 grid gap-4 sm:grid-cols-2">
