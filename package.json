@@ -37,7 +37,13 @@
     "neon:seed-announcements": "pnpm --filter @nestora/api seed:neon-announcements",
     "docker:up": "docker compose -f docker/docker-compose.yml up -d",
     "docker:down": "docker compose -f docker/docker-compose.yml down",
-    "docker:logs": "docker compose -f docker/docker-compose.yml logs -f"
+    "docker:logs": "docker compose -f docker/docker-compose.yml logs -f",
+    "docker:build:api": "docker build -f docker/Dockerfile.api -t nestora-api:local .",
+    "docker:build:web": "docker build -f docker/Dockerfile.web --build-arg NEXT_PUBLIC_API_URL=http://localhost:4000 --build-arg NEXT_PUBLIC_SITE_URL=http://localhost:3000 -t nestora-web:local .",
+    "docker:prod:up": "docker compose -f docker/docker-compose.prod.yml up -d --build",
+    "docker:prod:down": "docker compose -f docker/docker-compose.prod.yml down",
+    "docker:prod:logs": "docker compose -f docker/docker-compose.prod.yml logs -f",
+    "docker:db:migrate": "DATABASE_URL=postgresql://nestora:nestora_dev_pw@localhost:5432/nestora_db?schema=public DIRECT_DATABASE_URL=postgresql://nestora:nestora_dev_pw@localhost:5432/nestora_db?schema=public pnpm --filter @nestora/database db:migrate:deploy"
   },
   "devDependencies": {
     "@aws-sdk/s3-presigned-post": "^3.1164.0",

@@ -8,7 +8,12 @@
 **/.env
 **/.env.local
 docs
-uploads
+.cursor
+.agents
+/uploads/
+apps/api/uploads/
+neon.ts
+skills-lock.json
 tmp
 temp
 coverage

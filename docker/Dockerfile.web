@@ -1,12 +1,16 @@
 # Nestora Web — multi-stage production image (Next.js standalone, Node.js 24 LTS)
 FROM node:24-alpine AS base
+RUN apk add --no-cache libc6-compat
 ENV PNPM_HOME="/pnpm"
 ENV PATH="${PNPM_HOME}:${PATH}"
-RUN corepack enable
+RUN corepack enable pnpm && corepack prepare pnpm@11.13.1 --activate
 WORKDIR /app
 
+ARG NEXT_PUBLIC_API_URL=http://localhost:4000
+ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
 FROM base AS deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc turbo.json ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/types/package.json ./packages/types/
 COPY packages/validators/package.json ./packages/validators/
@@ -15,9 +19,24 @@ COPY packages/config/package.json ./packages/config/
 RUN pnpm install --frozen-lockfile --filter @nestora/web...
 
 FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_SITE_URL
+ENV NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL}"
+ENV NEXT_PUBLIC_SITE_URL="${NEXT_PUBLIC_SITE_URL}"
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+COPY --from=deps /app/packages/types/node_modules ./packages/types/node_modules
+COPY --from=deps /app/packages/validators/node_modules ./packages/validators/node_modules
+COPY --from=deps /app/packages/utils/node_modules ./packages/utils/node_modules
+COPY --from=deps /app/packages/config/node_modules ./packages/config/node_modules
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc turbo.json ./
+COPY apps/web ./apps/web
+COPY packages/types ./packages/types
+COPY packages/validators ./packages/validators
+COPY packages/utils ./packages/utils
+COPY packages/config ./packages/config
 RUN pnpm --filter @nestora/types build \
   && pnpm --filter @nestora/validators build \
   && pnpm --filter @nestora/utils build \
@@ -27,10 +46,12 @@ FROM node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN addgroup -S nestora && adduser -S nestora -G nestora
-COPY --from=builder /app/apps/web/public ./apps/web/public
-COPY --from=builder /app/apps/web/.next/standalone ./
-COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
+RUN apk add --no-cache libc6-compat \
+  && addgroup -S nestora \
+  && adduser -S nestora -G nestora
+COPY --from=builder --chown=nestora:nestora /app/apps/web/public ./apps/web/public
+COPY --from=builder --chown=nestora:nestora /app/apps/web/.next/standalone ./
+COPY --from=builder --chown=nestora:nestora /app/apps/web/.next/static ./apps/web/.next/static
 USER nestora
 EXPOSE 3000
 ENV PORT=3000
