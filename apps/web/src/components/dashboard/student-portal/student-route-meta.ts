@@ -10,6 +10,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   attendance: 'My Attendance',
   roommates: 'My Roommates',
   leave: 'Leave Requests',
+  'gate-passes': 'Gate Passes',
   complaints: 'Complaints',
   maintenance: 'Maintenance Requests',
   visitors: 'Visitor Requests',

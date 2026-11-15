@@ -23,6 +23,7 @@ import {
   postStudentComplaintHandler,
   getStudentLeaveHandler,
   postStudentLeaveHandler,
+  getStudentGatePassesHandler,
   getStudentSelfProfileHandler,
   patchStudentSelfProfileHandler,
   getWardenDashboardOverviewHandler,
@@ -187,6 +188,13 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
       preHandler: [requireRoles('STUDENT')],
     },
     postStudentLeaveHandler,
+  );
+  app.get(
+    '/student/gate-passes',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentGatePassesHandler,
   );
   app.get(
     '/student/settings',

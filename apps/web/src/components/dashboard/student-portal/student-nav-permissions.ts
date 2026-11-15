@@ -6,11 +6,13 @@ export type StudentNavPermission =
   | 'hostel.attendance'
   | 'hostel.roommates'
   | 'services.leave'
+  | 'services.gatepasses'
   | 'services.complaints'
   | 'services.maintenance'
   | 'services.visitors'
   | 'services.fees'
   | 'info.announcements'
+  | 'info.messages'
   | 'info.events'
   | 'info.rules'
   | 'info.emergency'
@@ -35,10 +37,12 @@ const BASE_PERMISSIONS: readonly StudentNavPermission[] = [
   'hostel.attendance',
   'hostel.roommates',
   'services.leave',
+  'services.gatepasses',
   'services.complaints',
   'services.maintenance',
   'services.visitors',
   'info.announcements',
+  'info.messages',
   'info.events',
   'info.rules',
   'info.emergency',
