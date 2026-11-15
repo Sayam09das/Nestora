@@ -5,6 +5,7 @@ import {
   getStaffDirectorySummary,
   listStaffDirectoryHandler,
   registerStaffHandler,
+  updateStaffHostelAssignmentsHandler,
 } from './staff.controller.js';
 
 const adminOnly = requireRoles('UNIVERSITY_ADMINISTRATOR');
@@ -14,4 +15,5 @@ export const staffRoutes: FastifyPluginAsync = async (app) => {
   app.get('/directory', { preHandler: [adminOnly] }, listStaffDirectoryHandler);
   app.post('/register', { preHandler: [adminOnly] }, registerStaffHandler);
   app.get('/:userId/profile', { preHandler: [adminOnly] }, getAdminStaffProfileHandler);
+  app.patch('/:userId/hostel-assignments', { preHandler: [adminOnly] }, updateStaffHostelAssignmentsHandler);
 };

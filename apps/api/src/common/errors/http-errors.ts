@@ -53,3 +53,9 @@ export class InternalError extends AppError {
     super({ statusCode: 500, code: 'INTERNAL_ERROR', message, details });
   }
 }
+
+export class ServiceUnavailableError extends AppError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super({ statusCode: 503, code: 'SERVICE_UNAVAILABLE', message, details });
+  }
+}

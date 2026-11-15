@@ -1,6 +1,7 @@
 import type { GenderCategory, Prisma, PrismaClient } from '@nestora/database';
-import type { AllocationDirectoryListQuery } from '@nestora/validators';
+import type { AllocationDirectoryListQuery, AssignStudentToBedBody } from '@nestora/validators';
 import { DEFAULT_PAGE, DEFAULT_PAGE_LIMIT } from '../../common/constants/limits.js';
+import { BadRequestError, ConflictError, NotFoundError } from '../../common/errors/index.js';
 import { buildPaginationMeta, normalizePagination } from '../../common/helpers/index.js';
 import { hostelNameInScope, prismaHostelNamesOnBed } from '../../common/helpers/warden-hostel-scope.js';
 
@@ -449,12 +450,10 @@ export async function getAllocationDirectorySummary(
     prisma.bed.count(),
     prisma.allocationRecord.count({ where: { allocatedAt: { gte: dayAgo } } }),
     prisma.roomChangeRequest.count({ where: { status: { equals: CHANGE_PENDING, mode: 'insensitive' } } }),
-    prisma.admissionApplication.count({
+    prisma.student.count({
       where: {
-        status: ADMISSION_FULLY_APPROVED,
-        student: {
-          allocationRecords: { none: { status: 'ACTIVE' } },
-        },
+        user: { status: 'ACTIVE', isVerified: true },
+        allocationRecords: { none: { status: 'ACTIVE' } },
       },
     }),
     prisma.hostel.findMany({
@@ -521,6 +520,25 @@ export async function listAllocationQueue(prisma: PrismaClient): Promise<Allocat
   return rows.filter((r) => r.status === 'Pending' || r.status === 'Change Requested');
 }
 
+export async function getAllocationDirectoryById(
+  prisma: PrismaClient,
+  id: string,
+  scopeHostelNames?: string[],
+): Promise<AllocationDirectoryRow | null> {
+  const rows = await loadAllRows(prisma);
+  const row = rows.find((r) => r.id === id);
+  if (!row) {
+    return null;
+  }
+  if (scopeHostelNames && scopeHostelNames.length > 0) {
+    const hostel = row.hostel ?? row.preferenceHostel;
+    if (!hostel || !hostelNameInScope(hostel, scopeHostelNames)) {
+      return null;
+    }
+  }
+  return row;
+}
+
 export type AllocationDirectoryListOptions = AllocationDirectoryListQuery & {
   scopeHostelNames?: string[];
 };
@@ -545,4 +563,72 @@ export async function listAllocationDirectory(
     allocations: pageRows,
     pagination: buildPaginationMeta(page, safeLimit, total),
   };
+}
+
+export async function assignStudentToBed(
+  prisma: PrismaClient,
+  actorUserId: string,
+  body: AssignStudentToBedBody,
+): Promise<{ allocationId: string }> {
+  const student = await prisma.student.findFirst({
+    where: { userId: body.studentUserId },
+    select: {
+      id: true,
+      user: { select: { status: true, isVerified: true, role: true } },
+    },
+  });
+  if (!student || student.user.role !== 'STUDENT') {
+    throw new NotFoundError('Student not found.');
+  }
+  if (student.user.status !== 'ACTIVE' || !student.user.isVerified) {
+    throw new BadRequestError('Student must be active and verified before bed assignment.');
+  }
+
+  const bed = await prisma.bed.findUnique({
+    where: { id: body.bedId },
+    select: {
+      id: true,
+      status: true,
+      room: { select: { status: true } },
+    },
+  });
+  if (!bed) {
+    throw new NotFoundError('Bed not found.');
+  }
+  if (bed.status !== 'AVAILABLE') {
+    throw new BadRequestError('Selected bed is not available.');
+  }
+  if (bed.room.status === 'UNDER_MAINTENANCE' || bed.room.status === 'DECOMMISSIONED') {
+    throw new BadRequestError('Room is not available for assignment.');
+  }
+
+  const activeAllocation = await prisma.allocationRecord.findFirst({
+    where: { studentId: student.id, status: 'ACTIVE' },
+    select: { id: true },
+  });
+  if (activeAllocation) {
+    throw new ConflictError('Student already has an active bed allocation.');
+  }
+
+  const startDate = body.startDate ? new Date(`${body.startDate}T00:00:00.000Z`) : new Date();
+
+  const created = await prisma.$transaction(async (tx) => {
+    const record = await tx.allocationRecord.create({
+      data: {
+        studentId: student.id,
+        bedId: body.bedId,
+        allocatedBy: actorUserId,
+        status: 'ACTIVE',
+        startDate,
+      },
+      select: { id: true },
+    });
+    await tx.bed.update({
+      where: { id: body.bedId },
+      data: { status: 'OCCUPIED' },
+    });
+    return record;
+  });
+
+  return { allocationId: created.id };
 }

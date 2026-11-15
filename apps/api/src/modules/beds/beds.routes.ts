@@ -1,7 +1,11 @@
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { requireAuth } from '../../middleware/authenticate.js';
 import { requireRoles } from '../../middleware/authorize.js';
-import { getBedDirectorySummary, listBedDirectoryHandler } from './beds.controller.js';
+import {
+  getBedDirectoryByIdHandler,
+  getBedDirectorySummary,
+  listBedDirectoryHandler,
+} from './beds.controller.js';
 
 function withAdminAuth() {
   return {
@@ -31,5 +35,6 @@ const adminOrWarden = withAdminOrWardenAuth();
 
 export const bedsRoutes: FastifyPluginAsync = async (app) => {
   app.get('/directory/summary', adminOrWarden, getBedDirectorySummary);
+  app.get('/directory/:bedId', adminOrWarden, getBedDirectoryByIdHandler);
   app.get('/directory', adminOrWarden, listBedDirectoryHandler);
 };

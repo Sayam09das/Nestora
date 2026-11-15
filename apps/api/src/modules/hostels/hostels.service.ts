@@ -240,6 +240,20 @@ export async function getHostelDirectorySummary(prisma: PrismaClient): Promise<H
   };
 }
 
+export async function getHostelDirectoryById(
+  prisma: PrismaClient,
+  hostelId: string,
+): Promise<HostelDirectoryRow | null> {
+  const hostel = await prisma.hostel.findUnique({
+    where: { id: hostelId },
+    include: hostelTreeInclude,
+  });
+  if (!hostel) {
+    return null;
+  }
+  return aggregateHostel(hostel);
+}
+
 export async function listHostelDirectory(
   prisma: PrismaClient,
   query: HostelDirectoryListQuery,

@@ -1,9 +1,9 @@
-import { connectDatabase, disconnectDatabase, prisma } from '@nestora/database';
+import { connectDatabase, disconnectDatabase, prisma, type PrismaClient } from '@nestora/database';
 import type { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 
 const prismaPluginImpl: FastifyPluginAsync = async (app) => {
-  app.decorate('prisma', prisma);
+  app.decorate('prisma', prisma as unknown as PrismaClient);
 
   app.addHook('onReady', async () => {
     await connectDatabase();

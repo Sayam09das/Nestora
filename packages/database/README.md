@@ -4,7 +4,7 @@ PostgreSQL persistence for Nestora via [Prisma ORM](https://www.prisma.io/). The
 
 ## Environment
 
-Copy `.env.example` to `.env` and set **`DATABASE_URL`** and **`DIRECT_DATABASE_URL`** (same value for Neon **direct** host — no `-pooler` in the hostname). Do **not** use `channel_binding=require` in the URL.
+Copy `.env.example` to `.env`. For **Neon** dev/prod apps, set **`DATABASE_URL`** to the **pooled** host (`-pooler` in the hostname, `pgbouncer=true`). Set **`DIRECT_DATABASE_URL`** to the **direct** host for migrations. Do **not** use `channel_binding=require` in the URL.
 
 ### Neon looks empty (no tables)
 
@@ -48,7 +48,7 @@ pnpm --filter @nestora/database db:migrate:deploy
 | `pnpm --filter @nestora/database db:migrate:dev`    | Create/apply development migrations            |
 | `pnpm --filter @nestora/database db:migrate:deploy` | Apply migrations in deployment                 |
 | `pnpm --filter @nestora/database db:seed`           | Upsert six documented room configurations only |
-| `pnpm neon:seed-rooms` (from repo root)             | Demo inventory: **180 rooms / 420 beds** (Double/Triple AC & Non-AC mix; see `apps/api/scripts/seed-neon-rooms-and-beds.ts`) |
+| `pnpm neon:seed-rooms` (from repo root)             | Demo inventory: **240 rooms / 540 beds** (30 single, 120 double, 90 triple; see `apps/api/scripts/seed-neon-rooms-and-beds.ts`) |
 
 ## PostgreSQL-specific SQL
 

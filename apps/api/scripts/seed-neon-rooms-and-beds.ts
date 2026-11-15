@@ -1,20 +1,17 @@
 /**
- * Seeds demo infrastructure matching UI/docs targets:
+ * Seeds demo infrastructure matching product targets:
  *
- * | Category (doc RoomConfigCode) | Capacity | Rooms (total) | Beds |
- * |------------------------------|----------|---------------|------|
- * | Double Non-AC                | 2        | 60            | 120  |
- * | Double AC                    | 2        | 60            | 120  |
- * | Triple Non-AC                | 3        | 30            | 90   |
- * | Triple AC                    | 3        | 30            | 90   |
- * | Single Non-AC                | 1        | 0             | 0    |
- * | Single AC                    | 1        | 0             | 0    |
- * | **Total**                    |          | **180**       | **420** |
+ * | Sharing type   | Rooms | Beds/room | Total beds |
+ * |----------------|-------|-----------|------------|
+ * | Single Sharing | 30    | 1         | 30         |
+ * | Double Sharing | 120   | 2         | 240        |
+ * | Triple Sharing | 90    | 3         | 270        |
+ * | **Total**      | **240** | —       | **540**    |
  *
- * Per hostel (Boys A, Girls B, Graduate C): 60 rooms, 140 beds
- *   → 20 Double Non-AC, 20 Double AC, 10 Triple Non-AC, 10 Triple AC
+ * Per hostel (Boys A, Girls B, Graduate C): 80 rooms, 180 beds
+ *   → 10 Single (5 Non-AC + 5 AC), 40 Double, 30 Triple
  *
- * See docs/07-database-design.md § RoomConfiguration (six standard types).
+ * Idempotent: tops up each hostel toward the mix without deleting existing inventory.
  */
 import { prisma, type RoomConfiguration } from '@nestora/database';
 import { defaultBedNumbers } from '../src/modules/infrastructure/infrastructure.helpers.js';
@@ -27,8 +24,8 @@ type ConfigCode =
   | 'TRIPLE_NON_AC'
   | 'TRIPLE_AC';
 
-const TARGET_ROOMS = 180;
-const TARGET_BEDS = 420;
+export const TARGET_ROOMS = 240;
+export const TARGET_BEDS = 540;
 
 const HOSTELS = [
   { name: 'Boys Hostel A', code: 'BOYS-A', gender: 'BOYS_HOSTEL' as const },
@@ -45,14 +42,14 @@ const FLOORS: { floorNumber: number; name: string }[] = [
   { floorNumber: 3, name: '3rd Floor' },
 ];
 
-/** Per hostel: counts per config code (sums to 60 rooms / 140 beds each). */
+/** Per hostel: counts per config code (sums to 80 rooms / 180 beds each). */
 const ROOM_MIX_PER_HOSTEL: Record<ConfigCode, number> = {
-  SINGLE_NON_AC: 0,
-  SINGLE_AC: 0,
+  SINGLE_NON_AC: 5,
+  SINGLE_AC: 5,
   DOUBLE_NON_AC: 20,
   DOUBLE_AC: 20,
-  TRIPLE_NON_AC: 10,
-  TRIPLE_AC: 10,
+  TRIPLE_NON_AC: 15,
+  TRIPLE_AC: 15,
 };
 
 async function ensureRoomConfigurations(): Promise<Map<ConfigCode, RoomConfiguration>> {
@@ -86,6 +83,21 @@ async function ensureRoomConfigurations(): Promise<Map<ConfigCode, RoomConfigura
   return map;
 }
 
+async function countRoomsByConfigForHostel(hostelId: string): Promise<Map<ConfigCode, number>> {
+  const rows = await prisma.room.findMany({
+    where: {
+      floor: { block: { building: { hostelId } } },
+    },
+    select: { config: { select: { code: true } } },
+  });
+  const map = new Map<ConfigCode, number>();
+  for (const row of rows) {
+    const code = row.config.code as ConfigCode;
+    map.set(code, (map.get(code) ?? 0) + 1);
+  }
+  return map;
+}
+
 async function printBedSummary(): Promise<void> {
   const grouped = await prisma.bed.groupBy({
     by: ['status'],
@@ -100,7 +112,9 @@ async function printBedSummary(): Promise<void> {
 
   let rooms = 0;
   let beds = 0;
-  console.log('\nRoom inventory by documented configuration:');
+  const byCapacity = new Map<number, { rooms: number; beds: number }>();
+
+  console.log('\nRoom inventory by configuration:');
   for (const row of byConfig) {
     const cfg = configById.get(row.configId);
     if (!cfg) continue;
@@ -108,11 +122,21 @@ async function printBedSummary(): Promise<void> {
     const bedCount = roomCount * cfg.capacity;
     rooms += roomCount;
     beds += bedCount;
+    const capRow = byCapacity.get(cfg.capacity) ?? { rooms: 0, beds: 0 };
+    capRow.rooms += roomCount;
+    capRow.beds += bedCount;
+    byCapacity.set(cfg.capacity, capRow);
     console.log(
       `  ${cfg.description.padEnd(16)} capacity ${cfg.capacity} → ${roomCount} rooms, ${bedCount} beds`,
     );
   }
   console.log(`  TOTAL                              → ${rooms} rooms, ${beds} beds (target ${TARGET_ROOMS}/${TARGET_BEDS})`);
+  console.log('\nBy sharing type (capacity):');
+  for (const capacity of [1, 2, 3]) {
+    const row = byCapacity.get(capacity);
+    const label = capacity === 1 ? 'Single' : capacity === 2 ? 'Double' : 'Triple';
+    console.log(`  ${label} Sharing: ${row?.rooms ?? 0} rooms, ${row?.beds ?? 0} beds`);
+  }
   console.log('\nBed status:');
   for (const row of grouped) {
     console.log(`  ${row.status}: ${row._count._all}`);
@@ -120,13 +144,6 @@ async function printBedSummary(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const existingRooms = await prisma.room.count();
-  if (existingRooms >= TARGET_ROOMS) {
-    console.log(`Already have ${existingRooms} rooms (target ${TARGET_ROOMS}). Skipping create.`);
-    await printBedSummary();
-    return;
-  }
-
   const configs = await ensureRoomConfigurations();
 
   let university = await prisma.university.findFirst({ where: { code: 'NESTORA-DEMO' } });
@@ -140,7 +157,7 @@ async function main(): Promise<void> {
     });
   }
 
-  let roomSerial = 0;
+  let createdThisRun = 0;
 
   for (const hostelMeta of HOSTELS) {
     let hostel = await prisma.hostel.findFirst({
@@ -204,22 +221,31 @@ async function main(): Promise<void> {
       }
     }
 
+    const existingByConfig = await countRoomsByConfigForHostel(hostel.id);
     const configQueue: ConfigCode[] = [];
-    for (const [code, count] of Object.entries(ROOM_MIX_PER_HOSTEL) as [ConfigCode, number][]) {
-      for (let i = 0; i < count; i += 1) {
+    for (const [code, targetCount] of Object.entries(ROOM_MIX_PER_HOSTEL) as [ConfigCode, number][]) {
+      const have = existingByConfig.get(code) ?? 0;
+      const deficit = Math.max(0, targetCount - have);
+      for (let i = 0; i < deficit; i += 1) {
         configQueue.push(code);
       }
     }
 
-    let localIndex = 0;
+    if (configQueue.length === 0) {
+      console.log(`${hostelMeta.name}: inventory already at target mix.`);
+      continue;
+    }
+
+    let localIndex = await prisma.room.count({
+      where: { floor: { block: { building: { hostelId: hostel.id } } } },
+    });
+
     for (const code of configQueue) {
-      if (roomSerial >= TARGET_ROOMS) break;
       const config = configs.get(code);
       if (!config) continue;
 
       const slot = floorSlots[localIndex % floorSlots.length]!;
       localIndex += 1;
-      roomSerial += 1;
 
       const roomNumber = `${slot.blockLabel}-${slot.floorNumber}${String(Math.ceil(localIndex / floorSlots.length)).padStart(2, '0')}`;
 
@@ -257,12 +283,15 @@ async function main(): Promise<void> {
           })),
         });
       });
+      createdThisRun += 1;
     }
+
+    console.log(`${hostelMeta.name}: added ${configQueue.length} room(s) toward target mix.`);
   }
 
   const totalRooms = await prisma.room.count();
   const totalBeds = await prisma.bed.count();
-  console.log(`Seeded ${totalRooms} rooms and ${totalBeds} beds.`);
+  console.log(`\nInventory now: ${totalRooms} rooms, ${totalBeds} beds (created this run: ${createdThisRun}).`);
   await printBedSummary();
 }
 

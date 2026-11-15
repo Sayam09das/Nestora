@@ -13,4 +13,9 @@ export const announcementIdParamsSchema = z.object({
   noticeId: z.string().uuid(),
 });
 
+export const studentAcknowledgeNoticeBodySchema = z.object({
+  noticeId: z.string().uuid(),
+});
+
 export type AnnouncementsDeskListQuery = z.infer<typeof announcementsDeskListQuerySchema>;
+export type StudentAcknowledgeNoticeBody = z.infer<typeof studentAcknowledgeNoticeBodySchema>;

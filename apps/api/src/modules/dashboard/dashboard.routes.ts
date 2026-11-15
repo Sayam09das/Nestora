@@ -5,6 +5,26 @@ import {
   getStaffAttendanceHandler,
   getStaffDashboardOverviewHandler,
   getStaffScheduleHandler,
+  getStudentDashboardOverviewHandler,
+  getStudentAttendanceHandler,
+  getStudentRoommatesHandler,
+  getStudentVisitorsHandler,
+  postStudentVisitorsHandler,
+  getStudentFeesHandler,
+  getStudentAnnouncementsHandler,
+  postStudentAcknowledgeNoticeHandler,
+  getStudentEventsHandler,
+  getStudentRulesHandler,
+  getStudentEmergencyHandler,
+  postStudentEmergencyReportHandler,
+  getStudentMaintenanceHandler,
+  postStudentMaintenanceHandler,
+  getStudentComplaintsHandler,
+  postStudentComplaintHandler,
+  getStudentLeaveHandler,
+  postStudentLeaveHandler,
+  getStudentSelfProfileHandler,
+  patchStudentSelfProfileHandler,
   getWardenDashboardOverviewHandler,
 } from './dashboard.controller.js';
 import { getStaffReportDeskHandler, postStaffReportHandler } from './staff-report.controller.js';
@@ -13,6 +33,12 @@ import {
   patchStaffSettingsNotificationsHandler,
   postStaffRevokeOtherSessionsHandler,
 } from './staff-settings.controller.js';
+import {
+  getStudentSettingsDeskHandler,
+  patchStudentSettingsNotificationsHandler,
+  postStudentRevokeOtherSessionsHandler,
+} from './student-settings.controller.js';
+import { getStudentHelpHandler, postStudentHelpRequestHandler } from './student-help.controller.js';
 
 export const dashboardRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -35,6 +61,181 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
       preHandler: [requireRoles('HOSTEL_STAFF')],
     },
     getStaffDashboardOverviewHandler,
+  );
+  app.get(
+    '/student/overview',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentDashboardOverviewHandler,
+  );
+  app.get(
+    '/student/attendance',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentAttendanceHandler,
+  );
+  app.get(
+    '/student/roommates',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentRoommatesHandler,
+  );
+  app.get(
+    '/student/visitors',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentVisitorsHandler,
+  );
+  app.post(
+    '/student/visitors',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    postStudentVisitorsHandler,
+  );
+  app.get(
+    '/student/fees',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentFeesHandler,
+  );
+  app.get(
+    '/student/announcements',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentAnnouncementsHandler,
+  );
+  app.post(
+    '/student/announcements/acknowledge',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    postStudentAcknowledgeNoticeHandler,
+  );
+  app.get(
+    '/student/events',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentEventsHandler,
+  );
+  app.get(
+    '/student/rules',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentRulesHandler,
+  );
+  app.get(
+    '/student/emergency',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentEmergencyHandler,
+  );
+  app.post(
+    '/student/emergency/report',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    postStudentEmergencyReportHandler,
+  );
+  app.get(
+    '/student/maintenance',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentMaintenanceHandler,
+  );
+  app.post(
+    '/student/maintenance',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    postStudentMaintenanceHandler,
+  );
+  app.get(
+    '/student/complaints',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentComplaintsHandler,
+  );
+  app.post(
+    '/student/complaints',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    postStudentComplaintHandler,
+  );
+  app.get(
+    '/student/leave',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentLeaveHandler,
+  );
+  app.post(
+    '/student/leave',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    postStudentLeaveHandler,
+  );
+  app.get(
+    '/student/settings',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentSettingsDeskHandler,
+  );
+  app.patch(
+    '/student/settings/notifications',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    patchStudentSettingsNotificationsHandler,
+  );
+  app.post(
+    '/student/settings/sessions/revoke-others',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    postStudentRevokeOtherSessionsHandler,
+  );
+  app.get(
+    '/student/help',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentHelpHandler,
+  );
+  app.post(
+    '/student/help/request',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    postStudentHelpRequestHandler,
+  );
+  app.get(
+    '/student/profile',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    getStudentSelfProfileHandler,
+  );
+  app.patch(
+    '/student/profile',
+    {
+      preHandler: [requireRoles('STUDENT')],
+    },
+    patchStudentSelfProfileHandler,
   );
   app.get(
     '/staff/schedule',

@@ -1,5 +1,6 @@
 import { roomDirectoryListQuerySchema } from '@nestora/validators';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { NotFoundError } from '../../common/errors/index.js';
 import { paginatedSuccessResponse, successResponse } from '../../common/api-response.js';
 import { DEFAULT_PAGE, DEFAULT_PAGE_LIMIT } from '../../common/constants/limits.js';
 import { buildPaginationMeta, normalizePagination } from '../../common/helpers/index.js';
@@ -69,4 +70,30 @@ export async function listRoomDirectoryHandler(
 
   const { rooms, pagination } = await service.listRoomDirectory(request.server.prisma, query);
   reply.send(paginatedSuccessResponse({ rooms }, 'Room directory loaded.', pagination));
+}
+
+export async function getRoomDirectoryByIdHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const user = requireAuth(request);
+  assertRole(user, 'UNIVERSITY_ADMINISTRATOR', 'HOSTEL_WARDEN', 'HOSTEL_STAFF');
+
+  const roomId = (request.params as { roomId: string }).roomId;
+
+  if (isHostelOperationalRole(user.role)) {
+    const hostelNames = await resolveOperationalHostelNames(request.server.prisma, user);
+    const room = await service.getRoomDirectoryById(request.server.prisma, roomId, hostelNames);
+    if (!room) {
+      throw new NotFoundError('Room not found.');
+    }
+    reply.send(successResponse({ room }, 'Room details loaded.'));
+    return;
+  }
+
+  const room = await service.getRoomDirectoryById(request.server.prisma, roomId);
+  if (!room) {
+    throw new NotFoundError('Room not found.');
+  }
+  reply.send(successResponse({ room }, 'Room details loaded.'));
 }

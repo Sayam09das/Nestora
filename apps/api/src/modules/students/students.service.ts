@@ -16,7 +16,7 @@ import * as repo from '../auth/auth.repository.js';
 import { argon2ParamsFromEnv } from '../auth/password.service.js';
 import * as mailService from '../auth/mail.service.js';
 import { isSafeObjectKey } from '../storage/object-key.js';
-import { assertObjectExists } from '../storage/storage.service.js';
+import { assertObjectExists, buildPublicProfilePhotoUrl } from '../storage/storage.service.js';
 
 export type StudentDirectoryUiStatus = 'Active' | 'Pending' | 'Inactive';
 
@@ -47,6 +47,7 @@ export type StudentDirectoryRow = {
   room: string;
   status: StudentDirectoryUiStatus;
   joinedDate: string;
+  profilePhotoUrl: string | null;
 };
 
 function startOfUtcMonth(date: Date): Date {
@@ -153,6 +154,7 @@ function rowFromUser(
       };
     };
   }>,
+  env: Env,
 ): StudentDirectoryRow {
   const student = u.student;
   const allocation = student?.allocationRecords[0];
@@ -171,6 +173,7 @@ function rowFromUser(
     room: roomNumber ?? '—',
     status: mapDirectoryStatus(u.status, u.isVerified),
     joinedDate: u.createdAt.toISOString().slice(0, 10),
+    profilePhotoUrl: u.profilePhotoKey ? buildPublicProfilePhotoUrl(env, u.profilePhotoKey) : null,
   };
 }
 
@@ -300,6 +303,7 @@ export type StudentDirectoryListOptions = StudentDirectoryListQuery & {
 
 export async function listStudentDirectory(
   prisma: PrismaClient,
+  env: Env,
   query: StudentDirectoryListOptions,
 ): Promise<{
   students: StudentDirectoryRow[];
@@ -393,7 +397,7 @@ export async function listStudentDirectory(
   ]);
 
   return {
-    students: rows.map(rowFromUser),
+    students: rows.map((row) => rowFromUser(row, env)),
     pagination: buildPaginationMeta(safePage, safeLimit, total),
   };
 }
@@ -411,6 +415,7 @@ export type AdminStudentProfile = {
     mfaEnabled: boolean;
     mustChangePassword: boolean;
     joinedAt: string;
+    profilePhotoUrl: string | null;
   };
   student: null | {
     id: string;
@@ -438,6 +443,7 @@ export type AdminStudentProfile = {
 
 export async function getAdminStudentProfile(
   prisma: PrismaClient,
+  env: Env,
   userId: string,
 ): Promise<AdminStudentProfile> {
   const user = await prisma.user.findUnique({
@@ -471,6 +477,9 @@ export async function getAdminStudentProfile(
       mfaEnabled: user.mfaEnabled,
       mustChangePassword: user.mustChangePassword,
       joinedAt: user.createdAt.toISOString(),
+      profilePhotoUrl: user.profilePhotoKey
+        ? buildPublicProfilePhotoUrl(env, user.profilePhotoKey)
+        : null,
     },
     student: user.student
       ? {
@@ -540,7 +549,16 @@ export async function registerStudentByAdmin(
   const loginEmail = repo.normalizeEmail(input.loginEmail);
   const existing = await repo.findUserByEmail(prisma, loginEmail);
   if (existing) {
-    throw new BadRequestError('A user with this login email already exists.');
+    const existingStudent = await prisma.student.findUnique({
+      where: { userId: existing.id },
+      select: { id: true },
+    });
+    if (existingStudent) {
+      throw new BadRequestError('A user with this login email already exists.');
+    }
+    if (existing.role !== 'STUDENT') {
+      throw new BadRequestError('This email belongs to a non-student account.');
+    }
   }
 
   const regNumber = input.registrationNumber.trim();
@@ -578,23 +596,33 @@ export async function registerStudentByAdmin(
   }
 
   const user = await prisma.$transaction(async (tx) => {
-    const created = await tx.user.create({
-      data: {
-        email: loginEmail,
-        passwordHash: placeholderHash,
-        role: 'STUDENT',
-        firstName: input.firstName.trim(),
-        lastName: input.lastName.trim(),
-        phoneNumber: input.phone.trim(),
-        status: 'INACTIVE',
-        isVerified: false,
-        profilePhotoKey,
-      },
-    });
+    const account = existing
+      ? await tx.user.update({
+          where: { id: existing.id },
+          data: {
+            firstName: input.firstName.trim(),
+            lastName: input.lastName.trim(),
+            phoneNumber: input.phone.trim(),
+            profilePhotoKey: profilePhotoKey ?? existing.profilePhotoKey,
+          },
+        })
+      : await tx.user.create({
+          data: {
+            email: loginEmail,
+            passwordHash: placeholderHash,
+            role: 'STUDENT',
+            firstName: input.firstName.trim(),
+            lastName: input.lastName.trim(),
+            phoneNumber: input.phone.trim(),
+            status: 'INACTIVE',
+            isVerified: false,
+            profilePhotoKey,
+          },
+        });
 
     const student = await tx.student.create({
       data: {
-        userId: created.id,
+        userId: account.id,
         registrationNumber: regNumber,
         course: input.course.trim(),
         department,
@@ -621,19 +649,21 @@ export async function registerStudentByAdmin(
       });
     }
 
-    return { user: created, student };
+    return { user: account, student };
   });
 
-  const { rawToken } = await repo.issueEmailActionToken(prisma, user.user.id, 'activation');
+  if (!existing) {
+    const { rawToken } = await repo.issueEmailActionToken(prisma, user.user.id, 'activation');
 
-  try {
-    await mailService.sendAccountActivationLink(env, loginEmail, rawToken);
-  } catch {
-    await prisma.$transaction(async (tx) => {
-      await tx.student.delete({ where: { id: user.student.id } });
-      await tx.user.delete({ where: { id: user.user.id } });
-    });
-    throw new InternalError('Email delivery is not available. Try again later.');
+    try {
+      await mailService.sendAccountActivationLink(env, loginEmail, rawToken);
+    } catch {
+      await prisma.$transaction(async (tx) => {
+        await tx.student.delete({ where: { id: user.student.id } });
+        await tx.user.delete({ where: { id: user.user.id } });
+      });
+      throw new InternalError('Email delivery is not available. Try again later.');
+    }
   }
 
   await auditService.logAuditEvent(prisma, {

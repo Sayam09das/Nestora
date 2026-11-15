@@ -27,6 +27,13 @@
     "neon:seed-student": "pnpm --filter @nestora/api seed:neon-student",
     "neon:seed-staff": "pnpm --filter @nestora/api seed:neon-staff",
     "neon:seed-rooms": "pnpm --filter @nestora/api seed:neon-rooms",
+    "neon:seed-students-roster": "pnpm --filter @nestora/api seed:neon-students-roster",
+    "neon:seed-students-allocate": "pnpm --filter @nestora/api seed:neon-students-allocate",
+    "neon:seed-workforce-roster": "pnpm --filter @nestora/api seed:neon-workforce-roster",
+    "neon:seed-finance": "pnpm --filter @nestora/api seed:neon-finance",
+    "neon:seed-complaints": "pnpm --filter @nestora/api seed:neon-complaints",
+    "neon:seed-leave": "pnpm --filter @nestora/api seed:neon-leave",
+    "neon:seed-announcements": "pnpm --filter @nestora/api seed:neon-announcements",
     "docker:up": "docker compose -f docker/docker-compose.yml up -d",
     "docker:down": "docker compose -f docker/docker-compose.yml down",
     "docker:logs": "docker compose -f docker/docker-compose.yml logs -f"

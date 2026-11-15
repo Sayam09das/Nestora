@@ -57,7 +57,7 @@ const UI_CATEGORIES: NoticeUiCategory[] = [
   'Events',
 ];
 
-function mapCategory(raw: string): NoticeUiCategory {
+export function mapCategory(raw: string): NoticeUiCategory {
   const direct = UI_CATEGORIES.find((c) => c.toLowerCase() === raw.trim().toLowerCase());
   if (direct) return direct;
   const key = raw.toLowerCase();

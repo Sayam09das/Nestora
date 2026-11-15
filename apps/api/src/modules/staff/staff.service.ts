@@ -1,5 +1,9 @@
 import type { Prisma, PrismaClient, Role, UserStatus } from '@nestora/database';
-import type { RegisterStaffBody, StaffDirectoryListQuery } from '@nestora/validators';
+import type {
+  RegisterStaffBody,
+  StaffDirectoryListQuery,
+  UpdateStaffHostelAssignmentsBody,
+} from '@nestora/validators';
 import * as argon2 from 'argon2';
 import { DEFAULT_PAGE, DEFAULT_PAGE_LIMIT } from '../../common/constants/limits.js';
 import {
@@ -19,6 +23,15 @@ import { assertObjectExists, buildPublicStaffPhotoUrl } from '../storage/storage
 
 export type StaffDirectoryUiStatus = 'Active' | 'On Leave' | 'Inactive';
 
+export type StaffDirectoryWorkforceBreakdown = {
+  wardens: number;
+  security: number;
+  administrative: number;
+  housekeeping: number;
+  maintenance: number;
+  otherStaff: number;
+};
+
 export type StaffDirectorySummary = {
   generatedAt: string;
   total: number;
@@ -27,10 +40,12 @@ export type StaffDirectorySummary = {
   inactive: number;
   activeRatePercent: number | null;
   createdThisMonth: number;
+  workforce?: StaffDirectoryWorkforceBreakdown;
   facets: {
     roles: string[];
     departments: string[];
     hostels: string[];
+    hostelOptions: Array<{ id: string; name: string }>;
   };
 };
 
@@ -45,6 +60,7 @@ export type StaffDirectoryRow = {
   hostel: string;
   status: StaffDirectoryUiStatus;
   joinedDate: string;
+  profilePhotoUrl: string | null;
 };
 
 const STAFF_ROLES: Role[] = ['HOSTEL_WARDEN', 'HOSTEL_STAFF', 'SECURITY_GUARD', 'ACCOUNTANT'];
@@ -115,10 +131,9 @@ function roleLabelToEnum(label: string): Role | null {
 }
 
 const hostelAssignmentInclude = {
-  take: 1,
   orderBy: { assignedAt: 'desc' as const },
   include: {
-    hostel: { select: { name: true } },
+    hostel: { select: { id: true, name: true } },
   },
 };
 
@@ -127,16 +142,23 @@ function rowFromUser(
     include: {
       staffProfile: true;
       hostelAssignments: typeof hostelAssignmentInclude;
-      wardenInChargeHostels: { select: { name: true }; take: 1 };
+      wardenInChargeHostels: { select: { name: true } };
     };
   }>,
+  env: Env,
 ): StaffDirectoryRow {
   const profile = u.staffProfile;
   const roleLabel = profile?.designation?.trim() || defaultRoleLabel(u.role);
   const department = profile?.department?.trim() || '—';
-  const assignmentHostel = u.hostelAssignments[0]?.hostel.name;
-  const wardenHostel = u.wardenInChargeHostels[0]?.name;
-  const hostel = wardenHostel ?? assignmentHostel ?? 'Central Office';
+  const hostelNames = new Set<string>();
+  for (const row of u.wardenInChargeHostels) {
+    hostelNames.add(row.name);
+  }
+  for (const row of u.hostelAssignments) {
+    hostelNames.add(row.hostel.name);
+  }
+  const hostel =
+    hostelNames.size > 0 ? [...hostelNames].sort((a, b) => a.localeCompare(b)).join(' · ') : 'Central Office';
 
   return {
     id: u.id,
@@ -151,6 +173,7 @@ function rowFromUser(
     hostel,
     status: mapStaffStatus(u.status),
     joinedDate: u.createdAt.toISOString().slice(0, 10),
+    profilePhotoUrl: u.profilePhotoKey ? buildPublicStaffPhotoUrl(env, u.profilePhotoKey) : null,
   };
 }
 
@@ -177,7 +200,7 @@ export async function getStaffDirectorySummary(
     }),
     prisma.hostel.findMany({
       where: { isActive: true },
-      select: { name: true },
+      select: { id: true, name: true },
       orderBy: { name: 'asc' },
     }),
   ]);
@@ -199,6 +222,46 @@ export async function getStaffDirectorySummary(
     roles.add(role);
   }
 
+  let workforce: StaffDirectoryWorkforceBreakdown | undefined;
+  if (variant === 'all') {
+    const staffBase = staffUserWhere('all');
+    const [wardens, security, administrative, housekeeping, maintenance, operationalTotal] =
+      await Promise.all([
+        prisma.user.count({ where: { ...staffBase, role: 'HOSTEL_WARDEN' } }),
+        prisma.user.count({ where: { ...staffBase, role: 'SECURITY_GUARD' } }),
+        prisma.user.count({
+          where: {
+            ...staffBase,
+            role: 'HOSTEL_STAFF',
+            staffProfile: { department: { contains: 'Administration', mode: 'insensitive' } },
+          },
+        }),
+        prisma.user.count({
+          where: {
+            ...staffBase,
+            role: 'HOSTEL_STAFF',
+            staffProfile: { department: { contains: 'Housekeeping', mode: 'insensitive' } },
+          },
+        }),
+        prisma.user.count({
+          where: {
+            ...staffBase,
+            role: 'HOSTEL_STAFF',
+            staffProfile: { department: { contains: 'Maintenance', mode: 'insensitive' } },
+          },
+        }),
+        prisma.user.count({ where: { ...staffBase, role: { not: 'HOSTEL_WARDEN' } } }),
+      ]);
+    workforce = {
+      wardens,
+      security,
+      administrative,
+      housekeeping,
+      maintenance,
+      otherStaff: Math.max(0, operationalTotal - security - administrative - housekeeping - maintenance),
+    };
+  }
+
   return {
     generatedAt: new Date().toISOString(),
     total,
@@ -207,16 +270,19 @@ export async function getStaffDirectorySummary(
     inactive,
     activeRatePercent,
     createdThisMonth,
+    workforce,
     facets: {
       roles: [...roles].sort(),
       departments: [...departments].sort(),
       hostels: ['Central Office', ...hostelRows.map((h) => h.name)],
+      hostelOptions: hostelRows.map((h) => ({ id: h.id, name: h.name })),
     },
   };
 }
 
 export async function listStaffDirectory(
   prisma: PrismaClient,
+  env: Env,
   query: StaffDirectoryListQuery,
 ): Promise<{
   staff: StaffDirectoryRow[];
@@ -303,12 +369,12 @@ export async function listStaffDirectory(
       include: {
         staffProfile: true,
         hostelAssignments: hostelAssignmentInclude,
-        wardenInChargeHostels: { select: { name: true }, take: 1 },
+        wardenInChargeHostels: { select: { id: true, name: true } },
       },
     }),
   ]);
 
-  const staff = rows.map(rowFromUser);
+  const staff = rows.map((row) => rowFromUser(row, env));
 
   return {
     staff,
@@ -324,7 +390,7 @@ function mapJobTitleToRole(jobTitle: string): Role {
   if (title === 'security guard') {
     return 'SECURITY_GUARD';
   }
-  if (title === 'warden' || title === 'assistant warden' || title === 'hostel manager') {
+  if (title.includes('warden') || title.includes('hostel manager')) {
     return 'HOSTEL_WARDEN';
   }
   return 'HOSTEL_STAFF';
@@ -537,6 +603,69 @@ export async function getAdminStaffProfile(
       hostelName: hostel.name,
     })),
   };
+}
+
+export async function updateStaffHostelAssignments(
+  prisma: PrismaClient,
+  env: Env,
+  actorUserId: string,
+  actorRole: string,
+  userId: string,
+  input: UpdateStaffHostelAssignmentsBody,
+  ip: string | undefined,
+): Promise<AdminStaffProfile> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true },
+  });
+  if (!user || !STAFF_ROLES.includes(user.role)) {
+    throw new NotFoundError('Staff member not found.');
+  }
+
+  const uniqueIds = [...new Set(input.hostelIds)];
+  if (uniqueIds.length > 0) {
+    const found = await prisma.hostel.count({
+      where: { id: { in: uniqueIds }, isActive: true },
+    });
+    if (found !== uniqueIds.length) {
+      throw new BadRequestError('One or more hostels are invalid or inactive.');
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.hostelAssignment.findMany({
+      where: { userId },
+      select: { hostelId: true },
+    });
+    const existingIds = new Set(existing.map((row) => row.hostelId));
+    const nextIds = new Set(uniqueIds);
+
+    const toRemove = [...existingIds].filter((id) => !nextIds.has(id));
+    const toAdd = [...nextIds].filter((id) => !existingIds.has(id));
+
+    if (toRemove.length > 0) {
+      await tx.hostelAssignment.deleteMany({
+        where: { userId, hostelId: { in: toRemove } },
+      });
+    }
+    for (const hostelId of toAdd) {
+      await tx.hostelAssignment.create({
+        data: { userId, hostelId, assignedBy: actorUserId },
+      });
+    }
+  });
+
+  await auditService.logAuditEvent(prisma, {
+    actorUserId,
+    actorRole,
+    actionName: 'STAFF_HOSTEL_ASSIGNMENTS_UPDATED',
+    entityType: 'User',
+    entityId: userId,
+    ipAddress: ip ?? null,
+    newState: { hostelIds: uniqueIds },
+  });
+
+  return getAdminStaffProfile(prisma, env, userId);
 }
 
 export type RegisterStaffResult = {

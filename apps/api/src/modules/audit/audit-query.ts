@@ -23,5 +23,15 @@ export function buildAuditLogWhere(query: AuditListQuery): Prisma.AuditLogWhereI
     };
   }
 
+  if (query.q?.trim()) {
+    const q = query.q.trim();
+    where.OR = [
+      { actionName: { contains: q, mode: 'insensitive' } },
+      { entityType: { contains: q, mode: 'insensitive' } },
+      { entityId: { contains: q, mode: 'insensitive' } },
+      { actorRole: { contains: q, mode: 'insensitive' } },
+    ];
+  }
+
   return where;
 }
