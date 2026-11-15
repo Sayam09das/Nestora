@@ -42,6 +42,12 @@ export {
   type HostelDirectoryListQuery,
 } from './hostels.validator.js';
 export {
+  admissionApplicationIdParamsSchema,
+  admissionTierVerificationBodySchema,
+  admissionVerificationDecisionSchema,
+  type AdmissionTierVerificationBody,
+} from './admissions.validator.js';
+export {
   allocationDirectoryListQuerySchema,
   allocationDirectoryStatusSchema,
   allocationDirectoryTypeSchema,

@@ -12,6 +12,9 @@ import type { StudentDirectoryListQuery } from '@nestora/validators';
 import type { Env } from '../../config/index.js';
 import { createOpaqueToken } from '../../lib/crypto-token.js';
 import * as auditService from '../audit/audit.service.js';
+import { createAdmissionWithTier1Approval } from '../admissions/admissions.service.js';
+import type { StudentAdmissionProfile } from '../admissions/admissions.service.js';
+import { getStudentAdmissionProfile } from '../admissions/admissions.service.js';
 import * as repo from '../auth/auth.repository.js';
 import { argon2ParamsFromEnv } from '../auth/password.service.js';
 import * as mailService from '../auth/mail.service.js';
@@ -439,6 +442,7 @@ export type AdminStudentProfile = {
     bedNumber: string;
     allocatedSince: string;
   };
+  admission: StudentAdmissionProfile | null;
 };
 
 export async function getAdminStudentProfile(
@@ -463,6 +467,7 @@ export async function getAdminStudentProfile(
 
   const allocation = user.student?.allocationRecords[0];
   const hostelName = allocation?.bed.room.floor.block.building.hostel.name;
+  const admission = await getStudentAdmissionProfile(prisma, userId);
 
   return {
     userId: user.id,
@@ -508,6 +513,7 @@ export async function getAdminStudentProfile(
             allocatedSince: allocation.startDate.toISOString().slice(0, 10),
           }
         : null,
+    admission,
   };
 }
 
@@ -651,6 +657,14 @@ export async function registerStudentByAdmin(
 
     return { user: account, student };
   });
+
+  await createAdmissionWithTier1Approval(
+    prisma,
+    user.student.id,
+    input.academicYear.trim(),
+    gender,
+    actorUserId,
+  );
 
   if (!existing) {
     const { rawToken } = await repo.issueEmailActionToken(prisma, user.user.id, 'activation');

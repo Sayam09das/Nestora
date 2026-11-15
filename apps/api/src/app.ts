@@ -32,6 +32,7 @@ import { infrastructurePlugin } from './modules/infrastructure/index.js';
 import { financePlugin } from './modules/finance/index.js';
 import { leavesPlugin } from './modules/leaves/index.js';
 import { outingsPlugin } from './modules/outings/index.js';
+import { admissionsPlugin } from './modules/admissions/index.js';
 import { registerBackgroundJobs } from './jobs/register-background-jobs.js';
 import { configPluginWrapped } from './plugins/config.js';
 import { cookiePluginWrapped } from './plugins/cookie.js';
@@ -240,6 +241,7 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
       await v1.register(financePlugin);
       await v1.register(leavesPlugin);
       await v1.register(outingsPlugin);
+      await v1.register(admissionsPlugin);
     },
     { prefix: '/api/v1' },
   );

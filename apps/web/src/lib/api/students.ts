@@ -1,3 +1,4 @@
+import type { StudentAdmissionProfile } from '@/lib/api/admissions';
 import type { ApiErrorResponse, ApiSuccessResponse } from '@nestora/types';
 import type { StudentRecord, StudentStatus } from '@/components/dashboard/students/admin-students-data';
 import type { StudentRegistrationForm } from '@/components/dashboard/students/admin-students-registration-constants';
@@ -139,6 +140,7 @@ export type AdminStudentProfile = {
     bedNumber: string;
     allocatedSince: string;
   };
+  admission: StudentAdmissionProfile | null;
 };
 
 export async function fetchAdminStudentProfile(userId: string): Promise<{

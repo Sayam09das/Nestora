@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { History, ShieldCheck, XCircle } from 'lucide-react';
+import { History, Loader2, ShieldCheck, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -16,35 +16,76 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import type { AdmissionVerificationRow } from '@/lib/api/admissions';
+import { postAdmissionTier2Verification } from '@/lib/api/admissions';
 import { cn } from '@/lib/utils';
 
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
 
-type AuditRow = { at: string; actor: string; action: string; note?: string };
-
-const PLACEHOLDER_AUDIT: AuditRow[] = [
-  { at: 'Admin verified', actor: 'University Administrator', action: 'Tier-1 approved', note: 'Eligibility confirmed' },
-];
+function formatVerifiedAt(iso: string): string {
+  return new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(iso));
+}
 
 type Props = {
   studentName: string;
+  applicationId: string | null;
   tier2Pending: boolean;
+  verificationHistory: AdmissionVerificationRow[];
+  onUpdated: () => void;
 };
 
-export function WardenStudentVerificationPanel({ studentName, tier2Pending }: Props) {
+export function WardenStudentVerificationPanel({
+  studentName,
+  applicationId,
+  tier2Pending,
+  verificationHistory,
+  onUpdated,
+}: Props) {
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [rejectError, setRejectError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const submitApprove = () => {
-    toast.success('Warden verified', {
-      description: `${studentName}: tier-2 saved when admissions API is connected. Remarks recorded for audit (FR-016).`,
+  const runDecision = async (decision: 'APPROVED' | 'REJECTED') => {
+    if (!applicationId) {
+      toast.error('No admission application on file for this student.');
+      return;
+    }
+    setSubmitting(true);
+    const result = await postAdmissionTier2Verification(applicationId, {
+      decision,
+      comments: remarks.trim() || undefined,
     });
-    setApproveOpen(false);
+    setSubmitting(false);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    if (decision === 'APPROVED') {
+      toast.success('Warden tier-2 approved', {
+        description: `${studentName} is fully approved for allocation (MOD-04).`,
+      });
+      setApproveOpen(false);
+    } else {
+      toast.message('Application rejected', {
+        description: `Tier-2 rejection recorded for ${studentName}.`,
+      });
+      setRejectOpen(false);
+      setRejectError(null);
+    }
     setRemarks('');
+    onUpdated();
   };
+
+  const submitApprove = () => void runDecision('APPROVED');
 
   const submitReject = () => {
     const trimmed = remarks.trim();
@@ -52,13 +93,10 @@ export function WardenStudentVerificationPanel({ studentName, tier2Pending }: Pr
       setRejectError('Add hostel suitability remarks (at least 8 characters) before rejecting.');
       return;
     }
-    toast.message('Application rejected (draft)', {
-      description: `Tier-2 rejection for ${studentName} will sync to admissions workflow.`,
-    });
-    setRejectOpen(false);
-    setRemarks('');
-    setRejectError(null);
+    void runDecision('REJECTED');
   };
+
+  const canAct = tier2Pending && Boolean(applicationId);
 
   return (
     <article className="rounded-2xl border border-[color-mix(in_oklch,var(--nestora-gold)_30%,var(--border))] bg-card p-5 shadow-sm">
@@ -72,7 +110,7 @@ export function WardenStudentVerificationPanel({ studentName, tier2Pending }: Pr
             Second-tier warden sign-off with suitability remarks (FR-012). Immutable history (FR-016).
           </p>
         </div>
-        {tier2Pending ? (
+        {canAct ? (
           <div className="flex flex-wrap gap-2">
             <Button type="button" className="rounded-xl bg-[var(--nestora-forest)]" onClick={() => setApproveOpen(true)}>
               <ShieldCheck className="size-4" aria-hidden />
@@ -84,7 +122,9 @@ export function WardenStudentVerificationPanel({ studentName, tier2Pending }: Pr
             </Button>
           </div>
         ) : (
-          <p className="text-xs font-semibold text-[var(--nestora-sage)]">No pending warden action</p>
+          <p className="text-xs font-semibold text-[var(--nestora-sage)]">
+            {tier2Pending && !applicationId ? 'Application loading…' : 'No pending warden action'}
+          </p>
         )}
       </div>
 
@@ -94,15 +134,21 @@ export function WardenStudentVerificationPanel({ studentName, tier2Pending }: Pr
           Verification history
         </p>
         <ul className="mt-2 space-y-2">
-          {PLACEHOLDER_AUDIT.map((row, i) => (
-            <li key={i} className="rounded-lg border border-border/60 bg-card px-3 py-2 text-xs">
-              <p className="font-semibold text-foreground">{row.action}</p>
-              <p className="text-muted-foreground">
-                {row.actor} · {row.at}
-                {row.note ? ` — ${row.note}` : ''}
-              </p>
-            </li>
-          ))}
+          {verificationHistory.length === 0 ? (
+            <li className="text-xs text-muted-foreground">No verification events yet.</li>
+          ) : (
+            verificationHistory.map((row) => (
+              <li key={row.id} className="rounded-lg border border-border/60 bg-card px-3 py-2 text-xs">
+                <p className="font-semibold text-foreground">
+                  {row.tierLabel} · {row.decision === 'APPROVED' ? 'Approved' : 'Rejected'}
+                </p>
+                <p className="text-muted-foreground">
+                  {row.actorName} · {formatVerifiedAt(row.verifiedAt)}
+                  {row.comments ? ` — ${row.comments}` : ''}
+                </p>
+              </li>
+            ))
+          )}
           {tier2Pending ? (
             <li className="rounded-lg border border-dashed border-[var(--nestora-gold)] bg-[color-mix(in_oklch,var(--nestora-gold)_8%,var(--card))] px-3 py-2 text-xs text-muted-foreground">
               Warden tier-2 decision pending your review.
@@ -129,8 +175,18 @@ export function WardenStudentVerificationPanel({ studentName, tier2Pending }: Pr
             />
           </label>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-            <AlertDialogAction className={cn('rounded-xl bg-[var(--nestora-forest)]', focusRing)} onClick={submitApprove}>
+            <AlertDialogCancel className="rounded-xl" disabled={submitting}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className={cn('rounded-xl bg-[var(--nestora-forest)]', focusRing)}
+              disabled={submitting}
+              onClick={(e) => {
+                e.preventDefault();
+                void submitApprove();
+              }}
+            >
+              {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
               Confirm approval
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -168,14 +224,18 @@ export function WardenStudentVerificationPanel({ studentName, tier2Pending }: Pr
             {rejectError ? <span className="text-xs text-destructive">{rejectError}</span> : null}
           </label>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl" disabled={submitting}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               className={cn('rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90', focusRing)}
+              disabled={submitting}
               onClick={(e) => {
                 e.preventDefault();
                 submitReject();
               }}
             >
+              {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
               Submit rejection
             </AlertDialogAction>
           </AlertDialogFooter>

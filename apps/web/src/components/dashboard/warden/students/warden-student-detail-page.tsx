@@ -139,7 +139,8 @@ export function WardenStudentDetailPage({ userId }: Props) {
 
   const housing = profile.housing;
   const student = profile.student;
-  const tier2Pending = profile.directoryStatus === 'Pending';
+  const admission = profile.admission;
+  const tier2Pending = admission?.tier2Pending ?? false;
 
   return (
     <div ref={rootRef} className="space-y-6 pb-8">
@@ -173,7 +174,14 @@ export function WardenStudentDetailPage({ userId }: Props) {
                     variant="outline"
                     className="rounded-full border-[var(--nestora-gold)] bg-[color-mix(in_oklch,var(--nestora-gold)_12%,var(--card))] font-semibold"
                   >
-                    Awaiting warden verification
+                    {admission?.statusLabel ?? 'Awaiting warden verification'}
+                  </Badge>
+                ) : admission?.fullyApproved ? (
+                  <Badge
+                    variant="outline"
+                    className="rounded-full border-[var(--nestora-sage)] bg-[color-mix(in_oklch,var(--nestora-sage)_12%,var(--card))] font-semibold"
+                  >
+                    Fully approved
                   </Badge>
                 ) : null}
               </div>
@@ -205,7 +213,13 @@ export function WardenStudentDetailPage({ userId }: Props) {
       </header>
 
       <div data-warden-profile>
-        <WardenStudentVerificationPanel studentName={displayName} tier2Pending={tier2Pending} />
+        <WardenStudentVerificationPanel
+          studentName={displayName}
+          applicationId={admission?.applicationId ?? null}
+          tier2Pending={tier2Pending}
+          verificationHistory={admission?.verificationHistory ?? []}
+          onUpdated={() => void load()}
+        />
       </div>
 
       <motion.section

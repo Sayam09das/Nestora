@@ -101,7 +101,7 @@ export async function getAdminStudentProfileHandler(
 
   if (isHostelOperationalRole(user.role)) {
     const hostelNames = await resolveOperationalHostelNames(request.server.prisma, user);
-    const studentHostel = profile.housing?.hostelName;
+    const studentHostel = profile.housing?.hostelName ?? profile.admission?.hostelName ?? null;
     if (!studentHostel || !hostelNameInScope(studentHostel, hostelNames)) {
       throw new ForbiddenError('You are not authorized to view this student profile.');
     }
