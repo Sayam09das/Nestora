@@ -43,6 +43,7 @@ export function StudentNotificationsPanel() {
     notificationUnreadCount,
     readNotificationIds,
     markNotificationRead,
+    markAllNotificationsRead,
     loading,
   } = useStudentTopbarLiveContext();
   const [open, setOpen] = useState(false);
@@ -75,8 +76,21 @@ export function StudentNotificationsPanel() {
         className="w-[min(100vw-2rem,22.5rem)] overflow-hidden rounded-2xl border p-0 shadow-[0_24px_48px_-28px_color-mix(in_srgb,var(--nestora-forest)_45%,transparent)]"
       >
         <div className="border-b bg-[color-mix(in_oklch,var(--nestora-cream)_35%,var(--card))] px-4 py-3">
-          <p className="text-sm font-semibold text-[var(--nestora-forest)]">Updates & alerts</p>
-          <p className="text-xs text-muted-foreground">Leave, notices, complaints, and fees (~20s refresh)</p>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-[var(--nestora-forest)]">Updates &amp; alerts</p>
+              <p className="text-xs text-muted-foreground">MOD-07 inbox + desk signals (~20s refresh)</p>
+            </div>
+            {notificationUnreadCount > 0 ? (
+              <button
+                type="button"
+                onClick={markAllNotificationsRead}
+                className={cn('rounded-full px-2.5 py-1 text-[10px] font-semibold', focusRing)}
+              >
+                Mark all read
+              </button>
+            ) : null}
+          </div>
         </div>
         <ul className="max-h-[min(60vh,22rem)] divide-y overflow-y-auto p-1">
           {loading && notifications.length === 0 ? (
@@ -125,7 +139,25 @@ export function StudentNotificationsPanel() {
                       </span>
                       <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                     </Link>
-                  ) : null}
+                  ) : (
+                    <motion.div
+                      className={cn(
+                        'rounded-xl p-3',
+                        unread && 'bg-[color-mix(in_oklch,var(--nestora-sage)_8%,transparent)]',
+                      )}
+                    >
+                      <div className="flex gap-3">
+                        <span className={cn('mt-0.5', iconClass)} aria-hidden>
+                          <Icon className="size-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="truncate text-sm font-medium text-foreground">{item.title}</span>
+                          <span className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{item.body}</span>
+                          <span className="mt-1 block text-[10px] text-muted-foreground/80">{item.time}</span>
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
                 </motion.li>
               );
             })

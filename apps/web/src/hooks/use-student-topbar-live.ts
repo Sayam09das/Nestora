@@ -8,6 +8,7 @@ import {
   formatTopbarNotificationTime,
   loadTopbarReadSet,
   mapNotificationCategory,
+  markAllTopbarNotificationsRead,
   markTopbarNotificationRead,
   mergeInboxById,
   saveTopbarReadSet,
@@ -264,6 +265,14 @@ export function useStudentTopbarLive() {
     markTopbarNotificationRead(id, NOTIFICATIONS_READ_KEY, setReadNotificationIds);
   }, []);
 
+  const markAllNotificationsRead = useCallback(() => {
+    markAllTopbarNotificationsRead(
+      notifications.map((item) => item.id),
+      NOTIFICATIONS_READ_KEY,
+      setReadNotificationIds,
+    );
+  }, [notifications]);
+
   const markMessageRead = useCallback((id: string) => {
     setReadMessageIds((current) => {
       const next = new Set(current).add(id);
@@ -354,6 +363,7 @@ export function useStudentTopbarLive() {
     readNotificationIds,
     readMessageIds,
     markNotificationRead,
+    markAllNotificationsRead,
     markMessageRead,
     search,
     defaultSearchHits,

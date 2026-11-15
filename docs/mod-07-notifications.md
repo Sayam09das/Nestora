@@ -21,7 +21,7 @@ Optional SMTP email is sent in-process when `SMTP_*` env vars are set and the us
 
 ## Web top bars
 
-Role top bars poll the inbox every ~20s and merge **MOD-07 store rows first**, then role-specific derived alerts (dashboard queues, assigned tickets, etc.).
+Role top bars poll the inbox every ~20s and merge **MOD-07 store rows first**, then role-specific derived alerts (dashboard queues, assigned tickets, etc.). When an **unread** store row exists for `leave` or `complaint`, derived leave summaries and complaint ticket rows are omitted to avoid duplicates.
 
 | Role | Hook / component | Read persistence |
 | ---- | ---------------- | ---------------- |

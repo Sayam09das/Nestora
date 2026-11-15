@@ -15,6 +15,7 @@ import {
   markTopbarNotificationRead,
   mergeInboxById,
   saveTopbarReadSet,
+  storeInboxCoversCategory,
   syncReadIdsFromStoreItems,
 } from '@/lib/topbar/notification-store-inbox';
 
@@ -116,11 +117,15 @@ export function useStaffTopbarLive({ workplaceName, displayName }: Options) {
         });
       }
 
+      const storeRows = storeRes.inbox?.items ?? [];
+      const skipComplaintDerived = storeInboxCoversCategory(storeRows, 'complaint', { unreadOnly: true });
+
       const nameParts = displayName
         .toLowerCase()
         .split(/\s+/)
         .filter((part) => part.length > 2);
-      for (const ticket of complaintsRes.tickets ?? []) {
+      if (!skipComplaintDerived) {
+        for (const ticket of complaintsRes.tickets ?? []) {
         if (['Resolved', 'Rejected'].includes(ticket.status)) continue;
         if (!['Assigned', 'In Progress'].includes(ticket.status)) continue;
         const assignee = ticket.assignedStaff?.toLowerCase() ?? '';
@@ -136,11 +141,12 @@ export function useStaffTopbarLive({ workplaceName, displayName }: Options) {
           href: '/staff/tasks',
         });
         if (nextNotifications.length >= 8) break;
+        }
       }
 
-      const storeItems = (storeRes.inbox?.items ?? []).map(mapStoreNotification);
+      const storeItems = storeRows.map(mapStoreNotification);
       setNotifications(mergeInboxById(storeItems, nextNotifications));
-      syncReadIdsFromStoreItems(storeRes.inbox?.items ?? [], NOTIFICATIONS_READ_KEY, setReadNotificationIds);
+      syncReadIdsFromStoreItems(storeRows, NOTIFICATIONS_READ_KEY, setReadNotificationIds);
 
       const scopeNames = new Set(
         (overview?.scope.hostelNames ?? []).map((name) => name.toLowerCase()),

@@ -13,6 +13,7 @@ import {
   markTopbarNotificationRead,
   mergeInboxById,
   storeActionLabel,
+  storeInboxCoversCategory,
   syncReadIdsFromStoreItems,
 } from '@/lib/topbar/notification-store-inbox';
 
@@ -98,16 +99,23 @@ export function useAdminNotificationsLive() {
         fetchAdminDashboardOverview(),
       ]);
 
-      const derived = overviewRes.overview
+      const storeRows = storeRes.inbox?.items ?? [];
+      let derived = overviewRes.overview
         ? buildDerivedFromOverview(
             overviewRes.overview.generatedAt,
             overviewRes.overview.approvals,
           )
         : [];
+      if (storeInboxCoversCategory(storeRows, 'leave', { unreadOnly: true })) {
+        derived = derived.filter((row) => row.id !== 'admin-pending-leave');
+      }
+      if (storeInboxCoversCategory(storeRows, 'complaint', { unreadOnly: true })) {
+        derived = derived.filter((row) => row.id !== 'admin-open-complaints');
+      }
 
-      const storeItems = (storeRes.inbox?.items ?? []).map(mapStoreNotification);
+      const storeItems = storeRows.map(mapStoreNotification);
       setNotifications(mergeInboxById(storeItems, derived));
-      syncReadIdsFromStoreItems(storeRes.inbox?.items ?? [], NOTIFICATIONS_READ_KEY, setReadIds);
+      syncReadIdsFromStoreItems(storeRows, NOTIFICATIONS_READ_KEY, setReadIds);
     } finally {
       setLoading(false);
     }

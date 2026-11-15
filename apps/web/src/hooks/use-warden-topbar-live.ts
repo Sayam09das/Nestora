@@ -18,6 +18,7 @@ import {
   mergeInboxById,
   saveTopbarReadSet,
   storeActionLabel,
+  storeInboxCoversCategory,
   syncReadIdsFromStoreItems,
 } from '@/lib/topbar/notification-store-inbox';
 
@@ -95,8 +96,13 @@ export function useWardenTopbarLive({ selectedHostelId, hostelName }: Options) {
         fetchNotificationInbox({ limit: 25 }),
       ]);
 
+      const storeRows = storeRes.inbox?.items ?? [];
+      const skipComplaintDerived = storeInboxCoversCategory(storeRows, 'complaint', { unreadOnly: true });
+      const skipLeaveSummary = storeInboxCoversCategory(storeRows, 'leave', { unreadOnly: true });
+
       const nextNotifications: WardenTopbarNotification[] = [];
-      for (const ticket of complaints.tickets ?? []) {
+      if (!skipComplaintDerived) {
+        for (const ticket of complaints.tickets ?? []) {
         if (['Resolved', 'Rejected'].includes(ticket.status)) continue;
         nextNotifications.push({
           id: `cmp-${ticket.id}`,
@@ -107,10 +113,11 @@ export function useWardenTopbarLive({ selectedHostelId, hostelName }: Options) {
           href: `/warden/complaints/${ticket.id}`,
           actionLabel: 'Open ticket',
         });
+        }
       }
 
       const approvals = overview.overview?.approvals;
-      if (approvals && approvals.leaveRequests > 0) {
+      if (!skipLeaveSummary && approvals && approvals.leaveRequests > 0) {
         nextNotifications.push({
           id: 'pending-leave',
           title: 'Leave requests',
@@ -144,9 +151,9 @@ export function useWardenTopbarLive({ selectedHostelId, hostelName }: Options) {
         });
       }
 
-      const storeItems = (storeRes.inbox?.items ?? []).map(mapStoreNotification);
+      const storeItems = storeRows.map(mapStoreNotification);
       setNotifications(mergeInboxById(storeItems, nextNotifications));
-      syncReadIdsFromStoreItems(storeRes.inbox?.items ?? [], NOTIFICATIONS_READ_KEY, setReadNotificationIds);
+      syncReadIdsFromStoreItems(storeRows, NOTIFICATIONS_READ_KEY, setReadNotificationIds);
 
       const scopedNotices = (notices.notices ?? []).filter((notice) => {
         if (notice.scope === 'University-wide') return true;

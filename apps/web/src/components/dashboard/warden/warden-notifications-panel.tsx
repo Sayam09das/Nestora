@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { useWardenTopbarLiveContext } from '@/components/dashboard/warden/warden-topbar-live-provider';
+import type { WardenTopbarNotification } from '@/hooks/use-warden-topbar-live';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
@@ -46,6 +47,59 @@ const kindStyles = {
 
 const focusRing =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]';
+
+function WardenNotificationRow({
+  item,
+  unread,
+  onNavigate,
+}: {
+  item: WardenTopbarNotification;
+  unread: boolean;
+  onNavigate: () => void;
+}) {
+  const style = kindStyles[item.kind];
+  const Icon = style.icon;
+  const inner = (
+    <>
+      <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/60', style.iconClass)}>
+        <Icon className="size-4" aria-hidden />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex justify-between gap-2">
+          <h3 className="text-caption font-semibold">{item.title}</h3>
+          <time className="text-[10px] text-muted-foreground">{item.time}</time>
+        </div>
+        <p className="mt-1 text-[11px] text-muted-foreground">{item.body}</p>
+        {item.href && item.actionLabel ? (
+          <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--nestora-forest)] px-2.5 py-1 text-[10px] font-semibold text-white">
+            {item.actionLabel}
+            <ChevronRight className="size-3" aria-hidden />
+          </span>
+        ) : null}
+      </div>
+      {item.href ? <ChevronRight className="size-4 shrink-0 self-center text-muted-foreground" aria-hidden /> : null}
+    </>
+  );
+
+  if (item.href) {
+    return (
+      <Link
+        href={item.href}
+        onClick={onNavigate}
+        className={cn(
+          'flex gap-3 rounded-xl border p-3 transition-colors hover:opacity-95',
+          style.surfaceClass,
+          unread && 'shadow-sm',
+          focusRing,
+        )}
+      >
+        {inner}
+      </Link>
+    );
+  }
+
+  return <article className={cn('flex gap-3 rounded-xl border p-3', style.surfaceClass, unread && 'shadow-sm')}>{inner}</article>;
+}
 
 export function WardenNotificationsPanel() {
   const reduceMotion = useReducedMotion();
@@ -112,8 +166,6 @@ export function WardenNotificationsPanel() {
           ) : null}
           {notifications.map((item, index) => {
             const unread = !readNotificationIds.has(item.id);
-            const style = kindStyles[item.kind];
-            const Icon = style.icon;
             return (
               <motion.li
                 key={item.id}
@@ -121,36 +173,14 @@ export function WardenNotificationsPanel() {
                 animate={open ? { opacity: 1, y: 0 } : undefined}
                 transition={{ delay: index * 0.04, duration: 0.32, ease: motionEase }}
               >
-                <article className={cn('rounded-xl border p-3', style.surfaceClass, unread && 'shadow-sm')}>
-                  <div className="flex gap-3">
-                    <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/60', style.iconClass)}>
-                      <Icon className="size-4" aria-hidden />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex justify-between gap-2">
-                        <h3 className="text-caption font-semibold">{item.title}</h3>
-                        <time className="text-[10px] text-muted-foreground">{item.time}</time>
-                      </div>
-                      <p className="mt-1 text-[11px] text-muted-foreground">{item.body}</p>
-                      {item.href && item.actionLabel ? (
-                        <Link
-                          href={item.href}
-                          onClick={() => {
-                            markNotificationRead(item.id);
-                            setOpen(false);
-                          }}
-                          className={cn(
-                            'mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--nestora-forest)] px-2.5 py-1 text-[10px] font-semibold text-white',
-                            focusRing,
-                          )}
-                        >
-                          {item.actionLabel}
-                          <ChevronRight className="size-3" aria-hidden />
-                        </Link>
-                      ) : null}
-                    </div>
-                  </div>
-                </article>
+                <WardenNotificationRow
+                  item={item}
+                  unread={unread}
+                  onNavigate={() => {
+                    markNotificationRead(item.id);
+                    setOpen(false);
+                  }}
+                />
               </motion.li>
             );
           })}

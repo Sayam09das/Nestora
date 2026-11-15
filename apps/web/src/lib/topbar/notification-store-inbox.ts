@@ -41,6 +41,20 @@ export function mergeInboxById<T extends { id: string }>(storeItems: T[], derive
   return [...storeItems, ...derived.filter((n) => !storeIds.has(n.id))];
 }
 
+/** True when the MOD-07 inbox already has a row for this category (optionally unread only). */
+export function storeInboxCoversCategory(
+  items: NotificationRow[],
+  category: string,
+  options?: { unreadOnly?: boolean },
+): boolean {
+  const cat = category.toLowerCase();
+  return items.some((row) => {
+    if (row.category.toLowerCase() !== cat) return false;
+    if (options?.unreadOnly && row.isRead) return false;
+    return true;
+  });
+}
+
 export function syncReadIdsFromStoreItems(
   items: NotificationRow[],
   storageKey: string,
