@@ -28,8 +28,10 @@ The repository organizes source code into two primary directories: `apps/` (depl
 Nestora/
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml                           # Automated lint, type-check, contract test & migration diff
-│       └── release.yml                      # Production container build & verification workflow
+│       ├── ci.yml                           # Lint, typecheck, turbo build
+│       ├── docker.yml                       # API/Web image build; GHCR publish on main & tags
+│       ├── db-migrate.yml                   # Manual Neon migrate + seed
+│       └── release.yml                      # Manual re-publish of container images (calls docker.yml)
 │
 ├── apps/
 │   ├── web/                                 # Presentation Tier: Next.js 14+ App Router

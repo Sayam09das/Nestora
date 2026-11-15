@@ -60,4 +60,39 @@ docker build -f docker/Dockerfile.web \
   -t nestora-web:local .
 ```
 
-The release workflow (`.github/workflows/release.yml`) builds both images on `workflow_dispatch` for smoke-testing Docker in CI.
+## CI/CD (GitHub Actions)
+
+| Workflow | When | What |
+|----------|------|------|
+| [`ci.yml`](../.github/workflows/ci.yml) | PR / push `main`, `web`, `backend` | pnpm lint, typecheck, turbo build |
+| [`docker.yml`](../.github/workflows/docker.yml) | PR / push `main` / semver tag | Build API + Web images; **push to GHCR** on `main`, tags, and `workflow_dispatch` |
+| [`release.yml`](../.github/workflows/release.yml) | Manual | Re-runs the Docker publish workflow |
+| [`db-migrate.yml`](../.github/workflows/db-migrate.yml) | Manual | `db:migrate:deploy` + seed on **Neon** (`NEON_DATABASE_URL` secrets) |
+
+### GHCR images
+
+After merge to `main`, images are published as:
+
+- `ghcr.io/<owner>/nestora-api:latest` (and `:main`, `:sha`)
+- `ghcr.io/<owner>/nestora-web:latest`
+
+Pull (after logging in with a PAT that has `read:packages`):
+
+```bash
+docker pull ghcr.io/sayam09das/nestora-api:latest
+docker pull ghcr.io/sayam09das/nestora-web:latest
+```
+
+**Repository variables** (Settings → Secrets and variables → Actions → Variables), used at **web image build** time on CI:
+
+- `NEXT_PUBLIC_API_URL` — public browser URL for the API
+- `NEXT_PUBLIC_SITE_URL` — public site URL
+
+If unset, CI defaults to `http://localhost:4000` / `http://localhost:3000` (fine for PR builds).
+
+### Typical release path
+
+1. Open PR → **CI** + **Docker** (build-only) must pass.
+2. Merge to `main` → images pushed to GHCR automatically.
+3. Run **Deploy database migrations** with Neon secrets when schema changes.
+4. Deploy containers on your host (Compose, Fly, Railway, etc.) using the GHCR tags and production env.
