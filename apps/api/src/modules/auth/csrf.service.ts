@@ -6,7 +6,7 @@ export function issueCsrfToken(
   reply: {
     setCookie: (name: string, value: string, opts: Record<string, unknown>) => void;
   },
-  opts: { secure: boolean; sameSite: 'lax' | 'strict' },
+  opts: { secure: boolean; sameSite: 'lax' | 'strict' | 'none' },
 ): string {
   const token = createOpaqueToken();
   reply.setCookie(CSRF_COOKIE_NAME, token, {

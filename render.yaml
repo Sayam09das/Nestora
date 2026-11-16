@@ -1,0 +1,76 @@
+# Nestora API on Render (Docker). Database: Neon (set DATABASE_URL in dashboard).
+# Docs: docs/deploy-vercel-render.md
+
+services:
+  - type: web
+    name: nestora-api
+    runtime: docker
+    plan: starter
+    branch: main
+    autoDeploy: true
+    dockerfilePath: docker/Dockerfile.api
+    dockerContext: .
+    healthCheckPath: /health/ready
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "4000"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: STORAGE_DRIVER
+        value: neon
+
+      # Set in Render dashboard (Neon console + your Vercel URL)
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_DATABASE_URL
+        sync: false
+      - key: API_URL
+        sync: false
+      - key: WEB_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: AWS_ENDPOINT_URL_S3
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_BUCKET_PUBLIC
+        sync: false
+      - key: S3_BUCKET_PRIVATE
+        sync: false
+      - key: S3_BUCKET_STAFF_PUBLIC
+        sync: false
+      - key: S3_BUCKET_STAFF_PRIVATE
+        sync: false
+
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: MFA_ENCRYPTION_SECRET
+        generateValue: true
+
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+
+      # Optional overrides
+      - key: COOKIE_SAME_SITE
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: PRIVILEGED_MFA_ENFORCED
+        value: "false"

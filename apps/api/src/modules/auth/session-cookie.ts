@@ -1,15 +1,21 @@
+import { cookieSecureFlag, resolveCookieSameSite } from '../../config/cookie-same-site.js';
 import type { Env } from '../../config/index.js';
 import { sessionCookieName } from './auth.constants.js';
 
 export function sessionCookieOptions(env: Env) {
-  const isProd = env.NODE_ENV === 'production';
+  const sameSite = resolveCookieSameSite(env);
   return {
     path: '/' as const,
     httpOnly: true,
-    secure: isProd,
-    sameSite: 'lax' as const,
+    secure: cookieSecureFlag(env),
+    sameSite,
     maxAge: env.SESSION_TTL_HOURS * 3600,
   };
+}
+
+export function sessionCookieClearOptions(env: Env) {
+  const { path, sameSite, secure } = sessionCookieOptions(env);
+  return { path, sameSite, secure };
 }
 
 export function refreshSessionCookieIfPresent(

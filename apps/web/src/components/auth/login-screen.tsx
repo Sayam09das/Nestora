@@ -12,18 +12,17 @@ import {
   ShieldCheck,
   UserCog,
 } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { AuthFieldInput } from '@/components/auth/auth-form-fields';
+import { NestoraBrandImage } from '@/components/brand/nestora-brand-image';
 import { AuthSkiperLink } from '@/components/auth/auth-skiper-link';
 import { loginWithPassword, postLoginRedirect } from '@/lib/api/auth';
 import { isApiConfigured } from '@/lib/api/client';
 import { nestoraPrimaryCtaClasses } from '@/components/marketing/cta-styles';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
-import { NESTORA_BRAND_NAME } from '@/components/marketing/navbar';
 import { cn } from '@/lib/utils';
 
 const motionEase = [0.22, 1, 0.36, 1] as const;
@@ -267,21 +266,9 @@ export function LoginScreen() {
           <div className="text-center lg:text-left">
             <Link
               href="/"
-              className="inline-flex items-center gap-3 rounded-xl outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_28%,transparent)]"
+              className="inline-flex rounded-xl outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_28%,transparent)]"
             >
-              <span className="relative flex size-11 items-center justify-center overflow-hidden rounded-xl border border-[var(--nestora-sage-muted)] bg-card shadow-sm">
-                <Image
-                  src="/images/nestora-mark.svg"
-                  alt=""
-                  width={40}
-                  height={40}
-                  className="size-7 object-contain"
-                  unoptimized
-                />
-              </span>
-              <span className="text-h3 font-bold tracking-tight text-[var(--nestora-forest)]">
-                {NESTORA_BRAND_NAME}
-              </span>
+              <NestoraBrandImage variant="wordmark" priority />
             </Link>
 
             <p className="mt-4 text-h3 font-semibold tracking-tight text-[var(--nestora-forest)] sm:text-h2 lg:hidden">

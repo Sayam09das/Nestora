@@ -1,9 +1,9 @@
 'use client';
 
 import { ArrowUp } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 
+import { NestoraBrandImage } from '@/components/brand/nestora-brand-image';
 import { footerBrand, footerColumns } from '@/components/marketing/landing/footer-content';
 import { NESTORA_BRAND_NAME } from '@/components/marketing/navbar';
 import { cn } from '@/lib/utils';
@@ -48,26 +48,9 @@ export function MarketingSiteFooter() {
           <div className="min-w-0 lg:col-span-4 xl:col-span-4">
             <Link
               href="/"
-              className="group inline-flex max-w-sm items-center gap-3 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]"
+              className="group inline-flex max-w-sm rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_35%,transparent)]"
             >
-              <span className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--nestora-sage-muted)] bg-card shadow-sm">
-                <Image
-                  src="/images/nestora-mark.svg"
-                  alt=""
-                  width={40}
-                  height={40}
-                  className="size-7 object-contain"
-                  unoptimized
-                />
-              </span>
-              <span className="min-w-0 text-left">
-                <span className="block text-h4 font-semibold text-[var(--nestora-forest)]">
-                  {NESTORA_BRAND_NAME}
-                </span>
-                <span className="mt-0.5 block text-caption text-[var(--nestora-nav-muted)]">
-                  University hostel management
-                </span>
-              </span>
+              <NestoraBrandImage variant="wordmark" />
             </Link>
             <p className="mt-5 max-w-sm text-pretty text-supporting leading-relaxed text-[var(--nestora-nav-muted)]">
               {footerBrand.description}

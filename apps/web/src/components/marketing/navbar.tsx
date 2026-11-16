@@ -1,13 +1,13 @@
 'use client';
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Building2, ChevronRight, Menu, X } from 'lucide-react';
-import Image from 'next/image';
+import { ArrowRight, ArrowUpRight, ChevronRight, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { NestoraBrandImage } from '@/components/brand/nestora-brand-image';
 import { nestoraAdminCtaClasses, nestoraPrimaryCtaClasses } from '@/components/marketing/cta-styles';
 import { cn } from '@/lib/utils';
 
@@ -478,29 +478,11 @@ export function MarketingNavbar() {
             <Link
               href="/"
               className={cn(
-                'group flex min-w-0 max-w-[min(100%,14rem)] items-center gap-2.5 rounded-lg sm:gap-3',
+                'group flex min-w-0 max-w-[min(100%,15rem)] items-center rounded-lg',
                 navLinkFocus,
               )}
             >
-              <span className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-card shadow-nestora ring-1 ring-foreground/[0.04] transition-[border-color,box-shadow] duration-200 group-hover:border-[color-mix(in_oklch,var(--primary)_25%,var(--border))] group-hover:shadow-nestora-md motion-reduce:group-hover:shadow-nestora">
-                <Image
-                  src="/images/nestora-mark.svg"
-                  alt=""
-                  width={36}
-                  height={36}
-                  className="size-6 object-contain sm:size-7"
-                  priority
-                  unoptimized
-                />
-                <Building2
-                  className="pointer-events-none absolute -bottom-1 -right-1 size-3 rounded-full bg-background p-px text-primary opacity-0 transition-opacity duration-200 group-hover:opacity-100 motion-reduce:group-hover:opacity-0"
-                  aria-hidden
-                  strokeWidth={2.25}
-                />
-              </span>
-              <span className="min-w-0 truncate text-h3 font-semibold tracking-tight text-foreground">
-                {NESTORA_BRAND_NAME}
-              </span>
+              <NestoraBrandImage variant="wordmark" priority className="h-9 max-w-full sm:h-10" />
             </Link>
           </motion.div>
 

@@ -1,26 +1,27 @@
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+#!/usr/bin/env node
+/**
+ * Build derived raster assets from public/images/nestora-mark.png (PNG).
+ */
+import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Resvg } from '@resvg/resvg-js';
+import { execSync } from 'node:child_process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const publicImages = join(root, 'public', 'images');
 const appDir = join(root, 'src', 'app');
+const markPng = join(publicImages, 'nestora-mark.png');
 
-function rasterize(svgPath, outPath, width) {
-  const svg = readFileSync(svgPath, 'utf8');
-  const resvg = new Resvg(svg, {
-    fitTo: { mode: 'width', value: width },
-    font: { loadSystemFonts: true },
-  });
-  const png = resvg.render().asPng();
-  mkdirSync(dirname(outPath), { recursive: true });
-  writeFileSync(outPath, png);
-  // eslint-disable-next-line no-console
-  console.log(`wrote ${outPath} (${width}px wide)`);
+if (!existsSync(markPng)) {
+  console.error('Missing public/images/nestora-mark.png — copy from Nestora Hostel Management Logo.png first.');
+  process.exit(1);
 }
 
-rasterize(join(publicImages, 'nestora-mark.svg'), join(publicImages, 'image.png'), 1024);
-rasterize(join(publicImages, 'logo.svg'), join(publicImages, 'logo.png'), 1200);
-rasterize(join(publicImages, 'nestora-mark.svg'), join(appDir, 'icon.png'), 512);
-rasterize(join(publicImages, 'nestora-mark.svg'), join(appDir, 'apple-icon.png'), 180);
+function resize(inputPath, outputPath, maxSide) {
+  execSync(`sips -z ${maxSide} ${maxSide} "${inputPath}" --out "${outputPath}"`, { stdio: 'inherit' });
+}
+
+resize(markPng, join(publicImages, 'image.png'), 1024);
+resize(markPng, join(appDir, 'icon.png'), 512);
+resize(markPng, join(appDir, 'apple-icon.png'), 180);
+console.log('Brand icons updated.');

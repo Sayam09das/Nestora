@@ -12,16 +12,15 @@ import {
   ShieldCheck,
   Users,
 } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import { AuthFieldInput } from '@/components/auth/auth-form-fields';
+import { NestoraBrandImage } from '@/components/brand/nestora-brand-image';
 import { AuthSkiperLink } from '@/components/auth/auth-skiper-link';
 import { nestoraAdminCtaClasses } from '@/components/marketing/cta-styles';
 import { gsap, SplitText, useGSAP } from '@/components/marketing/hero/hero-gsap';
-import { NESTORA_BRAND_NAME } from '@/components/marketing/navbar';
 import { isApiConfigured } from '@/lib/api/client';
 import { loginWithPassword, postLoginRedirect } from '@/lib/api/auth';
 import { cn } from '@/lib/utils';
@@ -290,21 +289,9 @@ export function AdminLoginScreen() {
               </AuthSkiperLink>
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 rounded-lg outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_28%,transparent)]"
+                className="inline-flex rounded-lg outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color-mix(in_srgb,var(--nestora-sage)_28%,transparent)]"
               >
-                <span className="relative flex size-9 items-center justify-center overflow-hidden rounded-lg border border-[var(--nestora-sage-muted)] bg-card shadow-sm">
-                  <Image
-                    src="/images/nestora-mark.svg"
-                    alt=""
-                    width={36}
-                    height={36}
-                    className="size-6 object-contain"
-                    unoptimized
-                  />
-                </span>
-                <span className="text-supporting font-bold tracking-tight text-[var(--nestora-forest)]">
-                  {NESTORA_BRAND_NAME}
-                </span>
+                <NestoraBrandImage variant="wordmark" className="h-9" />
               </Link>
             </header>
 

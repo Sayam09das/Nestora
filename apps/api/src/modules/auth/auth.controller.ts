@@ -27,7 +27,8 @@ import { isAppError } from '../../common/errors/index.js';
 import type { Env } from '../../config/env.js';
 import { getSessionCookieName, requireAuth } from '../../middleware/authenticate.js';
 import { sessionCookieName } from './auth.constants.js';
-import { sessionCookieOptions } from './session-cookie.js';
+import { cookieSecureFlag, resolveCookieSameSite } from '../../config/cookie-same-site.js';
+import { sessionCookieClearOptions, sessionCookieOptions } from './session-cookie.js';
 import { AuthFlowError } from './auth.errors.js';
 import * as authService from './auth.service.js';
 import { issueCsrfToken } from './csrf.service.js';
@@ -40,8 +41,8 @@ import {
 export async function getCsrfToken(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const env = request.server.config;
   const token = issueCsrfToken(reply, {
-    secure: env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: cookieSecureFlag(env),
+    sameSite: resolveCookieSameSite(env),
   });
   reply.send(successResponse({ csrfToken: token }, 'CSRF token issued.'));
 }
@@ -208,7 +209,7 @@ export async function postLogout(request: FastifyRequest, reply: FastifyReply): 
   const raw = request.cookies[name];
   const u = request.user;
   await authService.logout(request.server.prisma, raw, u?.id, u?.role ?? 'SYSTEM', request.ip);
-  reply.clearCookie(name, { path: '/' });
+  reply.clearCookie(name, sessionCookieClearOptions(env));
   reply.send(successResponse({ loggedOut: true }, 'Signed out successfully.'));
 }
 
@@ -476,6 +477,6 @@ export async function postMfaDisable(request: FastifyRequest, reply: FastifyRepl
   const body = mfaDisableBodySchema.parse(request.body);
   await authService.mfaDisable(request.server.prisma, env, user.id, body, request.ip);
   const name = getSessionCookieName(env.NODE_ENV === 'production');
-  reply.clearCookie(name, { path: '/' });
+  reply.clearCookie(name, sessionCookieClearOptions(env));
   reply.send(successResponse({}, 'MFA disabled. Sign in again.'));
 }
