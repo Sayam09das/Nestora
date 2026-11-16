@@ -18,6 +18,8 @@ export const envSchema = z
     RATE_LIMIT_AUTH_MAX: z.coerce.number().int().positive().default(15),
     /** When true, Fastify trusts X-Forwarded-For for request.ip (set behind a reverse proxy). */
     TRUST_PROXY: z.coerce.boolean().default(false),
+    /** Override auto SameSite (`lax` same host, `none` when WEB_URL ≠ API_URL). Required for Vercel + Render. */
+    COOKIE_SAME_SITE: z.enum(['lax', 'none', 'strict']).optional(),
 
     DATABASE_URL: z.string().url(),
 

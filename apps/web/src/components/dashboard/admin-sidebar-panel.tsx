@@ -1,8 +1,8 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 
+import { NestoraBrandImage } from '@/components/brand/nestora-brand-image';
 import { adminNavGroups } from '@/components/dashboard/admin-nav-items';
 import { AdminSidebarAccount } from '@/components/dashboard/admin-sidebar-account';
 import { AdminSidebarNav } from '@/components/dashboard/admin-sidebar-nav';
@@ -39,15 +39,8 @@ export function AdminSidebarPanel({ collapsed, onNavigate, className }: AdminSid
         )}
         title={collapsed ? `${NESTORA_BRAND_NAME} command` : undefined}
       >
-        <span className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/15 bg-white/10 shadow-sm">
-          <Image
-            src="/images/nestora-mark.svg"
-            alt=""
-            width={36}
-            height={36}
-            className="size-7 object-contain"
-            unoptimized
-          />
+        <span className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/15 bg-black/40 shadow-sm">
+          <NestoraBrandImage variant="mark" className="size-8" />
         </span>
         {!collapsed ? (
           <span className="min-w-0">

@@ -63,8 +63,12 @@ export function absoluteUrl(path = '/'): string {
 }
 
 export const brandAssets = {
-  /** Square mark — favicon, app icon, Apple touch icon (1254×1254). */
-  icon: '/images/nestora-mark.svg',
-  /** Wordmark — Open Graph / Twitter preview (2172×724; not 1200×630 ideal). */
+  /** Cropped N mark from official wordmark (PNG). */
+  mark: '/images/nestora-mark.png',
+  /** Favicon / PWA icon — synced from `nestora-mark.png`. */
+  icon: '/images/nestora-mark.png',
+  /** Full Nestora hostel wordmark (1024×682). */
+  wordmark: '/images/logo.png',
+  /** Open Graph / Twitter preview. */
   social: '/images/logo.png',
 } as const;

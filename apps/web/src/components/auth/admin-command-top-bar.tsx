@@ -2,11 +2,11 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { Activity, ShieldCheck } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRef } from 'react';
 
 import { AuthSkiperLink } from '@/components/auth/auth-skiper-link';
+import { NestoraBrandImage } from '@/components/brand/nestora-brand-image';
 import { gsap, useGSAP } from '@/components/marketing/hero/hero-gsap';
 import { NESTORA_BRAND_NAME } from '@/components/marketing/navbar';
 import { cn } from '@/lib/utils';
@@ -73,15 +73,8 @@ export function AdminCommandTopBar({ className }: AdminCommandTopBarProps) {
             href="/"
             className="group flex shrink-0 items-center gap-2.5 rounded-lg outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/30"
           >
-            <span className="relative flex size-9 items-center justify-center overflow-hidden rounded-lg border border-white/15 bg-white/10 shadow-sm transition-[border-color,transform] duration-200 group-hover:border-[color-mix(in_oklch,var(--nestora-gold)_35%,white)] motion-reduce:group-hover:border-white/15">
-              <Image
-                src="/images/nestora-mark.svg"
-                alt=""
-                width={32}
-                height={32}
-                className="size-6 object-contain"
-                unoptimized
-              />
+            <span className="relative flex size-9 items-center justify-center overflow-hidden rounded-lg border border-white/15 bg-black/40 shadow-sm transition-[border-color,transform] duration-200 group-hover:border-[color-mix(in_oklch,var(--nestora-gold)_35%,white)] motion-reduce:group-hover:border-white/15">
+              <NestoraBrandImage variant="mark" className="size-7" />
             </span>
             <span className="min-w-0">
               <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">

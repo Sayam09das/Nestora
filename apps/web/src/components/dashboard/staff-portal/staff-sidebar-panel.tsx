@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { NestoraBrandImage } from '@/components/brand/nestora-brand-image';
 import Link from 'next/link';
 
 import { StaffSidebarNav } from '@/components/dashboard/staff-portal/staff-sidebar-nav';
@@ -34,8 +34,8 @@ export function StaffSidebarPanel({ collapsed, onNavigate, className }: Props) {
         )}
         title={collapsed ? 'Staff Portal' : undefined}
       >
-        <span className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/15 bg-white/10 shadow-sm">
-          <Image src="/images/nestora-mark.svg" alt="" width={36} height={36} className="size-7 object-contain" unoptimized />
+        <span className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/15 bg-black/40 shadow-sm">
+          <NestoraBrandImage variant="mark" className="size-8" />
         </span>
         {!collapsed ? (
           <span className="min-w-0">
