@@ -18,7 +18,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@gsap/react": "^2.1.2",
-    "@hookform/resolvers": "^7.0.2",
+    "@hookform/resolvers": "^7.0.5",
     "@nestora/types": "workspace:*",
     "@nestora/utils": "workspace:*",
     "@nestora/validators": "workspace:*",
