@@ -1,0 +1,71 @@
+name: Production bootstrap
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_seed:
+        description: Run reference seed after migrate
+        type: boolean
+        default: false
+      admin_init_email:
+        description: Create INACTIVE admin if none ACTIVE (optional)
+        type: string
+        required: false
+      api_health_url:
+        description: API origin for /health/ready check (optional)
+        type: string
+        required: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.13.1
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply Prisma migrations to Neon
+        working-directory: packages/database
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          DIRECT_DATABASE_URL: ${{ secrets.NEON_DIRECT_DATABASE_URL }}
+        run: pnpm db:migrate:deploy
+
+      - name: Seed reference data
+        if: inputs.run_seed == true
+        working-directory: packages/database
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          DIRECT_DATABASE_URL: ${{ secrets.NEON_DIRECT_DATABASE_URL }}
+          NODE_ENV: development
+        run: pnpm db:seed
+
+      - name: Initial admin (when no ACTIVE admin)
+        if: inputs.admin_init_email != ''
+        working-directory: packages/database
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          DIRECT_DATABASE_URL: ${{ secrets.NEON_DIRECT_DATABASE_URL }}
+          WEB_URL: ${{ vars.WEB_URL }}
+        run: |
+          pnpm admin:init -- --email "${{ inputs.admin_init_email }}" || true
+
+      - name: Verify API health
+        if: inputs.api_health_url != ''
+        env:
+          API_URL: ${{ inputs.api_health_url }}
+        run: node scripts/verify-api-health.mjs

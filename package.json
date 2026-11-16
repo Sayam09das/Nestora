@@ -43,7 +43,11 @@
     "docker:prod:up": "docker compose -f docker/docker-compose.prod.yml up -d --build",
     "docker:prod:down": "docker compose -f docker/docker-compose.prod.yml down",
     "docker:prod:logs": "docker compose -f docker/docker-compose.prod.yml logs -f",
-    "docker:db:migrate": "DATABASE_URL=postgresql://nestora:nestora_dev_pw@localhost:5432/nestora_db?schema=public DIRECT_DATABASE_URL=postgresql://nestora:nestora_dev_pw@localhost:5432/nestora_db?schema=public pnpm --filter @nestora/database db:migrate:deploy"
+    "docker:db:migrate": "DATABASE_URL=postgresql://nestora:nestora_dev_pw@localhost:5432/nestora_db?schema=public DIRECT_DATABASE_URL=postgresql://nestora:nestora_dev_pw@localhost:5432/nestora_db?schema=public pnpm --filter @nestora/database db:migrate:deploy",
+    "deploy:migrate:neon": "pnpm --filter @nestora/database db:migrate:deploy",
+    "deploy:admin:init": "pnpm --filter @nestora/database admin:init",
+    "deploy:health": "node scripts/verify-api-health.mjs",
+    "deploy:bootstrap": "node scripts/production-bootstrap.mjs"
   },
   "devDependencies": {
     "@aws-sdk/s3-presigned-post": "^3.1164.0",
