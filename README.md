@@ -16,6 +16,7 @@ A centralized, web-based University Hostel Management System engineered to admin
 - [Project Structure](#project-structure)
 - [Documentation](#documentation)
 - [Installation and Setup](#installation-and-setup)
+- [Production Deployment](#production-deployment)
 - [Development Status](#development-status)
 - [Future Improvements](#future-improvements)
 - [Contributing](#contributing)
@@ -316,6 +317,14 @@ The project maintains a sequential documentation suite serving as the primary so
 6. Run the monorepo dev servers: `pnpm dev` — web on port **3000**, API on port **4000** (`/api/v1/*`)
 
 Production initial administrator provisioning (no hardcoded credentials): `pnpm --filter @nestora/database admin:init --email <admin_email>` — detailed in [09-monorepo-architecture.md](docs/09-monorepo-architecture.md) §6.3.
+
+---
+
+## Production Deployment
+
+Live stack: **Vercel** (web) + **Render** (API) + **Neon** (Postgres and object storage). Full checklist and ship status: **[docs/deploy-vercel-render.md](docs/deploy-vercel-render.md)**.
+
+**Git:** `web` merged to `main` (PR #61); no further pushes required for deploy unless you ship new features.
 
 ---
 

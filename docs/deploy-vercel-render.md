@@ -120,3 +120,15 @@ pnpm --filter @nestora/database admin:init -- --email admin@university.edu
 | [`render.yaml`](../render.yaml) | Render Blueprint for API (Docker) |
 | [`apps/web/vercel.json`](../apps/web/vercel.json) | Monorepo install/build for Vercel |
 | [`docker/Dockerfile.api`](../docker/Dockerfile.api) | API production image |
+
+## 6. Ship status (production)
+
+| Item | Value |
+| ---- | ----- |
+| **Web** | [https://nestora-black.vercel.app](https://nestora-black.vercel.app) |
+| **API** | [https://nestora-ptgf.onrender.com](https://nestora-ptgf.onrender.com) |
+| **Database** | Neon (migrations applied; use `pnpm deploy:health` to verify API) |
+
+**Git:** `web` was merged to `main` via [PR #61](https://github.com/Sayam09das/Nestora/pull/61); nothing left to push for deploy unless you add new features later.
+
+Optional dashboard-only follow-up: set Render `WEB_URL` and `API_URL` to the URLs above so activation/reset emails and cookie auto-detection stay correct (see [§2 Render env](#render-env-required)).
